@@ -95,6 +95,8 @@ while ($isRunning) {
     $keyInfo = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     $vKey = $keyInfo.VirtualKeyCode
     switch ($vKey) {
+        33 { $index = [Math]::Max(0, $index - 10) }
+        34 { $index = [int][Math]::Min($total - 1, $index + 10) }
         38 { $index = [Math]::Max(0, $index - 1) }
         40 { $index = [int][Math]::Min($total - 1, $index + 1) }
         13 { 
