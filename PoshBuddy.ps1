@@ -26,3 +26,6 @@ function Draw-UIBox ($x, $y, $w, $h, $title, $color) {
 function Wait-ForKey {
     return $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
+function Render-ThemePreview ($themePath) {
+    oh-my-posh print primary --config $themePath --shell pwsh | Out-String | Write-Host -NoNewline
+}
