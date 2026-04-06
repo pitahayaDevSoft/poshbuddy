@@ -40,9 +40,16 @@ if (!(Test-Path $PoshBuddy.ThemesDir)) { New-Item -ItemType Directory -Path $Pos
 function Get-Themes {
     $cacheValid = $false
     if (Test-Path $PoshBuddy.CacheFile) {
-        $cache = Get-Content $PoshBuddy.CacheFile | ConvertFrom-Json
-        $age = (Get-Date) - [DateTime]$cache.Timestamp
-        if ($age.TotalHours -lt 24) { $cacheValid = $true }
+        try {
+            $content = Get-Content $PoshBuddy.CacheFile -ErrorAction SilentlyContinue
+            if (![string]::IsNullOrWhiteSpace($content)) {
+                $cache = $content | ConvertFrom-Json
+                $age = (Get-Date) - [DateTime]$cache.Timestamp
+                if ($age.TotalHours -lt 24) { $cacheValid = $true }
+            }
+        } catch {
+            $cacheValid = $false
+        }
     }
 
     if ($cacheValid) {
@@ -51,19 +58,26 @@ function Get-Themes {
 
     $url = "https://api.github.com/repos/JanDeDobbeleer/oh-my-posh/contents/themes"
     try {
-        $themes = (Invoke-RestMethod -Uri $url | Where-Object { $_.name -like "*.omp.json" }).name
+        $themes = (Invoke-RestMethod -Uri $url -TimeoutSec 15 | Where-Object { $_.name -like "*.omp.json" }).name
         $cacheObj = @{ Timestamp = Get-Date; Themes = $themes }
         $cacheObj | ConvertTo-Json | Set-Content $PoshBuddy.CacheFile
         return $themes
     } catch { 
-        if (Test-Path $PoshBuddy.CacheFile) { return (Get-Content $PoshBuddy.CacheFile | ConvertFrom-Json).Themes }
+        if (Test-Path $PoshBuddy.CacheFile) { 
+            try {
+                $content = Get-Content $PoshBuddy.CacheFile -ErrorAction SilentlyContinue
+                if (![string]::IsNullOrWhiteSpace($content)) {
+                    return ($content | ConvertFrom-Json).Themes
+                }
+            } catch { }
+        }
         return @() 
     }
 }
 
 function Save-Theme ($themeName, $localPath) {
     if (!(Test-Path $localPath)) {
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/$themeName" -OutFile $localPath -ErrorAction SilentlyContinue
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/$themeName" -OutFile $localPath -ErrorAction SilentlyContinue -TimeoutSec 10
     }
 }
 
