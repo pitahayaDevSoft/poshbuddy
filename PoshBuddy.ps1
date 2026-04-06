@@ -14,6 +14,21 @@ $PoshBuddy = @{
     CacheFile = Join-Path $HOME ".poshthemes\themes_cache.json"
 }
 
+function Test-NerdFont {
+    try {
+        $fontName = ""
+        if ($IsWindows) {
+            $fontName = $Host.UI.RawUI.FontName
+            if (!$fontName) {
+                $fontName = (Get-ItemProperty -Path "HKCU:\Console" -ErrorAction SilentlyContinue).FaceName
+            }
+        }
+        return ($fontName -match "NF|Nerd|Retina")
+    } catch {
+        return $false
+    }
+}
+
 # Ensure environment
 if (!(Get-Command oh-my-posh -ErrorAction SilentlyContinue)) {
     Write-Host "ERROR: 'oh-my-posh' no detectado. Instálalo primero." -ForegroundColor Red
@@ -92,6 +107,7 @@ function Clear-Panel ($x, $y, $w, $h) {
 # --- CONTROLLER (LOGIC & LOOP) ---
 function Start-PoshBuddy {
     $allThemes = Get-Themes; $index = 0; $filter = ""; $isRunning = $true
+    $hasNerdFont = Test-NerdFont
     $lastWin = $Host.UI.RawUI.WindowSize; [Console]::Clear()
 
     while ($isRunning) {
@@ -124,17 +140,22 @@ function Start-PoshBuddy {
         if ($total -gt 0) {
             $theme = $filtered[$index]; $localPath = Join-Path $PoshBuddy.ThemesDir $theme
             Save-Theme $theme $localPath
-            
+
             Clear-Panel ($leftW + 2) 1 ($rightW - 2) ($panelH - 2)
             $p = $Host.UI.RawUI.CursorPosition; $p.X = $leftW + 4; $p.Y = 4; $Host.UI.RawUI.CursorPosition = $p
             oh-my-posh print primary --config $localPath --shell pwsh | Out-String | Write-Host -NoNewline
-            
+
+            if (!$hasNerdFont) {
+                $p = $Host.UI.RawUI.CursorPosition; $p.X = $leftW + 4; $p.Y = $panelH - 2
+                $Host.UI.RawUI.CursorPosition = $p
+                Write-Host "⚠️ Nerd Font no detectada. Los iconos podrían no verse bien." -ForegroundColor DarkYellow
+            }
+
             $p.Y = 7; $Host.UI.RawUI.CursorPosition = $p; Write-Host "METRICAS DE CARGA:" -ForegroundColor DarkGray
             $debug = oh-my-posh debug --config $localPath | Out-String
             $p.Y = 9; $Host.UI.RawUI.CursorPosition = $p
             ($debug -split "`n") | Where-Object { $_ -match "Run duration" } | Write-Host -ForegroundColor Cyan
         }
-
         $keyInfo = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         $vKey = $keyInfo.VirtualKeyCode
         switch ($vKey) {
