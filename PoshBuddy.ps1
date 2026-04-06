@@ -23,11 +23,27 @@ if (!(Test-Path $PoshBuddy.ThemesDir)) { New-Item -ItemType Directory -Path $Pos
 
 # --- MODEL (DATA LAYER) ---
 function Get-Themes {
+    $cacheValid = $false
+    if (Test-Path $PoshBuddy.CacheFile) {
+        $cache = Get-Content $PoshBuddy.CacheFile | ConvertFrom-Json
+        $age = (Get-Date) - [DateTime]$cache.Timestamp
+        if ($age.TotalHours -lt 24) { $cacheValid = $true }
+    }
+
+    if ($cacheValid) {
+        return $cache.Themes
+    }
+
     $url = "https://api.github.com/repos/JanDeDobbeleer/oh-my-posh/contents/themes"
     try {
         $themes = (Invoke-RestMethod -Uri $url | Where-Object { $_.name -like "*.omp.json" }).name
+        $cacheObj = @{ Timestamp = Get-Date; Themes = $themes }
+        $cacheObj | ConvertTo-Json | Set-Content $PoshBuddy.CacheFile
         return $themes
-    } catch { return @() }
+    } catch { 
+        if (Test-Path $PoshBuddy.CacheFile) { return (Get-Content $PoshBuddy.CacheFile | ConvertFrom-Json).Themes }
+        return @() 
+    }
 }
 
 function Save-Theme ($themeName, $localPath) {
