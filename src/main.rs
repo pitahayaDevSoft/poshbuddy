@@ -37,6 +37,7 @@ struct App {
     version: String,
     list_state: ListState,
     spinner_tick: usize,
+    has_nerd_font: bool,
 }
 
 impl App {
@@ -55,6 +56,8 @@ impl App {
         let mut list_state = ListState::default();
         list_state.select(Some(0));
 
+        let has_nerd_font = Self::check_nerd_font();
+
         App {
             state: AppState::Loading,
             themes: Vec::new(),
@@ -64,6 +67,30 @@ impl App {
             version: "0.2.0-rust".to_string(),
             list_state,
             spinner_tick: 0,
+            has_nerd_font,
+        }
+    }
+
+    fn check_nerd_font() -> bool {
+        // En Windows, intentamos detectar la fuente via PowerShell/Registry
+        // En Linux/WSL es más complejo, pero podemos buscar variables de entorno o simplemente confiar si el usuario lo configuró
+        let cmd = if cfg!(windows) {
+            "powershell"
+        } else {
+            "powershell.exe" // Intentar llamar al host de Windows desde WSL
+        };
+
+        let output = std::process::Command::new(cmd)
+            .args(["-Command", "(Get-ItemProperty -Path 'HKCU:\\Console' -ErrorAction SilentlyContinue).FaceName"])
+            .output();
+
+        if let Ok(out) = output {
+            let name = String::from_utf8_lossy(&out.stdout).to_lowercase();
+            name.contains("nf") || name.contains("nerd") || name.contains("retina")
+        } else {
+            // Si falla el comando, devolvemos true para no molestar con avisos falsos,
+            // o false si queremos ser estrictos. Usaremos true por ahora.
+            true 
         }
     }
 
@@ -250,13 +277,17 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
             let selected_theme = app.list_state.selected()
                 .and_then(|i| filtered.get(i));
 
-            let preview_text = match selected_theme {
+            let mut preview_text = match selected_theme {
                 Some(theme) => format!(
                     "\n  Tema seleccionado: {}\n\n  Filtro actual: {}\n\n  [ENTER] Aplicar Tema\n  [ESC/Q] Salir\n\n  Usa la rueda del ratón para navegar",
                     theme, app.filter
                 ),
                 None => format!("\n  No se encontraron temas con el filtro: {}\n\n  [ESC/Q] Salir", app.filter),
             };
+
+            if !app.has_nerd_font {
+                preview_text.push_str("\n\n  ⚠️ ADVERTENCIA: Nerd Font no detectada.\n  Los iconos podrían no visualizarse correctamente.");
+            }
 
             let preview = Paragraph::new(preview_text)
                 .block(Block::default().borders(Borders::ALL).title(" Vista Previa / Info "));
