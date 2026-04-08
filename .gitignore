@@ -1,3 +1,7 @@
 .poshthemes/
 *.log
 .history/
+target/
+.gemini/
+.vscode/
+Cargo.lock
