@@ -1,25 +1,28 @@
-# 🚀 PoshBuddy (Pre-Alpha)
+# 🚀 PoshBuddy (v0.2.0-rust)
 
-**PoshBuddy** no es solo un gestor de temas; es el comienzo de una suite de personalización integral para PowerShell en Windows. Diseñado para ser la herramienta definitiva que falta en el ecosistema.
+**PoshBuddy** es la suite de personalización integral definitiva para PowerShell. Ahora con un potente núcleo en **Rust** para una experiencia TUI ultra fluida y profesional.
 
-## 🚧 Estado del Proyecto: Pre-Alpha (v0.0.1)
-Estamos sentando las bases. El objetivo actual es un motor de renderizado TUI fluido y una integración perfecta con Oh My Posh.
+## 🚧 Estado del Proyecto: Beta (v0.2.0)
+Hemos migrado el núcleo a Rust para mejorar el rendimiento y la fiabilidad. PoshBuddy ahora gestiona temas y fuentes de forma asíncrona.
 
 ## 🎯 Roadmap 2026
-- [x] **v0.0.1:** Dashboard TUI Responsivo con previsualización en tiempo real.
-- [ ] **v0.1.0:** Motor de Gestión de Plugins (Módulos de PowerShell).
-- [ ] **v0.2.0:** Instalador de Fuentes (Nerd Fonts integration).
-- [ ] **v0.3.0:** Perfiles de Usuario y Backup de Configuraciones.
+- [x] **v0.1.0:** Dashboard TUI en PowerShell (Legacy).
+- [x] **v0.2.0:** Port a Rust + Instalador de Fuentes (Nerd Fonts integration).
+- [ ] **v0.3.0:** Motor de Gestión de Plugins (Módulos de PowerShell).
+- [ ] **v0.4.0:** Perfiles de Usuario y Backup de Configuraciones en la Nube.
 - [ ] **v1.0.0:** Suite Completa de Experiencia de Terminal.
 
-## 🛠️ Arquitectura
-PoshBuddy está construido sobre **PowerShell nativo**, aprovechando las capacidades de manipulación de consola de bajo nivel (`RawUI`) para ofrecer una interfaz de dashboard sin dependencias externas.
+## 🛠️ Arquitectura (Rust Port)
+- **Engine:** Rust + Ratatui (TUI).
+- **Async:** Tokio + Reqwest para fetching de temas y fuentes sin bloqueo.
+- **Integration:** Gestión directa del `$PROFILE` de PowerShell.
 
 ## ⌨️ Controles
-- **↑ / ↓:** Navegación por el registro de temas.
-- **Letras:** Filtrado dinámico en memoria.
-- **Enter:** Selección y persistencia en el `$PROFILE`.
-- **Esc:** Abortar operación.
+- **Tab / 1-2:** Cambiar entre pestañas (Temas / Fuentes).
+- **↑ / ↓ / Scroll:** Navegación por las listas.
+- **Letras / Backspace:** Filtrado dinámico en tiempo real.
+- **Enter:** Aplicar tema o instalar fuente.
+- **Esc / Q:** Salir de la aplicación.
 
 ---
 **Desarrollado con rigor técnico por Julio (Senior Engineer).**
