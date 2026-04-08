@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, MouseEventKind},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -58,7 +58,6 @@ struct App {
     spinner_tick: usize,
     has_nerd_font: bool,
     theme_preview: String,
-    last_selected_theme: Option<String>,
 }
 
 impl App {
@@ -97,7 +96,6 @@ impl App {
             spinner_tick: 0,
             has_nerd_font,
             theme_preview: String::new(),
-            last_selected_theme: None,
         }
     }
 
@@ -524,7 +522,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 AppMessage::ThemePreviewLoaded(preview) => {
                     app.theme_preview = preview;
                 }
-                AppMessage::FontInstalled(name) => {
+                AppMessage::FontInstalled(_name) => {
                     app.state = AppState::Main;
                     app.has_nerd_font = true; // Asumimos éxito tras instalar
                 }
