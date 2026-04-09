@@ -1,9 +1,9 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/julesklord/poshbuddy/main/assets/poshbuddy_logo.png" alt="PoshBuddy Logo" width="200" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
   
-# PoshBuddy
+  # PoshBuddy
   
-  **El gestor TUI definitivo para Oh My Posh en entornos Windows y PowerShell**
+  **The definitive TUI manager for Oh My Posh in Windows and PowerShell environments**
 
   [![Rust](https://img.shields.io/badge/Rust-1.76+-orange.svg)](https://www.rust-lang.org)
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -13,76 +13,74 @@
 
 <br>
 
-**PoshBuddy** es una interfaz de terminal (TUI) ligera, rápida y hermosamente diseñada en Rust, creada para simplificar la instalación, gestión y personalización de temas y fuentes para **Oh My Posh**. Adiós a la configuración manual de perfiles y a lidiar con JSONs; PoshBuddy hace el trabajo pesado por ti con una experiencia visual inmersiva.
+**PoshBuddy** is a lightweight, fast, and beautifully designed terminal user interface (TUI) built in Rust. It's designed to simplify the installation, management, and customization of themes and fonts for **Oh My Posh**. Say goodbye to manual profile editing and JSON juggling—PoshBuddy does the heavy lifting for you with an immersive visual experience.
 
 ---
 
-## ✨ Características Principales
+## ✨ Key Features
 
-- **🎨 Previsualización Real ANSI**: Visualiza los temas de Oh My Posh directamente en la terminal con renderizado de colores reales y glifos gracias a `ansi-to-tui`, aislando el entorno para una previsualización fidedigna.
-- **🚀 Instalación Automática (Dependency Manager)**: PoshBuddy detecta automáticamente si `oh-my-posh` está instalado en tu sistema. Si no lo está, te ofrece un instalador transparente y en tiempo real usando `winget`.
-- **⚕️ Diagnóstico Dinámico (Onboarding)**: Evalúa dinámicamente tu entorno al arrancar. Te alerta si te falta una Nerd Font, si estás usando un PowerShell antiguo (5.1 vs 7+) o una consola obsoleta frente a modernos emuladores como Windows Terminal.
-- **🔗 Soporte Multi-Perfil Dinámico**: Aplica tu tema elegido instantáneamente y de forma simultánea en todas tus instalaciones de PowerShell detectadas (Windows PowerShell clásico y PowerShell 7 Core), independientemente de la unidad en la que residan tus documentos.
-- **🔤 Gestor de Fuentes (Nerd Fonts)**: Explora, descarga e instala las famosas *Nerd Fonts* necesarias para ver los característicos iconos de desarrollo sin salir de la TUI.
+- **🎨 Real ANSI Preview**: Visualize Oh My Posh themes directly in your terminal with true color rendering and glyphs thanks to `ansi-to-tui`. It uses environment isolation to ensure previews are accurate and unaffected by your current shell settings.
+- **🚀 Automatic Installation (Dependency Manager)**: PoshBuddy automatically detects if `oh-my-posh` is installed. If not, it offers a transparent, real-time installer using `winget` directly from the TUI.
+- **⚕️ Dynamic Diagnostics (Onboarding)**: Evaluates your environment at startup. It alerts you if a Nerd Font is missing, if you're using an outdated PowerShell version (5.1 vs 7+), or an obsolete console compared to modern emulators like Windows Terminal.
+- **🔗 Dynamic Multi-Profile Support**: Apply your chosen theme instantly across all detected PowerShell installations (classic Windows PowerShell and PowerShell Core), regardless of where your documents folder is located.
+- **🔤 Font Manager (Nerd Fonts)**: Browse, download, and install popular *Nerd Fonts* required for Oh My Posh icons without ever leaving the application.
 
-## 🛠️ Requisitos Previos
+## 🛠️ Prerequisites
 
-Para la experiencia óptima (Golden Standard), recomendamos:
+For the optimal experience (The Golden Standard), we recommend:
+* **[Windows Terminal](https://github.com/microsoft/terminal)**
+* **[PowerShell 7+](https://github.com/PowerShell/PowerShell)**
+* A **Nerd Font** configured as your primary font in your terminal settings.
 
-- **[Windows Terminal](https://github.com/microsoft/terminal)**
-- **[PowerShell 7+](https://github.com/PowerShell/PowerShell)**
-- Una **Nerd Font** configurada en tu emulador de terminal elegida.
+*(Note: PoshBuddy works in classic consoles, but the visual experience is vastly superior when meeting the above requirements. The app will guide you during the onboarding process).*
 
-*(Nota: PoshBuddy funciona en consolas clásicas, pero la visualización y experiencia serán abismalmente superiores cumpliendo los requisitos superiores, el programa te guiará durante el onboarding).*
+## 📦 Installation
 
-## 📦 Instalación
-
-Asegúrate de tener instalado [Rust y Cargo](https://rustup.rs/).
+Ensure you have [Rust and Cargo](https://rustup.rs/) installed.
 
 ```powershell
-# Clonar el repositorio
+# Clone the repository
 git clone https://github.com/julesklord/poshbuddy.git
 cd poshbuddy
 
-# Compilar y ejecutar
+# Build and run
 cargo run --release
 ```
 
-## 🎮 Uso
+## 🎮 Usage
 
-1. Lanza el ejecutable o `cargo run`.
-2. Revisa la pantalla de **Diagnóstico del Sistema** y pulsa `[ENTER]` para empezar.
-3. Utiliza las flechas `[ARRIBA]` y `[ABAJO]` para navegar entre los temas de la lista.
-4. Navega entre paneles con `[TAB]` o usa atajos rápidos (`[1]` para Temas, `[2]` para Fuentes).
-5. Selecciona tu tema o fuente y pulsa `[ENTER]` para aplicarlo/instalarlo.
-6. **Disfruta de tu nuevo prompt**. PoshBuddy te indicará cuándo debes recargar la terminal o aplicar los cambios en sus nuevas pantallas de *Feedback de Éxito*.
+1. Launch the executable or run `cargo run`.
+2. Review the **System Diagnostics** screen and press `[ENTER]` to start.
+3. Use `[UP]` and `[DOWN]` arrow keys to navigate the theme list.
+4. Switch panels with `[TAB]` or use shortcuts (`[1]` for Themes, `[2]` for Fonts).
+5. Select a theme or font and press `[ENTER]` to apply or install it.
+6. **Enjoy your new prompt**. PoshBuddy will notify you when to reload your terminal to see the changes.
 
-## 🗺️ Roadmap y Futuro
+## 🗺️ Roadmap
 
-PoshBuddy se encuentra en constante y activa evolución. Estamos trabajando en allanar el camino para las siguientes características clave (V0.3.0+):
+PoshBuddy is actively evolving. We are currently paving the way for the following key features (V0.3.0+):
 
-- [ ] **🔌 Soporte para Instalación de Plugins**: Un gestor gráfico unificado para añadir bloques de segmentos extra, scripts auxiliares y módulos de prompt.
-- [ ] **🌐 Soporte Multilenguaje (i18n)**: Empezando el soporte nativo multi-idioma (Inglés, Español de manera primaria) para abrir PoshBuddy a toda la comunidad global.
-- [ ] **📦 Lanzamientos en Binario**: Distribución vía WinGet y Scoop para una instalación sin necesitar un runtime de Rust.
+- [ ] **🔌 Plugin Support**: A dedicated manager to add extra segments, auxiliary scripts, and prompt modules.
+- [ ] **🌐 Multi-language Support (i18n)**: Implementing native multi-language support (starting with English and Spanish) to open PoshBuddy to the global community.
+- [ ] **📦 Binary Distributions**: Availability via WinGet and Scoop for installation without needing the Rust runtime.
 
-## 🤝 Contribuir
+## 🤝 Contributing
 
-¡Las contribuciones son bienvenidas! Si deseas ayudar a expandir PoshBuddy (incluyendo los milestones de multilenguaje y plugins):
+Contributions are welcome! If you'd like to help expand PoshBuddy (including the multi-language and plugin milestones):
+1. *Fork* the project.
+2. Create a feature branch (`git checkout -b feature/NewFeature`).
+3. *Commit* your changes (`git commit -m 'feat(scope): add NewFeature'`).
+4. *Push* to the branch (`git push origin feature/NewFeature`).
+5. Open a **Pull Request**.
 
-1. Haz un *Fork* del proyecto.
-2. Crea una rama para tu característica (`git checkout -b feature/NuevaCaracteristica`).
-3. Haz *Commit* a tus cambios (`git commit -m 'feat(scope): añade NuevaCaracteristica'`).
-4. Haz *Push* de la rama (`git push origin feature/NuevaCaracteristica`).
-5. Abre un **Pull Request**.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and codebase conventions.
 
-Por favor, lee [CONTRIBUTING.md](CONTRIBUTING.md) para más detalles sobre el código de conducta y convenciones de la base de código.
+## 📄 License
 
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
 ---
 
 <div align="center">
-  <i>Construido con ❤️ para la comunidad de desarrolladores en Windows.</i>
+  <i>Built with ❤️ for the developer community on Windows.</i>
 </div>
