@@ -61,9 +61,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 }
-                AppMessage::FontInstalled(_name) => {
-                    app.state = AppState::Main;
-                    app.has_nerd_font = true; // Asumimos éxito tras instalar
+                AppMessage::FontInstalled(name) => {
+                    app.state = AppState::FontSuccess(name);
+                    app.has_nerd_font = true;
                 }
                 AppMessage::InstallProgress { line } => {
                     if let AppState::InstallingDependency { log, .. } = &mut app.state {
@@ -115,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
 
-                if let AppState::Success(_) = app.state {
+                if let AppState::Success(_) | AppState::FontSuccess(_) = app.state {
                     break;
                 }
 

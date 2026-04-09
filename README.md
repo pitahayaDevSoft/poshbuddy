@@ -1,162 +1,88 @@
-# 🚀 PoshBuddy
+<div align="center">
+  <img src="https://raw.githubusercontent.com/julesklord/poshbuddy/main/assets/poshbuddy_logo.png" alt="PoshBuddy Logo" width="200" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
+  
+# PoshBuddy
+  
+  **El gestor TUI definitivo para Oh My Posh en entornos Windows y PowerShell**
 
-[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![Version](https://img.shields.io/badge/version-0.2.0--rust-blue.svg)](https://github.com/julio/poshbuddy)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20(WSL)-brightgreen.svg)]()
+  [![Rust](https://img.shields.io/badge/Rust-1.76+-orange.svg)](https://www.rust-lang.org)
+  [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![Platform](https://img.shields.io/badge/Platform-Windows-lightgray.svg)]()
+  [![State](https://img.shields.io/badge/State-Beta-green.svg)]()
+</div>
 
-**PoshBuddy** es una suite de personalización integral para PowerShell. Diseñada para transformar tu terminal en una herramienta profesional, permite gestionar temas de **Oh My Posh**, validar la instalación de **Nerd Fonts** y automatizar la configuración de tu perfil con una interfaz TUI fluida y moderna escrita en Rust.
+<br>
 
----
-
-## 🎯 ¿Por qué PoshBuddy?
-
-Configurar una terminal estética y funcional en PowerShell suele requerir múltiples pasos manuales: descargar temas, buscar la fuente adecuada, editar el `$PROFILE`, etc. PoshBuddy centraliza todo esto en una única aplicación de terminal:
-
-- **Gestión Asíncrona:** Descarga cientos de temas en segundo plano sin bloquear la interfaz.
-- **Validación Inteligente:** Detecta si tu fuente actual es compatible con iconos (Nerd Fonts).
-- **Integración Nativa:** Modifica tu perfil de PowerShell de forma segura.
-- **Ligero y Rápido:** Construido con Rust para un consumo mínimo de recursos.
+**PoshBuddy** es una interfaz de terminal (TUI) ligera, rápida y hermosamente diseñada en Rust, creada para simplificar la instalación, gestión y personalización de temas y fuentes para **Oh My Posh**. Adiós a la configuración manual de perfiles y a lidiar con JSONs; PoshBuddy hace el trabajo pesado por ti con una experiencia visual inmersiva.
 
 ---
 
-## 📋 Tabla de Contenidos
-1. [Requisitos Previos](#-requisitos-previos)
-2. [Instalación](#-instalación)
-3. [Uso y Controles](#-uso-y-controles)
-4. [Arquitectura](#-arquitectura)
-5. [Desarrollo](#-desarrollo)
-6. [Roadmap 2026](#-roadmap-2026)
-7. [Contribuciones](#-contribuciones)
-8. [Licencia](#-licencia)
+## ✨ Características Principales
 
----
+- **🎨 Previsualización Real ANSI**: Visualiza los temas de Oh My Posh directamente en la terminal con renderizado de colores reales y glifos gracias a `ansi-to-tui`, aislando el entorno para una previsualización fidedigna.
+- **🚀 Instalación Automática (Dependency Manager)**: PoshBuddy detecta automáticamente si `oh-my-posh` está instalado en tu sistema. Si no lo está, te ofrece un instalador transparente y en tiempo real usando `winget`.
+- **⚕️ Diagnóstico Dinámico (Onboarding)**: Evalúa dinámicamente tu entorno al arrancar. Te alerta si te falta una Nerd Font, si estás usando un PowerShell antiguo (5.1 vs 7+) o una consola obsoleta frente a modernos emuladores como Windows Terminal.
+- **🔗 Soporte Multi-Perfil Dinámico**: Aplica tu tema elegido instantáneamente y de forma simultánea en todas tus instalaciones de PowerShell detectadas (Windows PowerShell clásico y PowerShell 7 Core), independientemente de la unidad en la que residan tus documentos.
+- **🔤 Gestor de Fuentes (Nerd Fonts)**: Explora, descarga e instala las famosas *Nerd Fonts* necesarias para ver los característicos iconos de desarrollo sin salir de la TUI.
 
-## 🔧 Requisitos Previos
+## 🛠️ Requisitos Previos
 
-Antes de empezar, asegúrate de tener instalado:
-- [Oh My Posh](https://ohmyposh.dev/docs/installation/windows) (Core engine).
-- [PowerShell 7+](https://github.com/PowerShell/PowerShell) (Recomendado).
-- [Rust](https://www.rust-lang.org/tools/install) (Para compilar desde el código fuente).
+Para la experiencia óptima (Golden Standard), recomendamos:
 
----
+- **[Windows Terminal](https://github.com/microsoft/terminal)**
+- **[PowerShell 7+](https://github.com/PowerShell/PowerShell)**
+- Una **Nerd Font** configurada en tu emulador de terminal elegida.
+
+*(Nota: PoshBuddy funciona en consolas clásicas, pero la visualización y experiencia serán abismalmente superiores cumpliendo los requisitos superiores, el programa te guiará durante el onboarding).*
 
 ## 📦 Instalación
 
-### Desde el código fuente (Recomendado)
+Asegúrate de tener instalado [Rust y Cargo](https://rustup.rs/).
 
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/julio/poshbuddy.git
-   cd poshbuddy
-   ```
+```powershell
+# Clonar el repositorio
+git clone https://github.com/julesklord/poshbuddy.git
+cd poshbuddy
 
-2. Compila el binario:
-   ```bash
-   cargo build --release
-   ```
-
-3. Ejecuta la aplicación:
-   ```bash
-   ./target/release/poshbuddy
-   ```
-
-### Verificación
-Para confirmar que PoshBuddy tiene acceso a tus herramientas de terminal, el dashboard mostrará un mensaje de carga mientras sincroniza los temas oficiales desde el repositorio de `JanDeDobbeleer/oh-my-posh`.
-
----
-
-## ⌨️ Uso y Controles
-
-PoshBuddy utiliza una interfaz TUI intuitiva dividida en dos vistas principales:
-
-### Controles Generales
-- **Tab / 1 / 2:** Alternar entre la pestaña de **Temas** y **Fuentes**.
-- **↑ / ↓ / Rueda del ratón:** Navegar por las listas.
-- **Letras / Backspace:** Filtrar temas o fuentes en tiempo real.
-- **Enter:** Aplicar el tema seleccionado o instalar la fuente elegida.
-- **Esc / Q:** Salir de la aplicación.
-
-### Vista de Temas
-Permite previsualizar el diseño del prompt (via `oh-my-posh print`) antes de aplicarlo. Al presionar **Enter**, PoshBuddy actualizará tu archivo `$PROFILE` automáticamente.
-
-### Vista de Fuentes
-Muestra las últimas **Nerd Fonts** disponibles. Si PoshBuddy detecta que no estás usando una fuente compatible, verás una advertencia ⚠️ en el panel de información.
-
----
-
-## 🏗️ Arquitectura
-
-El proyecto sigue una estructura inspirada en MVC para mantener la lógica separada de la renderización:
-
-- **App (Model):** Gestiona el estado de los temas, filtros y rutas de archivos.
-- **UI (View):** Implementado con `Ratatui`, define el layout y los widgets de la interfaz.
-- **Main Loop (Controller):** Basado en `Tokio` y `Crossterm`, maneja eventos de teclado/ratón y tareas asíncronas de red.
-
----
-
-## 🛠️ Desarrollo
-
-Si deseas contribuir o modificar PoshBuddy, puedes configurar tu entorno de desarrollo así:
-
-```bash
-# Ejecutar en modo debug con logs
-cargo run
-
-# Ejecutar el linter para asegurar calidad de código
-cargo clippy
-
-# Ejecutar tests
-cargo test
+# Compilar y ejecutar
+cargo run --release
 ```
 
-### Estructura del Proyecto
-- `src/main.rs`: Lógica principal de la TUI y el bucle de eventos.
-- `Cargo.toml`: Dependencias críticas (Tokio, Ratatui, Reqwest).
-- `docs/superpowers/plans/`: Documentación técnica de los planes de implementación.
+## 🎮 Uso
 
----
+1. Lanza el ejecutable o `cargo run`.
+2. Revisa la pantalla de **Diagnóstico del Sistema** y pulsa `[ENTER]` para empezar.
+3. Utiliza las flechas `[ARRIBA]` y `[ABAJO]` para navegar entre los temas de la lista.
+4. Navega entre paneles con `[TAB]` o usa atajos rápidos (`[1]` para Temas, `[2]` para Fuentes).
+5. Selecciona tu tema o fuente y pulsa `[ENTER]` para aplicarlo/instalarlo.
+6. **Disfruta de tu nuevo prompt**. PoshBuddy te indicará cuándo debes recargar la terminal o aplicar los cambios en sus nuevas pantallas de *Feedback de Éxito*.
 
-## 🗺️ Roadmap 2026
+## 🗺️ Roadmap y Futuro
 
-- [x] **v0.1.0:** Versión legacy en PowerShell.
-- [x] **v0.2.0:** Port a Rust, gestión asíncrona y validación de fuentes.
-- [ ] **v0.3.0:** Motor de gestión de módulos de PowerShell (Plugins).
-- [ ] **v0.4.0:** Sincronización de perfiles en la nube y backups.
-- [ ] **v1.0.0:** Suite completa "Everything for PowerShell".
+PoshBuddy se encuentra en constante y activa evolución. Estamos trabajando en allanar el camino para las siguientes características clave (V0.3.0+):
 
----
+- [ ] **🔌 Soporte para Instalación de Plugins**: Un gestor gráfico unificado para añadir bloques de segmentos extra, scripts auxiliares y módulos de prompt.
+- [ ] **🌐 Soporte Multilenguaje (i18n)**: Empezando el soporte nativo multi-idioma (Inglés, Español de manera primaria) para abrir PoshBuddy a toda la comunidad global.
+- [ ] **📦 Lanzamientos en Binario**: Distribución vía WinGet y Scoop para una instalación sin necesitar un runtime de Rust.
 
-## 🤝 Contribuyendo
+## 🤝 Contribuir
 
-Las contribuciones son bienvenidas. Por favor, lee `CONTRIBUTING.md` antes de abrir un Pull Request.
+¡Las contribuciones son bienvenidas! Si deseas ayudar a expandir PoshBuddy (incluyendo los milestones de multilenguaje y plugins):
 
-1. Haz un Fork del proyecto.
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`).
-3. Haz commit de tus cambios (`git commit -m 'feat: Add some AmazingFeature'`).
-4. Haz push a la rama (`git push origin feature/AmazingFeature`).
-5. Abre un Pull Request.
+1. Haz un *Fork* del proyecto.
+2. Crea una rama para tu característica (`git checkout -b feature/NuevaCaracteristica`).
+3. Haz *Commit* a tus cambios (`git commit -m 'feat(scope): añade NuevaCaracteristica'`).
+4. Haz *Push* de la rama (`git push origin feature/NuevaCaracteristica`).
+5. Abre un **Pull Request**.
 
----
+Por favor, lee [CONTRIBUTING.md](CONTRIBUTING.md) para más detalles sobre el código de conducta y convenciones de la base de código.
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
-
-Copyright © 2026 Julio.
+Este proyecto está bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
 
 ---
 
-## 👤 Autor
-
-**Julio** - *Senior Software Engineer*
-- GitHub: [@julio](https://github.com/julio)
-- Proyecto: [PoshBuddy](https://github.com/julio/poshbuddy)
-
----
-
-## 🙏 Agradecimientos
-
-- A [JanDeDobbeleer](https://github.com/JanDeDobbeleer) por Oh My Posh.
-- A la comunidad de [Ratatui](https://ratatui.rs/) por el increíble framework TUI.
-- A [Nerd Fonts](https://www.nerdfonts.com/) por los glifos que hacen que nuestras terminales cobren vida.
+<div align="center">
+  <i>Construido con ❤️ para la comunidad de desarrolladores en Windows.</i>
+</div>

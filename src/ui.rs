@@ -121,6 +121,26 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
                 chunks[1]
             );
         }
+        AppState::FontSuccess(font) => {
+            let area = main_layout[1];
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(30), Constraint::Length(10), Constraint::Percentage(30)])
+                .split(area);
+
+            let msg = format!(
+                "\n   🎉 ¡FUENTE INSTALADA!\n\n   La fuente '{}' se ha instalado correctamente.\n\n   ¡Recarga tu terminal para poder visualizarla!\n   (Recuerda configurarla como fuente principal en los ajustes de tu terminal)\n\n   [Presiona cualquier tecla para salir]",
+                font
+            );
+
+            f.render_widget(
+                Paragraph::new(msg)
+                    .alignment(Alignment::Center)
+                    .block(Block::default().borders(Borders::ALL).title(" POSHBUDDY FEEDBACK "))
+                    .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                chunks[1]
+            );
+        }
         AppState::Main => {
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
