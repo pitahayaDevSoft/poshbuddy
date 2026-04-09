@@ -198,9 +198,10 @@ impl App {
 
         let font_name_cloned = font_name.clone();
         tokio::spawn(async move {
-            let output = std::process::Command::new(cmd)
+            let output = tokio::process::Command::new(cmd)
                 .args(["font", "install", &font_name_cloned])
-                .output();
+                .output()
+                .await;
             
             match output {
                 Ok(_) => { let _ = tx.send(AppMessage::FontInstalled(font_name_cloned)).await; }
@@ -218,9 +219,10 @@ impl App {
         let theme_path = self.themes_dir.join(&theme_name);
 
         tokio::spawn(async move {
-            let output = std::process::Command::new(cmd)
+            let output = tokio::process::Command::new(cmd)
                 .args(["print", "primary", "--config", &theme_path.to_string_lossy(), "--shell", "pwsh"])
-                .output();
+                .output()
+                .await;
 
             match output {
                 Ok(out) => {
@@ -536,9 +538,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 if app.state == AppState::Main {
                     match key.code {
-                        KeyCode::Tab | KeyCode::Char('1') | KeyCode::Char('2') => {
+                        KeyCode::Tab => {
                             app.active_view = if app.active_view == ActiveView::Themes { ActiveView::Fonts } else { ActiveView::Themes };
                         }
+                        KeyCode::Char('1') => { app.active_view = ActiveView::Themes; }
+                        KeyCode::Char('2') => { app.active_view = ActiveView::Fonts; }
                         KeyCode::Down | KeyCode::Up => {
                             if app.active_view == ActiveView::Themes {
                                 let total = app.filtered_themes().len();
