@@ -118,9 +118,10 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
 
                     // 2. Apartado de Información
                     let mut info_text = format!(
-                        "\n  Nombre: {}\n  Ruta: ~/.poshthemes/{}\n\n  Controles:\n  [ENTER] Aplicar este tema\n  [TAB]   Explorar Fuentes\n  [Q/ESC] Salir",
+                        "\n  Nombre: {}\n  Ruta: ~/.poshthemes/{}\n\n  Perfiles detectados: {}\n\n  Controles:\n  [ENTER] Aplicar este tema\n  [TAB]   Explorar Fuentes\n  [Q/ESC] Salir",
                         selected_theme.unwrap_or(&"Ninguno".to_string()),
-                        selected_theme.unwrap_or(&"".to_string())
+                        selected_theme.unwrap_or(&"".to_string()),
+                        app.detected_profiles.len()
                     );
 
                     if !app.has_nerd_font {

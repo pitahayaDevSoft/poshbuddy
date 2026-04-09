@@ -43,27 +43,19 @@ pub struct App {
     pub filter: String,
     pub fonts_filter: String,
     pub themes_dir: PathBuf,
-    pub profile_path: PathBuf,
     pub version: String,
     pub list_state: ListState,
     pub fonts_list_state: ListState,
     pub spinner_tick: usize,
     pub has_nerd_font: bool,
     pub theme_preview: String,
+    pub detected_profiles: Vec<PathBuf>,
 }
 
 impl App {
     pub fn new() -> Self {
         let home = dirs::home_dir().expect("No se pudo encontrar el directorio home");
         let themes_dir = home.join(".poshthemes");
-        
-        // Determinar ruta del perfil según el OS
-        let profile_path = if cfg!(windows) {
-            home.join("Documents/PowerShell/Microsoft.PowerShell_profile.ps1")
-        } else {
-            // En WSL/Linux, buscamos el perfil de pwsh
-            home.join(".config/powershell/Microsoft.PowerShell_profile.ps1")
-        };
 
         let mut list_state = ListState::default();
         list_state.select(Some(0));
@@ -72,6 +64,7 @@ impl App {
         fonts_list_state.select(Some(0));
 
         let has_nerd_font = Self::check_nerd_font();
+        let detected_profiles = Self::detect_profiles();
 
         let mut app = App {
             state: AppState::Loading,
@@ -81,13 +74,13 @@ impl App {
             filter: String::new(),
             fonts_filter: String::new(),
             themes_dir,
-            profile_path,
-            version: "0.2.0-rust".to_string(),
+            version: "0.2.1-rust".to_string(),
             list_state,
             fonts_list_state,
             spinner_tick: 0,
             has_nerd_font,
             theme_preview: String::new(),
+            detected_profiles,
         };
 
         if !app.check_omp_installed() {
@@ -106,19 +99,44 @@ impl App {
             .unwrap_or(false)
     }
 
+    pub fn detect_profiles() -> Vec<PathBuf> {
+        let mut profiles = Vec::new();
+        let shells = if cfg!(windows) {
+            vec!["powershell", "pwsh"]
+        } else {
+            vec!["pwsh"]
+        };
+
+        for shell in shells {
+            let output = std::process::Command::new(shell)
+                .args(["-NoProfile", "-Command", "Write-Host -NoNewline $PROFILE"])
+                .output();
+
+            if let Ok(out) = output {
+                let path_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !path_str.is_empty() {
+                    let path = PathBuf::from(path_str);
+                    profiles.push(path);
+                }
+            }
+        }
+        
+        profiles.sort();
+        profiles.dedup();
+        profiles
+    }
+
     pub fn check_nerd_font() -> bool {
-        // 1. Verificar variables de entorno conocidas
         if let Ok(term_prog) = std::env::var("TERM_PROGRAM") {
             if term_prog == "vscode" {
-                return true; // VS Code suele manejarlo bien si está configurado
+                return true;
             }
         }
 
-        // 2. En Windows, intentar detectar la fuente via Registry
         let cmd = if cfg!(windows) {
             "powershell"
         } else {
-            "powershell.exe" // Host Windows desde WSL
+            "powershell.exe"
         };
 
         let output = std::process::Command::new(cmd)
@@ -128,11 +146,11 @@ impl App {
         if let Ok(out) = output {
             let name = String::from_utf8_lossy(&out.stdout).to_lowercase();
             if name.trim().is_empty() {
-                return true; // Si no hay valor, asumimos que es el default (que podría no ser Nerd, pero no alarmamos)
+                return true;
             }
             name.contains("nf") || name.contains("nerd") || name.contains("retina") || name.contains("code") || name.contains("meslo")
         } else {
-            true // Fallback seguro
+            true
         }
     }
 
@@ -156,39 +174,43 @@ impl App {
         let theme_path = self.themes_dir.join(theme_name);
         let config_line = format!(
             "oh-my-posh init pwsh --config '{}' | Invoke-Expression",
-            theme_path.display()
+            theme_path.to_string_lossy()
         );
 
-        let content = if self.profile_path.exists() {
-            fs::read_to_string(&self.profile_path)?
-        } else {
-            String::new()
-        };
+        for profile in &self.detected_profiles {
+            if let Some(parent) = profile.parent() {
+                fs::create_dir_all(parent)?;
+            }
 
-        let mut new_content = Vec::new();
-        let mut found = false;
-
-        for line in content.lines() {
-            if line.to_lowercase().contains("oh-my-posh init") {
-                new_content.push(config_line.clone());
-                found = true;
+            let content = if profile.exists() {
+                fs::read_to_string(profile)?
             } else {
-                new_content.push(line.to_string());
+                String::new()
+            };
+
+            let mut new_content = Vec::new();
+            let mut found = false;
+
+            for line in content.lines() {
+                if line.to_lowercase().contains("oh-my-posh init") {
+                    new_content.push(config_line.clone());
+                    found = true;
+                } else {
+                    new_content.push(line.to_string());
+                }
             }
+
+            if !found {
+                if !content.is_empty() {
+                    new_content.push("".to_string());
+                }
+                new_content.push(config_line.clone());
+            }
+
+            let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
+            fs::write(profile, new_content.join(line_ending))?;
         }
 
-        if !found {
-            if !content.is_empty() {
-                new_content.push("".to_string());
-            }
-            new_content.push(config_line);
-        }
-
-        if let Some(parent) = self.profile_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
-        fs::write(&self.profile_path, new_content.join(line_ending))?;
         Ok(())
     }
 
@@ -246,7 +268,7 @@ impl App {
                 Err(e) => {
                     let _ = tx.send(AppMessage::ThemePreviewLoaded { 
                         theme: theme_name_cloned, 
-                        preview: format!("Error: {}", e) 
+                        preview: format!(" Error: {}", e) 
                     }).await;
                 }
             }
@@ -264,7 +286,6 @@ impl App {
                     .stderr(std::process::Stdio::piped())
                     .spawn()
             } else {
-                // Fallback para otros sistemas (brew)
                 tokio::process::Command::new("brew")
                     .args(["install", "oh-my-posh"])
                     .stdout(std::process::Stdio::piped())
