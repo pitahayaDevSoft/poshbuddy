@@ -8,3 +8,4 @@ Cargo.lock
 .gemini/
 # GitHub App credentials
 gha-creds-*.json
+artifacts
