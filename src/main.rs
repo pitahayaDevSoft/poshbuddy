@@ -51,8 +51,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     fonts.sort_by(|a, b| a.name.cmp(&b.name));
                     app.fonts = fonts;
                 }
-                AppMessage::ThemePreviewLoaded(preview) => {
-                    app.theme_preview = preview;
+                AppMessage::ThemePreviewLoaded { theme, preview } => {
+                    let filtered = app.filtered_themes();
+                    if let Some(selected_index) = app.list_state.selected() {
+                        if let Some(current_theme) = filtered.get(selected_index) {
+                            if current_theme == &theme {
+                                app.theme_preview = preview;
+                            }
+                        }
+                    }
                 }
                 AppMessage::FontInstalled(_name) => {
                     app.state = AppState::Main;
@@ -118,11 +125,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
                         KeyCode::Char(c) => {
-                            if app.active_view == ActiveView::Themes { app.filter.push(c); app.list_state.select(Some(0)); }
+                            if app.active_view == ActiveView::Themes { 
+                                app.filter.push(c); 
+                                app.list_state.select(Some(0));
+                                if let Some(theme) = app.filtered_themes().first() {
+                                    app.theme_preview = String::new();
+                                    app.load_theme_preview(theme.clone(), tx.clone());
+                                }
+                            }
                             else { app.fonts_filter.push(c); app.fonts_list_state.select(Some(0)); }
                         }
                         KeyCode::Backspace => {
-                            if app.active_view == ActiveView::Themes { app.filter.pop(); app.list_state.select(Some(0)); }
+                            if app.active_view == ActiveView::Themes { 
+                                app.filter.pop(); 
+                                app.list_state.select(Some(0));
+                                if let Some(theme) = app.filtered_themes().first() {
+                                    app.theme_preview = String::new();
+                                    app.load_theme_preview(theme.clone(), tx.clone());
+                                }
+                            }
                             else { app.fonts_filter.pop(); app.fonts_list_state.select(Some(0)); }
                         }
                         _ => {}

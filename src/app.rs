@@ -26,7 +26,7 @@ pub struct FontAsset {
 pub enum AppMessage {
     ThemesLoaded(Vec<String>),
     FontsLoaded(Vec<FontAsset>),
-    ThemePreviewLoaded(String),
+    ThemePreviewLoaded { theme: String, preview: String },
     FontInstalled(String),
     Error(String),
 }
@@ -196,11 +196,12 @@ impl App {
 
     pub fn load_theme_preview(&self, theme_name: String, tx: mpsc::Sender<AppMessage>) {
         let cmd = if cfg!(windows) {
-            "oh-my-posh"
-        } else {
             "oh-my-posh.exe"
+        } else {
+            "oh-my-posh"
         };
         let theme_path = self.themes_dir.join(&theme_name);
+        let theme_name_cloned = theme_name.clone();
 
         tokio::spawn(async move {
             let output = tokio::process::Command::new(cmd)
@@ -211,10 +212,16 @@ impl App {
             match output {
                 Ok(out) => {
                     let preview = String::from_utf8_lossy(&out.stdout).to_string();
-                    let _ = tx.send(AppMessage::ThemePreviewLoaded(preview)).await;
+                    let _ = tx.send(AppMessage::ThemePreviewLoaded { 
+                        theme: theme_name_cloned, 
+                        preview 
+                    }).await;
                 }
-                Err(_) => {
-                    let _ = tx.send(AppMessage::ThemePreviewLoaded("No se pudo generar previsualización".to_string())).await;
+                Err(e) => {
+                    let _ = tx.send(AppMessage::ThemePreviewLoaded { 
+                        theme: theme_name_cloned, 
+                        preview: format!("Error: {}", e) 
+                    }).await;
                 }
             }
         });
