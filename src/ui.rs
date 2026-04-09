@@ -129,7 +129,7 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
                 .split(area);
 
             let msg = format!(
-                "\n   🎉 ¡FUENTE INSTALADA!\n\n   La fuente '{}' se ha instalado correctamente.\n\n   ¡Recarga tu terminal para poder visualizarla!\n   (Recuerda configurarla como fuente principal en los ajustes de tu terminal)\n\n   [Presiona cualquier tecla para salir]",
+                "\n   🎉 ¡FUENTE INSTALADA!\n\n   La fuente '{}' se ha instalado correctamente.\n\n   ¡Recarga tu terminal para poder visualizarla!\n   (Recuerda configurarla como fuente principal en los ajustes de tu terminal)\n\n   [Presiona cualquier tecla para volver]",
                 font
             );
 

@@ -115,8 +115,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
 
-                if let AppState::Success(_) | AppState::FontSuccess(_) = app.state {
+                if let AppState::Success(_) = app.state {
                     break;
+                }
+
+                if let AppState::FontSuccess(_) = app.state {
+                    app.state = AppState::Main;
+                    continue;
                 }
 
                 if app.state == AppState::Main {
