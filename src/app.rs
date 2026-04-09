@@ -223,12 +223,16 @@ impl App {
         let theme_name_cloned = theme_name.clone();
 
         tokio::spawn(async move {
-            let output = tokio::process::Command::new(cmd)
-                .args(["print", "primary", "--config", &theme_path.to_string_lossy(), "--shell", "pwsh"])
-                .env_remove("POSH_THEME")
-                .env_remove("OH_MY_POSH_THEME")
-                .output()
-                .await;
+            let mut cmd_obj = tokio::process::Command::new(cmd);
+            cmd_obj.env_clear()
+                  .env("PATH", std::env::var("PATH").unwrap_or_default())
+                  .env("USERPROFILE", std::env::var("USERPROFILE").unwrap_or_default())
+                  .env("SYSTEMROOT", std::env::var("SYSTEMROOT").unwrap_or_default())
+                  .env("SystemDrive", std::env::var("SystemDrive").unwrap_or_default())
+                  .env("TEMP", std::env::var("TEMP").unwrap_or_default())
+                  .args(["print", "primary", "--config", &theme_path.to_string_lossy(), "--shell", "pwsh", "--force", "--status", "0"]);
+
+            let output = cmd_obj.output().await;
 
             match output {
                 Ok(out) => {
