@@ -31,6 +31,32 @@ pub fn ui(f: &mut ratatui::Frame, app: &mut App) {
     f.render_widget(header, main_layout[0]);
 
     match &app.state {
+        AppState::Onboarding(specs) => {
+            let area = main_layout[1];
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(20), Constraint::Length(15), Constraint::Percentage(20)])
+                .split(area);
+
+            let font_status = if specs.has_nerd_font { "[ √ ] Nerd Font detectada" } else { "[ ! ] Falta Nerd Font (Recomendado para glifos)" };
+            let ps_status = if specs.is_pwsh_7 { "[ √ ] PowerShell 7 detectado" } else { "[ ! ] Windows PowerShell 5.1 (Se recomienda PowerShell 7)" };
+            let term_status = if specs.is_windows_terminal { "[ √ ] Terminal Moderno (Windows Terminal / VS Code)" } else { "[ ! ] Consola clásica (Se recomienda Windows Terminal)" };
+
+            let msg = format!(
+                "\n  🔍 DIAGNÓSTICO DEL SISTEMA\n\n  {}\n  {}\n  {}\n\n  Para que los temas de Oh My Posh se visualicen correctamente,\n  necesitas una Nerd Font y una terminal moderna.\n\n  Presiona [ENTER] para continuar a PoshBuddy\n  Presiona [Q] para salir",
+                font_status, ps_status, term_status
+            );
+
+            let color = if specs.has_nerd_font { Color::Cyan } else { Color::Yellow };
+
+            f.render_widget(
+                Paragraph::new(msg)
+                    .alignment(Alignment::Center)
+                    .block(Block::default().borders(Borders::ALL).title(" BIENVENIDO A POSHBUDDY "))
+                    .style(Style::default().fg(color).add_modifier(Modifier::BOLD)),
+                chunks[1]
+            );
+        }
         AppState::Loading => {
             let area = main_layout[1];
             let chunks = Layout::default()

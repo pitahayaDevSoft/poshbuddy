@@ -10,8 +10,16 @@ pub enum ActiveView {
     Fonts,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct SystemSpecs {
+    pub is_pwsh_7: bool,
+    pub has_nerd_font: bool,
+    pub is_windows_terminal: bool,
+}
+
 #[derive(PartialEq, Debug)]
 pub enum AppState {
+    Onboarding(SystemSpecs),
     Loading,
     Main,
     DependencyMissing,
@@ -66,9 +74,10 @@ impl App {
 
         let has_nerd_font = Self::check_nerd_font();
         let detected_profiles = Self::detect_profiles();
+        let specs = Self::gather_system_specs(has_nerd_font);
 
         let mut app = App {
-            state: AppState::Loading,
+            state: AppState::Onboarding(specs),
             active_view: ActiveView::Themes,
             themes: Vec::new(),
             fonts: Vec::new(),
@@ -89,6 +98,24 @@ impl App {
         }
 
         app
+    }
+
+    pub fn gather_system_specs(has_nerd_font: bool) -> SystemSpecs {
+        let is_windows_terminal = std::env::var("WT_SESSION").is_ok() 
+            || std::env::var("TERM_PROGRAM").map(|v| v == "vscode").unwrap_or(false);
+        
+        let cmd = if cfg!(windows) { "where.exe" } else { "which" };
+        let is_pwsh_7 = std::process::Command::new(cmd)
+            .arg("pwsh")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+
+        SystemSpecs {
+            is_pwsh_7,
+            has_nerd_font,
+            is_windows_terminal,
+        }
     }
 
     pub fn check_omp_installed(&self) -> bool {

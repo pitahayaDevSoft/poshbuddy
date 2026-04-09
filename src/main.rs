@@ -100,6 +100,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
 
+                if let AppState::Onboarding(_) = app.state {
+                    match key.code {
+                        KeyCode::Enter => {
+                            if app.themes.is_empty() {
+                                app.state = AppState::Loading;
+                            } else {
+                                app.state = AppState::Main;
+                            }
+                        }
+                        KeyCode::Char('q') | KeyCode::Esc => break,
+                        _ => {}
+                    }
+                    continue;
+                }
+
                 if let AppState::Success(_) = app.state {
                     break;
                 }
