@@ -5,7 +5,7 @@
   
   **The definitive TUI manager for Oh My Posh in Windows and PowerShell environments**
 
-  [![Rust](https://img.shields.io/badge/Rust-1.76+-orange.svg)](https://www.rust-lang.org)
+  [![Rust](https://img.shields.io/badge/Rust-1.94+-orange.svg)](https://www.rust-lang.org)
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/Platform-Windows-lightgray.svg)]()
   [![State](https://img.shields.io/badge/State-Beta-green.svg)]()
