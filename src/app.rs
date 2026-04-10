@@ -4,6 +4,9 @@ use std::fs;
 use std::io;
 use ratatui::widgets::ListState;
 
+const WHERE_CMD: &str = if cfg!(windows) { "where.exe" } else { "which" };
+const OMP_BINARY: &str = if cfg!(windows) { "oh-my-posh.exe" } else { "oh-my-posh" };
+
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum ActiveView {
     Themes,
@@ -108,8 +111,7 @@ impl App {
 
     /// Verifies if 'oh-my-posh' binary is present in the system PATH
     pub fn check_omp_installed(&self) -> bool {
-        let cmd = if cfg!(windows) { "where.exe" } else { "which" };
-        std::process::Command::new(cmd)
+        std::process::Command::new(WHERE_CMD)
             .arg("oh-my-posh")
             .output()
             .map(|o| o.status.success())
@@ -123,8 +125,7 @@ impl App {
             || std::env::var("TERM_PROGRAM").map(|v| v == "vscode").unwrap_or(false);
         
         // Checking for PowerShell 7 binary (pwsh)
-        let cmd = if cfg!(windows) { "where.exe" } else { "which" };
-        let is_pwsh_7 = std::process::Command::new(cmd)
+        let is_pwsh_7 = std::process::Command::new(WHERE_CMD)
             .arg("pwsh")
             .output()
             .map(|o| o.status.success())
@@ -262,15 +263,9 @@ impl App {
 
     /// Triggers an asynchronous font installation via Oh My Posh CLI
     pub fn install_font(&self, font_name: String, tx: mpsc::Sender<AppMessage>) {
-        let cmd = if cfg!(windows) {
-            "oh-my-posh"
-        } else {
-            "oh-my-posh.exe"
-        };
-
         let font_name_cloned = font_name.clone();
         tokio::spawn(async move {
-            let output = tokio::process::Command::new(cmd)
+            let output = tokio::process::Command::new(OMP_BINARY)
                 .args(["font", "install", &font_name_cloned])
                 .output()
                 .await;
@@ -284,16 +279,11 @@ impl App {
 
     /// Asynchronously generates a real prompt preview for a theme using isolation (no parent environment inheritance)
     pub fn load_theme_preview(&self, theme_name: String, tx: mpsc::Sender<AppMessage>) {
-        let cmd = if cfg!(windows) {
-            "oh-my-posh.exe"
-        } else {
-            "oh-my-posh"
-        };
         let theme_path = self.themes_dir.join(&theme_name);
         let theme_name_cloned = theme_name.clone();
 
         tokio::spawn(async move {
-            let mut cmd_obj = tokio::process::Command::new(cmd);
+            let mut cmd_obj = tokio::process::Command::new(OMP_BINARY);
             // Cleaning parent env vars to ensure we see the theme as specified, ignoring current shell profile
             cmd_obj.env_clear()
                   .env("PATH", std::env::var("PATH").unwrap_or_default())
