@@ -79,6 +79,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     app.state = AppState::FontSuccess(name);
                     app.has_nerd_font = true;
                 }
+                AppMessage::PluginInstalled(name) => {
+                    // Transition to PluginSuccess screen
+                    app.state = AppState::PluginSuccess(name);
+                }
                 AppMessage::InstallProgress { line } => {
                     // Update the debug log and current action for the installation view
                     if let AppState::InstallingDependency { log, .. } = &mut app.state {
@@ -149,15 +153,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     continue;
                 }
 
+                // Plugin success screen: Return to main menu on any key
+                if let AppState::PluginSuccess(_) = app.state {
+                    app.state = AppState::Main;
+                    app.active_view = ActiveView::Plugins;
+                    continue;
+                }
+
                 // Main navigation and controls
                 if app.state == AppState::Main {
                     match key.code {
                         KeyCode::Tab => {
-                            // Cycle between Themes and Fonts views
-                            app.active_view = if app.active_view == ActiveView::Themes { ActiveView::Fonts } else { ActiveView::Themes };
+                            // Cycle between Themes, Fonts and Plugins views
+                            app.active_view = match app.active_view {
+                                ActiveView::Themes => ActiveView::Fonts,
+                                ActiveView::Fonts => ActiveView::Plugins,
+                                ActiveView::Plugins => ActiveView::Themes,
+                            };
                         }
                         KeyCode::Char('1') => { app.active_view = ActiveView::Themes; }
                         KeyCode::Char('2') => { app.active_view = ActiveView::Fonts; }
+                        KeyCode::Char('3') => { app.active_view = ActiveView::Plugins; }
                         KeyCode::Down | KeyCode::Up => {
                             // Horizontal focus logic for selection changes
                             if app.active_view == ActiveView::Themes {
@@ -178,7 +194,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 if let Some(t) = filtered.get(i) {
                                     app.load_theme_preview(t.clone(), tx.clone());
                                 }
-                            } else {
+                            } else if app.active_view == ActiveView::Fonts {
                                 // Font selection navigation
                                 let filtered = app.filtered_fonts();
                                 let i = match app.fonts_list_state.selected() {
@@ -192,6 +208,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                     None => 0,
                                 };
                                 app.fonts_list_state.select(Some(i));
+                            } else if app.active_view == ActiveView::Plugins {
+                                // Plugin selection navigation
+                                let filtered = app.filtered_plugins();
+                                let i = match app.plugins_list_state.selected() {
+                                    Some(i) => {
+                                        if key.code == KeyCode::Down {
+                                            if i >= filtered.len() - 1 { 0 } else { i + 1 }
+                                        } else {
+                                            if i == 0 { filtered.len() - 1 } else { i - 1 }
+                                        }
+                                    }
+                                    None => 0,
+                                };
+                                app.plugins_list_state.select(Some(i));
                             }
                         }
                         KeyCode::Char('q') | KeyCode::Esc => break,
@@ -200,16 +230,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             if app.active_view == ActiveView::Themes {
                                 app.filter.push(c);
                                 app.list_state.select(Some(0));
-                            } else {
+                            } else if app.active_view == ActiveView::Fonts {
                                 app.fonts_filter.push(c);
                                 app.fonts_list_state.select(Some(0));
+                            } else {
+                                app.plugins_filter.push(c);
+                                app.plugins_list_state.select(Some(0));
                             }
                         }
                         KeyCode::Backspace => {
                             if app.active_view == ActiveView::Themes {
                                 app.filter.pop();
-                            } else {
+                            } else if app.active_view == ActiveView::Fonts {
                                 app.fonts_filter.pop();
+                            } else {
+                                app.plugins_filter.pop();
                             }
                         }
                         KeyCode::Enter => {
@@ -222,13 +257,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                         app.state = AppState::Success(theme.clone());
                                     }
                                 }
-                            } else {
+                            } else if app.active_view == ActiveView::Fonts {
                                 let filtered = app.filtered_fonts();
                                 if let Some(selected) = app.fonts_list_state.selected() {
                                     if let Some(font) = filtered.get(selected) {
                                         // Start font installation
                                         app.state = AppState::Installing(font.name.clone());
                                         app.install_font(font.name.clone(), tx.clone());
+                                    }
+                                }
+                            } else {
+                                let filtered = app.filtered_plugins();
+                                if let Some(selected) = app.plugins_list_state.selected() {
+                                    if let Some(plugin) = filtered.get(selected) {
+                                        // Toggle plugin activation
+                                        if let Err(e) = app.toggle_plugin(plugin) {
+                                            app.state = AppState::Error(format!("Failed to update profile: {}", e));
+                                        } else {
+                                            app.state = AppState::PluginSuccess(plugin.name.clone());
+                                        }
                                     }
                                 }
                             }

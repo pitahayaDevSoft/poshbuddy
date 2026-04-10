@@ -11,6 +11,7 @@ const WHERE_CMD: &str = if cfg!(windows) { "where.exe" } else { "which" };
 pub enum ActiveView {
     Themes,
     Fonts,
+    Plugins,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -30,6 +31,7 @@ pub enum AppState {
     Installing(String),
     Success(String),
     FontSuccess(String),
+    PluginSuccess(String),
     Error(String),
 }
 
@@ -38,12 +40,23 @@ pub struct FontAsset {
     pub name: String,
 }
 
+/// Metadata for a PowerShell module/extension
+#[derive(Clone, Debug)]
+pub struct PluginAsset {
+    pub name: String,
+    pub description: String,
+    pub documentation: String,
+    pub module_name: String,
+    pub init_script: Option<String>,
+}
+
 /// Message types sent across the mpsc channel to update the TUI from background tasks
 pub enum AppMessage {
     ThemesLoaded(Vec<String>),
     FontsLoaded(Vec<FontAsset>),
     ThemePreviewLoaded { theme: String, preview: String },
     FontInstalled(String),
+    PluginInstalled(String),
     InstallProgress { line: String },
     InstallFinished,
     Error(String),
@@ -61,6 +74,9 @@ pub struct App {
     pub version: String,
     pub list_state: ListState,
     pub fonts_list_state: ListState,
+    pub plugins_list_state: ListState,
+    pub plugins: Vec<PluginAsset>,
+    pub plugins_filter: String,
     pub spinner_tick: usize,
     pub has_nerd_font: bool,
     pub theme_preview: String,
@@ -79,6 +95,9 @@ impl App {
         let mut fonts_list_state = ListState::default();
         fonts_list_state.select(Some(0));
 
+        let mut plugins_list_state = ListState::default();
+        plugins_list_state.select(Some(0));
+
         // 1. Initial system diagnostics
         let has_nerd_font = Self::check_nerd_font();
         let detected_profiles = Self::detect_profiles();
@@ -89,12 +108,44 @@ impl App {
             active_view: ActiveView::Themes,
             themes: Vec::new(),
             fonts: Vec::new(),
+            plugins: vec![
+                PluginAsset {
+                    name: "Terminal-Icons".to_string(),
+                    description: "Adds file and folder icons to your terminal outputs (ls, dir).".to_string(),
+                    documentation: "Requires a Nerd Font. Enhances visual data parsing in long lists.".to_string(),
+                    module_name: "Terminal-Icons".to_string(),
+                    init_script: None,
+                },
+                PluginAsset {
+                    name: "posh-git".to_string(),
+                    description: "Powerful Git status summary and tab-completion for PowerShell.".to_string(),
+                    documentation: "Provides info about your current branch, staged files, and ahead/behind status.".to_string(),
+                    module_name: "posh-git".to_string(),
+                    init_script: None,
+                },
+                PluginAsset {
+                    name: "zoxide (z Explorer)".to_string(),
+                    description: "A smarter cd command. It remembers which directories you use most often.".to_string(),
+                    documentation: "Usage: type 'z <name>' to jump. Replaces 'cd' with intelligent fuzzy matching.".to_string(),
+                    module_name: "zoxide".to_string(), 
+                    init_script: Some("zoxide init pwsh | Invoke-Expression".to_string()),
+                },
+                PluginAsset {
+                    name: "PSReadLine Mastery".to_string(),
+                    description: "Enables Predictive IntelliSense (fish-like) and syntax highlighting.".to_string(),
+                    documentation: "Optimizes command history search and adds visual feedback while typing.".to_string(),
+                    module_name: "PSReadLine".to_string(),
+                    init_script: Some("Set-PSReadLineOption -PredictionSource History\nSet-PSReadLineOption -PredictionViewStyle ListView".to_string()),
+                },
+            ],
             filter: String::new(),
             fonts_filter: String::new(),
+            plugins_filter: String::new(),
             themes_dir,
             version: "0.2.1-rust".to_string(),
             list_state,
             fonts_list_state,
+            plugins_list_state,
             spinner_tick: 0,
             has_nerd_font,
             theme_preview: String::new(),
@@ -215,6 +266,16 @@ impl App {
         self.fonts
             .iter()
             .filter(|f| f.name.to_lowercase().contains(&filter_lower))
+            .cloned()
+            .collect()
+    }
+
+    /// Returns a filtered list of plugins based on search criteria
+    pub fn filtered_plugins(&self) -> Vec<PluginAsset> {
+        let filter_lower = self.plugins_filter.to_lowercase();
+        self.plugins
+            .iter()
+            .filter(|p| p.name.to_lowercase().contains(&filter_lower))
             .cloned()
             .collect()
     }
@@ -366,6 +427,84 @@ impl App {
             }
         });
     }
+
+    /// Checks if a plugin is currently 'activated' (imported) in at least one PowerShell profile
+    pub fn is_plugin_active(&self, plugin: &PluginAsset) -> bool {
+        for profile in &self.detected_profiles {
+            if !profile.exists() { continue; }
+            if let Ok(content) = fs::read_to_string(profile) {
+                let check_str = if let Some(init) = &plugin.init_script {
+                    init.split('\n').next().unwrap_or(init).to_string()
+                } else {
+                    format!("Import-Module {}", plugin.module_name)
+                };
+                if content.contains(&check_str) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// Toggles the activation state of a plugin by adding or removing it from all detected profiles
+    pub fn toggle_plugin(&self, plugin: &PluginAsset) -> io::Result<()> {
+        let is_active = self.is_plugin_active(plugin);
+        let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
+
+        let payload = if let Some(init) = &plugin.init_script {
+            init.clone()
+        } else {
+            format!("Import-Module {}", plugin.module_name)
+        };
+
+        for profile in &self.detected_profiles {
+            if let Some(parent) = profile.parent() {
+                fs::create_dir_all(parent)?;
+            }
+
+            let content = if profile.exists() {
+                fs::read_to_string(profile)?
+            } else {
+                String::new()
+            };
+
+            let mut new_lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+
+            if is_active {
+                // Remove the plugin
+                new_lines.retain(|l| !l.contains(&payload.split('\n').next().unwrap_or(&payload)));
+            } else {
+                // Add the plugin
+                if !new_lines.iter().any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload))) {
+                    new_lines.push(payload.clone());
+                }
+            }
+
+            fs::write(profile, new_lines.join(line_ending))?;
+        }
+        Ok(())
+    }
+
+    /// Asynchronously installs a PowerShell module via the system shell
+    pub fn install_plugin(&self, name: String, module_name: String, tx: mpsc::Sender<AppMessage>) {
+        tokio::spawn(async move {
+            let _ = tx.send(AppMessage::InstallProgress { line: format!("Installing module: {}...", name) }).await;
+            
+            let output = tokio::process::Command::new("powershell")
+                .args(["-Command", &format!("Install-Module -Name {} -Scope CurrentUser -Force -Confirm:$false", module_name)])
+                .output()
+                .await;
+
+            match output {
+                Ok(out) if out.status.success() => {
+                    let _ = tx.send(AppMessage::PluginInstalled(name)).await;
+                }
+                _ => {
+                    let _ = tx.send(AppMessage::Error(format!("Failed to install module {}", module_name))).await;
+                }
+            }
+        });
+    }
 }
 
 #[cfg(test)]
@@ -380,12 +519,15 @@ mod tests {
             active_view: ActiveView::Themes,
             themes: Vec::new(),
             fonts: Vec::new(),
+            plugins: Vec::new(),
             filter: String::new(),
             fonts_filter: String::new(),
+            plugins_filter: String::new(),
             themes_dir: PathBuf::from("/tmp"),
             version: "test".to_string(),
             list_state: ListState::default(),
             fonts_list_state: ListState::default(),
+            plugins_list_state: ListState::default(),
             spinner_tick: 0,
             has_nerd_font: false,
             theme_preview: String::new(),

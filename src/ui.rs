@@ -158,6 +158,28 @@ pub fn ui(f: &mut Frame, app: &mut App) {
             );
         }
 
+        // Final feedback view after plugin installation/activation
+        AppState::PluginSuccess(plugin) => {
+            let area = main_layout[1];
+            let plugin_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(30), Constraint::Length(10), Constraint::Percentage(30)])
+                .split(area);
+
+            let msg = format!(
+                "\n   🎉 MODULE UPDATED!\n\n   '{}' has been processed.\n\n   Reload your terminal to see the changes!\n   (Run '. $PROFILE' to activate in this session)\n\n   [Press any key to return]",
+                plugin
+            );
+
+            f.render_widget(
+                Paragraph::new(msg)
+                    .alignment(Alignment::Center)
+                    .block(Block::default().borders(Borders::ALL).title(" POSHBUDDY FEEDBACK "))
+                    .style(Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+                plugin_chunks[1]
+            );
+        }
+
         // Primary application interface (Themes and Fonts explorer)
         AppState::Main => {
             let explorer_chunks = Layout::default()
@@ -223,8 +245,39 @@ pub fn ui(f: &mut Frame, app: &mut App) {
                         .highlight_symbol(">> ");
                     f.render_stateful_widget(font_list, explorer_chunks[0], &mut app.fonts_list_state);
 
-                    let info_box = Paragraph::new("\n  Select a font to install via Oh My Posh CLI.\n\n  Controls:\n  [ENTER] Download & Install\n  [TAB]   Back to Themes\n  [Q/ESC] Quit")
+                    let info_box = Paragraph::new("\n  Select a font to install via Oh My Posh CLI.\n\n  Controls:\n  [ENTER] Download & Install\n  [TAB]   Browse Plugins\n  [Q/ESC] Quit")
                         .block(Block::default().borders(Borders::ALL).title(" Font Manager "));
+                    f.render_widget(info_box, explorer_chunks[1]);
+                }
+                ActiveView::Plugins => {
+                    // Plugins (PowerShell Modules) Explorer view
+                    let filtered = app.filtered_plugins();
+                    let plugin_items: Vec<ListItem> = filtered.iter().map(|p| {
+                        let indicator = if app.is_plugin_active(p) { "[X] " } else { "[ ] " };
+                        ListItem::new(format!("{}{}", indicator, p.name))
+                    }).collect();
+
+                    let plugin_list = List::new(plugin_items)
+                        .block(Block::default().borders(Borders::ALL).title(" Modules & Extensions "))
+                        .highlight_style(Style::default().bg(Color::Green).fg(Color::Black).add_modifier(Modifier::BOLD))
+                        .highlight_symbol(">> ");
+                    f.render_stateful_widget(plugin_list, explorer_chunks[0], &mut app.plugins_list_state);
+
+                    let selected_idx = app.plugins_list_state.selected().unwrap_or(0);
+                    let info_text = if let Some(p) = filtered.get(selected_idx) {
+                        format!(
+                            "\n  Module: {}\n  Status: {}\n\n  Description:\n  {}\n\n  Usage / Docs:\n  {}\n\n  Controls:\n  [ENTER] Install / Toggle Activation\n  [TAB]   Back to Themes\n  [Q/ESC] Quit",
+                            p.name,
+                            if app.is_plugin_active(p) { "ACTIVE" } else { "INACTIVE / NOT INSTALLED" },
+                            p.description,
+                            p.documentation
+                        )
+                    } else {
+                        " No plugins found.".to_string()
+                    };
+
+                    let info_box = Paragraph::new(info_text)
+                        .block(Block::default().borders(Borders::ALL).title(" Module Documentation "));
                     f.render_widget(info_box, explorer_chunks[1]);
                 }
             }
