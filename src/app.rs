@@ -1,8 +1,8 @@
-use ratatui::widgets::ListState;
-use std::fs;
-use std::io;
 use std::path::PathBuf;
 use tokio::sync::mpsc;
+use std::fs;
+use std::io;
+use ratatui::widgets::ListState;
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum ActiveView {
@@ -23,10 +23,7 @@ pub enum AppState {
     Loading,
     Main,
     DependencyMissing,
-    InstallingDependency {
-        current_action: String,
-        log: Vec<String>,
-    },
+    InstallingDependency { current_action: String, log: Vec<String> },
     Installing(String),
     Success(String),
     FontSuccess(String),
@@ -123,9 +120,7 @@ impl App {
     pub fn gather_system_specs(has_nerd_font: bool) -> SystemSpecs {
         // Detecting Windows Terminal via WT_SESSION environment variable
         let is_windows_terminal = std::env::var("WT_SESSION").is_ok()
-            || std::env::var("TERM_PROGRAM")
-                .map(|v| v == "vscode")
-                .unwrap_or(false);
+            || std::env::var("TERM_PROGRAM").map(|v| v == "vscode").unwrap_or(false);
 
         // Checking for PowerShell 7 binary (pwsh)
         let cmd = if cfg!(windows) { "where.exe" } else { "which" };
@@ -187,10 +182,7 @@ impl App {
         };
 
         let output = std::process::Command::new(cmd)
-            .args([
-                "-Command",
-                "(Get-ItemProperty -Path 'HKCU:\\Console' -ErrorAction SilentlyContinue).FaceName",
-            ])
+            .args(["-Command", "(Get-ItemProperty -Path 'HKCU:\\Console' -ErrorAction SilentlyContinue).FaceName"])
             .output();
 
         if let Ok(out) = output {
@@ -198,11 +190,7 @@ impl App {
             if name.trim().is_empty() {
                 return true;
             }
-            name.contains("nf")
-                || name.contains("nerd")
-                || name.contains("retina")
-                || name.contains("code")
-                || name.contains("meslo")
+            name.contains("nf") || name.contains("nerd") || name.contains("retina") || name.contains("code") || name.contains("meslo")
         } else {
             true
         }
@@ -289,12 +277,8 @@ impl App {
                 .await;
 
             match output {
-                Ok(_) => {
-                    let _ = tx.send(AppMessage::FontInstalled(font_name_cloned)).await;
-                }
-                Err(e) => {
-                    let _ = tx.send(AppMessage::Error(e.to_string())).await;
-                }
+                Ok(_) => { let _ = tx.send(AppMessage::FontInstalled(font_name_cloned)).await; }
+                Err(e) => { let _ = tx.send(AppMessage::Error(e.to_string())).await; }
             }
         });
     }
@@ -312,33 +296,13 @@ impl App {
         tokio::spawn(async move {
             let mut cmd_obj = tokio::process::Command::new(cmd);
             // Cleaning parent env vars to ensure we see the theme as specified, ignoring current shell profile
-            cmd_obj
-                .env_clear()
-                .env("PATH", std::env::var("PATH").unwrap_or_default())
-                .env(
-                    "USERPROFILE",
-                    std::env::var("USERPROFILE").unwrap_or_default(),
-                )
-                .env(
-                    "SYSTEMROOT",
-                    std::env::var("SYSTEMROOT").unwrap_or_default(),
-                )
-                .env(
-                    "SystemDrive",
-                    std::env::var("SystemDrive").unwrap_or_default(),
-                )
-                .env("TEMP", std::env::var("TEMP").unwrap_or_default())
-                .args([
-                    "print",
-                    "primary",
-                    "--config",
-                    &theme_path.to_string_lossy(),
-                    "--shell",
-                    "pwsh",
-                    "--force",
-                    "--status",
-                    "0",
-                ]);
+            cmd_obj.env_clear()
+                  .env("PATH", std::env::var("PATH").unwrap_or_default())
+                  .env("USERPROFILE", std::env::var("USERPROFILE").unwrap_or_default())
+                  .env("SYSTEMROOT", std::env::var("SYSTEMROOT").unwrap_or_default())
+                  .env("SystemDrive", std::env::var("SystemDrive").unwrap_or_default())
+                  .env("TEMP", std::env::var("TEMP").unwrap_or_default())
+                  .args(["print", "primary", "--config", &theme_path.to_string_lossy(), "--shell", "pwsh", "--force", "--status", "0"]);
 
             let output = cmd_obj.output().await;
 
@@ -346,20 +310,16 @@ impl App {
                 Ok(out) => {
                     let raw = String::from_utf8_lossy(&out.stdout).to_string();
                     let preview = format!(" {}", raw.trim_end());
-                    let _ = tx
-                        .send(AppMessage::ThemePreviewLoaded {
-                            theme: theme_name_cloned,
-                            preview,
-                        })
-                        .await;
+                    let _ = tx.send(AppMessage::ThemePreviewLoaded {
+                        theme: theme_name_cloned,
+                        preview
+                    }).await;
                 }
                 Err(e) => {
-                    let _ = tx
-                        .send(AppMessage::ThemePreviewLoaded {
-                            theme: theme_name_cloned,
-                            preview: format!(" Error: {}", e),
-                        })
-                        .await;
+                    let _ = tx.send(AppMessage::ThemePreviewLoaded {
+                        theme: theme_name_cloned,
+                        preview: format!(" Error: {}", e)
+                    }).await;
                 }
             }
         });
@@ -368,20 +328,11 @@ impl App {
     /// Handles automatic installation of Oh My Posh via WinGet (Windows) or Homebrew (Linux/macOS)
     pub fn install_omp(&self, tx: mpsc::Sender<AppMessage>) {
         tokio::spawn(async move {
-            let _ = tx
-                .send(AppMessage::InstallProgress {
-                    line: "Starting Oh My Posh installation...".to_string(),
-                })
-                .await;
+            let _ = tx.send(AppMessage::InstallProgress { line: "Starting Oh My Posh installation...".to_string() }).await;
 
             let child = if cfg!(windows) {
                 tokio::process::Command::new("winget")
-                    .args([
-                        "install",
-                        "JanDeDobbeleer.OhMyPosh",
-                        "--accept-package-agreements",
-                        "--accept-source-agreements",
-                    ])
+                    .args(["install", "JanDeDobbeleer.OhMyPosh", "--accept-package-agreements", "--accept-source-agreements"])
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .spawn()
@@ -391,8 +342,7 @@ impl App {
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .spawn()
-            }
-            .map_err(|e| e.to_string());
+            }.map_err(|e| e.to_string());
 
             match child {
                 Ok(mut child) => {
@@ -410,21 +360,12 @@ impl App {
                             let _ = tx.send(AppMessage::InstallFinished).await;
                         }
                         _ => {
-                            let _ = tx
-                                .send(AppMessage::Error(
-                                    "Installation failed via Winget".to_string(),
-                                ))
-                                .await;
+                            let _ = tx.send(AppMessage::Error("Installation failed via Winget".to_string())).await;
                         }
                     }
                 }
                 Err(e) => {
-                    let _ = tx
-                        .send(AppMessage::Error(format!(
-                            "Could not start installer: {}",
-                            e
-                        )))
-                        .await;
+                    let _ = tx.send(AppMessage::Error(format!("Could not start installer: {}", e))).await;
                 }
             }
         });
