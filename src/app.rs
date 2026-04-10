@@ -219,7 +219,7 @@ impl App {
         let theme_path = self.themes_dir.join(theme_name);
         let config_line = format!(
             "oh-my-posh init pwsh --config '{}' | Invoke-Expression",
-            theme_path.to_string_lossy()
+            theme_path.to_string_lossy().replace("'", "''")
         );
 
         for profile in &self.detected_profiles {
