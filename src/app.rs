@@ -33,7 +33,7 @@ pub enum AppState {
     Error(String),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct FontAsset {
     pub name: String,
 }
@@ -365,5 +365,81 @@ impl App {
                 }
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    use ratatui::widgets::ListState;
+
+    fn mock_app() -> App {
+        App {
+            state: AppState::Loading,
+            active_view: ActiveView::Themes,
+            themes: Vec::new(),
+            fonts: Vec::new(),
+            filter: String::new(),
+            fonts_filter: String::new(),
+            themes_dir: PathBuf::from("/tmp"),
+            version: "test".to_string(),
+            list_state: ListState::default(),
+            fonts_list_state: ListState::default(),
+            spinner_tick: 0,
+            has_nerd_font: false,
+            theme_preview: String::new(),
+            detected_profiles: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn test_filtered_themes() {
+        let mut app = mock_app();
+        app.themes = vec![
+            "bubbles.omp.json".to_string(),
+            "joker.omp.json".to_string(),
+            "M365.omp.json".to_string(),
+        ];
+
+        // Empty filter should return all
+        assert_eq!(app.filtered_themes().len(), 3);
+
+        // Case-insensitive matching
+        app.filter = "JOKER".to_string();
+        assert_eq!(app.filtered_themes(), vec!["joker.omp.json".to_string()]);
+
+        // Partial matching
+        app.filter = "omp".to_string();
+        assert_eq!(app.filtered_themes().len(), 3);
+
+        // No match
+        app.filter = "nonexistent".to_string();
+        assert_eq!(app.filtered_themes().len(), 0);
+    }
+
+    #[test]
+    fn test_filtered_fonts() {
+        let mut app = mock_app();
+        app.fonts = vec![
+            FontAsset { name: "CascaidaCode".to_string() },
+            FontAsset { name: "FiraCode".to_string() },
+            FontAsset { name: "JetBrainsMono".to_string() },
+        ];
+
+        // Empty filter should return all
+        assert_eq!(app.filtered_fonts().len(), 3);
+
+        // Case-insensitive matching
+        app.fonts_filter = "fira".to_string();
+        assert_eq!(app.filtered_fonts(), vec![FontAsset { name: "FiraCode".to_string() }]);
+
+        // Partial matching
+        app.fonts_filter = "Code".to_string();
+        assert_eq!(app.filtered_fonts().len(), 2);
+
+        // No match
+        app.fonts_filter = "Wingdings".to_string();
+        assert_eq!(app.filtered_fonts().len(), 0);
     }
 }
