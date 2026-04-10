@@ -4,6 +4,9 @@ use std::fs;
 use std::io;
 use ratatui::widgets::ListState;
 
+const OMP_BINARY: &str = if cfg!(windows) { "oh-my-posh.exe" } else { "oh-my-posh" };
+const WHERE_CMD: &str = if cfg!(windows) { "where.exe" } else { "which" };
+
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum ActiveView {
     Themes,
@@ -108,7 +111,7 @@ impl App {
 
     /// Verifies if 'oh-my-posh' binary is present in the system PATH
     pub fn check_omp_installed(&self) -> bool {
-        let cmd = if cfg!(windows) { "where.exe" } else { "which" };
+        let cmd = WHERE_CMD;
         std::process::Command::new(cmd)
             .arg("oh-my-posh")
             .output()
@@ -123,7 +126,7 @@ impl App {
             || std::env::var("TERM_PROGRAM").map(|v| v == "vscode").unwrap_or(false);
         
         // Checking for PowerShell 7 binary (pwsh)
-        let cmd = if cfg!(windows) { "where.exe" } else { "which" };
+        let cmd = WHERE_CMD;
         let is_pwsh_7 = std::process::Command::new(cmd)
             .arg("pwsh")
             .output()
@@ -264,11 +267,7 @@ impl App {
 
     /// Triggers an asynchronous font installation via Oh My Posh CLI
     pub fn install_font(&self, font_name: String, tx: mpsc::Sender<AppMessage>) {
-        let cmd = if cfg!(windows) {
-            "oh-my-posh"
-        } else {
-            "oh-my-posh.exe"
-        };
+        let cmd = OMP_BINARY;
 
         let font_name_cloned = font_name.clone();
         tokio::spawn(async move {
@@ -286,11 +285,7 @@ impl App {
 
     /// Asynchronously generates a real prompt preview for a theme using isolation (no parent environment inheritance)
     pub fn load_theme_preview(&self, theme_name: String, tx: mpsc::Sender<AppMessage>) {
-        let cmd = if cfg!(windows) {
-            "oh-my-posh.exe"
-        } else {
-            "oh-my-posh"
-        };
+        let cmd = OMP_BINARY;
         let theme_path = self.themes_dir.join(&theme_name);
         let theme_name_cloned = theme_name.clone();
 
