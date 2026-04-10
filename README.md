@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD033 -->
 <div align="center">
-  <img src="https://raw.githubusercontent.com/julesklord/poshbuddy/main/assets/poshbuddy_logo.png" alt="PoshBuddy Logo" width="180" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
+  <img src="docs/logo.png" alt="PoshBuddy Logo" width="180" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
 
   # PoshBuddy
   
