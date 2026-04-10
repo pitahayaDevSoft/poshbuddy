@@ -1,21 +1,21 @@
-use std::error::Error;
-use std::io;
-use std::time::Duration;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
+use std::error::Error;
+use std::io;
+use std::time::Duration;
 use tokio::sync::mpsc;
 
+mod api;
 mod app;
 mod ui;
-mod api;
 
-use crate::app::{App, AppMessage, AppState, ActiveView};
-use crate::ui::ui;
 use crate::api::setup_app_task;
+use crate::app::{ActiveView, App, AppMessage, AppState};
+use crate::ui::ui;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -28,10 +28,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // 2. Initialize application state
     let mut app = App::new();
-    
+
     // Create an mpsc channel for async background tasks to communicate with the UI loop
     let (tx, mut rx) = mpsc::channel(32);
-    
+
     // Initial fetch of themes and fonts in the background
     let themes_dir = app.themes_dir.clone();
     tokio::spawn(setup_app_task(tx.clone(), themes_dir));
@@ -53,7 +53,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     names.sort();
                     app.themes = names;
                     // Transition to Main view if we were loading
-                    if app.state == AppState::Loading { app.state = AppState::Main; }
+                    if app.state == AppState::Loading {
+                        app.state = AppState::Main;
+                    }
                     // Pre-load the first theme preview
                     if let Some(t) = app.themes.first() {
                         app.load_theme_preview(t.clone(), tx.clone());
@@ -87,15 +89,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     // Update the debug log and current action for the installation view
                     if let AppState::InstallingDependency { log, .. } = &mut app.state {
                         log.push(line.clone());
-                        if log.len() > 100 { log.remove(0); }
-                        app.state = AppState::InstallingDependency { 
-                            current_action: line, 
-                            log: log.clone() 
+                        if log.len() > 100 {
+                            log.remove(0);
+                        }
+                        app.state = AppState::InstallingDependency {
+                            current_action: line,
+                            log: log.clone(),
                         };
                     } else {
-                        app.state = AppState::InstallingDependency { 
-                            current_action: line.clone(), 
-                            log: vec![line] 
+                        app.state = AppState::InstallingDependency {
+                            current_action: line.clone(),
+                            log: vec![line],
                         };
                     }
                 }
@@ -115,14 +119,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 // Filter for key press events to avoid double-triggering on Windows
-                if key.kind != KeyEventKind::Press { continue; }
+                if key.kind != KeyEventKind::Press {
+                    continue;
+                }
 
                 // Dependency checking state: allow starting install or exit
                 if app.state == AppState::DependencyMissing {
                     if key.code == KeyCode::Enter {
                         app.install_omp(tx.clone());
                     }
-                    if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc { break; }
+                    if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
+                        break;
+                    }
                     continue;
                 }
 
@@ -171,9 +179,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 ActiveView::Plugins => ActiveView::Themes,
                             };
                         }
-                        KeyCode::Char('1') => { app.active_view = ActiveView::Themes; }
-                        KeyCode::Char('2') => { app.active_view = ActiveView::Fonts; }
-                        KeyCode::Char('3') => { app.active_view = ActiveView::Plugins; }
+                        KeyCode::Char('1') => {
+                            app.active_view = ActiveView::Themes;
+                        }
+                        KeyCode::Char('2') => {
+                            app.active_view = ActiveView::Fonts;
+                        }
+                        KeyCode::Char('3') => {
+                            app.active_view = ActiveView::Plugins;
+                        }
                         KeyCode::Down | KeyCode::Up => {
                             // Horizontal focus logic for selection changes
                             if app.active_view == ActiveView::Themes {
@@ -181,9 +195,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 let i = match app.list_state.selected() {
                                     Some(i) => {
                                         if key.code == KeyCode::Down {
-                                            if i >= filtered.len() - 1 { 0 } else { i + 1 }
+                                            if i >= filtered.len() - 1 {
+                                                0
+                                            } else {
+                                                i + 1
+                                            }
                                         } else {
-                                            if i == 0 { filtered.len() - 1 } else { i - 1 }
+                                            if i == 0 {
+                                                filtered.len() - 1
+                                            } else {
+                                                i - 1
+                                            }
                                         }
                                     }
                                     None => 0,
@@ -200,9 +222,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 let i = match app.fonts_list_state.selected() {
                                     Some(i) => {
                                         if key.code == KeyCode::Down {
-                                            if i >= filtered.len() - 1 { 0 } else { i + 1 }
+                                            if i >= filtered.len() - 1 {
+                                                0
+                                            } else {
+                                                i + 1
+                                            }
                                         } else {
-                                            if i == 0 { filtered.len() - 1 } else { i - 1 }
+                                            if i == 0 {
+                                                filtered.len() - 1
+                                            } else {
+                                                i - 1
+                                            }
                                         }
                                     }
                                     None => 0,
@@ -214,9 +244,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 let i = match app.plugins_list_state.selected() {
                                     Some(i) => {
                                         if key.code == KeyCode::Down {
-                                            if i >= filtered.len() - 1 { 0 } else { i + 1 }
+                                            if i >= filtered.len() - 1 {
+                                                0
+                                            } else {
+                                                i + 1
+                                            }
                                         } else {
-                                            if i == 0 { filtered.len() - 1 } else { i - 1 }
+                                            if i == 0 {
+                                                filtered.len() - 1
+                                            } else {
+                                                i - 1
+                                            }
                                         }
                                     }
                                     None => 0,
@@ -272,9 +310,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                     if let Some(plugin) = filtered.get(selected) {
                                         // Toggle plugin activation
                                         if let Err(e) = app.toggle_plugin(plugin) {
-                                            app.state = AppState::Error(format!("Failed to update profile: {}", e));
+                                            app.state = AppState::Error(format!(
+                                                "Failed to update profile: {}",
+                                                e
+                                            ));
                                         } else {
-                                            app.state = AppState::PluginSuccess(plugin.name.clone());
+                                            app.state =
+                                                AppState::PluginSuccess(plugin.name.clone());
                                         }
                                     }
                                 }

@@ -1,10 +1,14 @@
-use std::path::PathBuf;
-use tokio::sync::mpsc;
+use ratatui::widgets::ListState;
 use std::fs;
 use std::io;
-use ratatui::widgets::ListState;
+use std::path::PathBuf;
+use tokio::sync::mpsc;
 
-const OMP_BINARY: &str = if cfg!(windows) { "oh-my-posh.exe" } else { "oh-my-posh" };
+const OMP_BINARY: &str = if cfg!(windows) {
+    "oh-my-posh.exe"
+} else {
+    "oh-my-posh"
+};
 const WHERE_CMD: &str = if cfg!(windows) { "where.exe" } else { "which" };
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -27,7 +31,10 @@ pub enum AppState {
     Loading,
     Main,
     DependencyMissing,
-    InstallingDependency { current_action: String, log: Vec<String> },
+    InstallingDependency {
+        current_action: String,
+        log: Vec<String>,
+    },
     Installing(String),
     Success(String),
     FontSuccess(String),
@@ -173,9 +180,11 @@ impl App {
     /// Checks the current terminal environment and PowerShell version capabilities
     pub fn gather_system_specs(has_nerd_font: bool) -> SystemSpecs {
         // Detecting Windows Terminal via WT_SESSION environment variable
-        let is_windows_terminal = std::env::var("WT_SESSION").is_ok() 
-            || std::env::var("TERM_PROGRAM").map(|v| v == "vscode").unwrap_or(false);
-        
+        let is_windows_terminal = std::env::var("WT_SESSION").is_ok()
+            || std::env::var("TERM_PROGRAM")
+                .map(|v| v == "vscode")
+                .unwrap_or(false);
+
         // Checking for PowerShell 7 binary (pwsh)
         let cmd = WHERE_CMD;
         let is_pwsh_7 = std::process::Command::new(cmd)
@@ -214,7 +223,7 @@ impl App {
                 }
             }
         }
-        
+
         // Cleanup and deduplicate (linked profiles)
         profiles.sort();
         profiles.dedup();
@@ -236,7 +245,10 @@ impl App {
         };
 
         let output = std::process::Command::new(cmd)
-            .args(["-Command", "(Get-ItemProperty -Path 'HKCU:\\Console' -ErrorAction SilentlyContinue).FaceName"])
+            .args([
+                "-Command",
+                "(Get-ItemProperty -Path 'HKCU:\\Console' -ErrorAction SilentlyContinue).FaceName",
+            ])
             .output();
 
         if let Ok(out) = output {
@@ -244,7 +256,11 @@ impl App {
             if name.trim().is_empty() {
                 return true;
             }
-            name.contains("nf") || name.contains("nerd") || name.contains("retina") || name.contains("code") || name.contains("meslo")
+            name.contains("nf")
+                || name.contains("nerd")
+                || name.contains("retina")
+                || name.contains("code")
+                || name.contains("meslo")
         } else {
             true
         }
@@ -336,10 +352,14 @@ impl App {
                 .args(["font", "install", &font_name_cloned])
                 .output()
                 .await;
-            
+
             match output {
-                Ok(_) => { let _ = tx.send(AppMessage::FontInstalled(font_name_cloned)).await; }
-                Err(e) => { let _ = tx.send(AppMessage::Error(e.to_string())).await; }
+                Ok(_) => {
+                    let _ = tx.send(AppMessage::FontInstalled(font_name_cloned)).await;
+                }
+                Err(e) => {
+                    let _ = tx.send(AppMessage::Error(e.to_string())).await;
+                }
             }
         });
     }
@@ -353,13 +373,33 @@ impl App {
         tokio::spawn(async move {
             let mut cmd_obj = tokio::process::Command::new(cmd);
             // Cleaning parent env vars to ensure we see the theme as specified, ignoring current shell profile
-            cmd_obj.env_clear()
-                  .env("PATH", std::env::var("PATH").unwrap_or_default())
-                  .env("USERPROFILE", std::env::var("USERPROFILE").unwrap_or_default())
-                  .env("SYSTEMROOT", std::env::var("SYSTEMROOT").unwrap_or_default())
-                  .env("SystemDrive", std::env::var("SystemDrive").unwrap_or_default())
-                  .env("TEMP", std::env::var("TEMP").unwrap_or_default())
-                  .args(["print", "primary", "--config", &theme_path.to_string_lossy(), "--shell", "pwsh", "--force", "--status", "0"]);
+            cmd_obj
+                .env_clear()
+                .env("PATH", std::env::var("PATH").unwrap_or_default())
+                .env(
+                    "USERPROFILE",
+                    std::env::var("USERPROFILE").unwrap_or_default(),
+                )
+                .env(
+                    "SYSTEMROOT",
+                    std::env::var("SYSTEMROOT").unwrap_or_default(),
+                )
+                .env(
+                    "SystemDrive",
+                    std::env::var("SystemDrive").unwrap_or_default(),
+                )
+                .env("TEMP", std::env::var("TEMP").unwrap_or_default())
+                .args([
+                    "print",
+                    "primary",
+                    "--config",
+                    &theme_path.to_string_lossy(),
+                    "--shell",
+                    "pwsh",
+                    "--force",
+                    "--status",
+                    "0",
+                ]);
 
             let output = cmd_obj.output().await;
 
@@ -367,16 +407,20 @@ impl App {
                 Ok(out) => {
                     let raw = String::from_utf8_lossy(&out.stdout).to_string();
                     let preview = format!(" {}", raw.trim_end());
-                    let _ = tx.send(AppMessage::ThemePreviewLoaded { 
-                        theme: theme_name_cloned, 
-                        preview 
-                    }).await;
+                    let _ = tx
+                        .send(AppMessage::ThemePreviewLoaded {
+                            theme: theme_name_cloned,
+                            preview,
+                        })
+                        .await;
                 }
                 Err(e) => {
-                    let _ = tx.send(AppMessage::ThemePreviewLoaded { 
-                        theme: theme_name_cloned, 
-                        preview: format!(" Error: {}", e) 
-                    }).await;
+                    let _ = tx
+                        .send(AppMessage::ThemePreviewLoaded {
+                            theme: theme_name_cloned,
+                            preview: format!(" Error: {}", e),
+                        })
+                        .await;
                 }
             }
         });
@@ -385,11 +429,20 @@ impl App {
     /// Handles automatic installation of Oh My Posh via WinGet (Windows) or Homebrew (Linux/macOS)
     pub fn install_omp(&self, tx: mpsc::Sender<AppMessage>) {
         tokio::spawn(async move {
-            let _ = tx.send(AppMessage::InstallProgress { line: "Starting Oh My Posh installation...".to_string() }).await;
-            
+            let _ = tx
+                .send(AppMessage::InstallProgress {
+                    line: "Starting Oh My Posh installation...".to_string(),
+                })
+                .await;
+
             let child = if cfg!(windows) {
                 tokio::process::Command::new("winget")
-                    .args(["install", "JanDeDobbeleer.OhMyPosh", "--accept-package-agreements", "--accept-source-agreements"])
+                    .args([
+                        "install",
+                        "JanDeDobbeleer.OhMyPosh",
+                        "--accept-package-agreements",
+                        "--accept-source-agreements",
+                    ])
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .spawn()
@@ -399,7 +452,8 @@ impl App {
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .spawn()
-            }.map_err(|e| e.to_string());
+            }
+            .map_err(|e| e.to_string());
 
             match child {
                 Ok(mut child) => {
@@ -417,12 +471,21 @@ impl App {
                             let _ = tx.send(AppMessage::InstallFinished).await;
                         }
                         _ => {
-                            let _ = tx.send(AppMessage::Error("Installation failed via Winget".to_string())).await;
+                            let _ = tx
+                                .send(AppMessage::Error(
+                                    "Installation failed via Winget".to_string(),
+                                ))
+                                .await;
                         }
                     }
                 }
                 Err(e) => {
-                    let _ = tx.send(AppMessage::Error(format!("Could not start installer: {}", e))).await;
+                    let _ = tx
+                        .send(AppMessage::Error(format!(
+                            "Could not start installer: {}",
+                            e
+                        )))
+                        .await;
                 }
             }
         });
@@ -431,7 +494,9 @@ impl App {
     /// Checks if a plugin is currently 'activated' (imported) in at least one PowerShell profile
     pub fn is_plugin_active(&self, plugin: &PluginAsset) -> bool {
         for profile in &self.detected_profiles {
-            if !profile.exists() { continue; }
+            if !profile.exists() {
+                continue;
+            }
             if let Ok(content) = fs::read_to_string(profile) {
                 let check_str = if let Some(init) = &plugin.init_script {
                     init.split('\n').next().unwrap_or(init).to_string()
@@ -475,7 +540,10 @@ impl App {
                 new_lines.retain(|l| !l.contains(&payload.split('\n').next().unwrap_or(&payload)));
             } else {
                 // Add the plugin
-                if !new_lines.iter().any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload))) {
+                if !new_lines
+                    .iter()
+                    .any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload)))
+                {
                     new_lines.push(payload.clone());
                 }
             }
@@ -488,10 +556,20 @@ impl App {
     /// Asynchronously installs a PowerShell module via the system shell
     pub fn install_plugin(&self, name: String, module_name: String, tx: mpsc::Sender<AppMessage>) {
         tokio::spawn(async move {
-            let _ = tx.send(AppMessage::InstallProgress { line: format!("Installing module: {}...", name) }).await;
-            
+            let _ = tx
+                .send(AppMessage::InstallProgress {
+                    line: format!("Installing module: {}...", name),
+                })
+                .await;
+
             let output = tokio::process::Command::new("powershell")
-                .args(["-Command", &format!("Install-Module -Name {} -Scope CurrentUser -Force -Confirm:$false", module_name)])
+                .args([
+                    "-Command",
+                    &format!(
+                        "Install-Module -Name {} -Scope CurrentUser -Force -Confirm:$false",
+                        module_name
+                    ),
+                ])
                 .output()
                 .await;
 
@@ -500,7 +578,12 @@ impl App {
                     let _ = tx.send(AppMessage::PluginInstalled(name)).await;
                 }
                 _ => {
-                    let _ = tx.send(AppMessage::Error(format!("Failed to install module {}", module_name))).await;
+                    let _ = tx
+                        .send(AppMessage::Error(format!(
+                            "Failed to install module {}",
+                            module_name
+                        )))
+                        .await;
                 }
             }
         });
@@ -510,8 +593,8 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
     use ratatui::widgets::ListState;
+    use std::path::PathBuf;
 
     fn mock_app() -> App {
         App {
@@ -564,9 +647,15 @@ mod tests {
     fn test_filtered_fonts() {
         let mut app = mock_app();
         app.fonts = vec![
-            FontAsset { name: "CascaidaCode".to_string() },
-            FontAsset { name: "FiraCode".to_string() },
-            FontAsset { name: "JetBrainsMono".to_string() },
+            FontAsset {
+                name: "CascaidaCode".to_string(),
+            },
+            FontAsset {
+                name: "FiraCode".to_string(),
+            },
+            FontAsset {
+                name: "JetBrainsMono".to_string(),
+            },
         ];
 
         // Empty filter should return all
@@ -574,7 +663,12 @@ mod tests {
 
         // Case-insensitive matching
         app.fonts_filter = "fira".to_string();
-        assert_eq!(app.filtered_fonts(), vec![FontAsset { name: "FiraCode".to_string() }]);
+        assert_eq!(
+            app.filtered_fonts(),
+            vec![FontAsset {
+                name: "FiraCode".to_string()
+            }]
+        );
 
         // Partial matching
         app.fonts_filter = "Code".to_string();

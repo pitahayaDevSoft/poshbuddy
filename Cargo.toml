@@ -13,3 +13,6 @@ serde_json = "1.0"
 dirs = "5.0"
 futures = "0.3.32"
 ansi-to-tui = "4.0.1"
+
+[dev-dependencies]
+mockito = "1.7.2"
