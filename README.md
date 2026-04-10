@@ -1,18 +1,13 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/julesklord/poshbuddy/main/assets/poshbuddy_logo.png" alt="PoshBuddy Logo" width="200" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
-  
 # PoshBuddy
-  
-  **The definitive TUI manager for Oh My Posh in Windows and PowerShell environments**
 
-  [![Rust](https://img.shields.io/badge/Rust-1.94+-orange.svg)](https://www.rust-lang.org)
-  [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![Platform](https://img.shields.io/badge/Platform-Windows-lightgray.svg)]()
-  [![State](https://img.shields.io/badge/State-Beta-green.svg)]()
+![PoshBuddy Logo](https://raw.githubusercontent.com/julesklord/poshbuddy/main/assets/poshbuddy_logo.png)
+
+**The definitive TUI manager for Oh My Posh in Windows and PowerShell environments**
+
+  [![Rust](https://img.shields.io/badge/Rust-1.94+-orange.svg)](https://www.rust-lang.org) [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Platform](https://img.shields.io/badge/Platform-Windows-lightgray.svg)]()  [![State](https://img.shields.io/badge/State-Beta-green.svg)]()
 </div>
 
 <br>
-
 **PoshBuddy** is a lightweight, fast, and beautifully designed terminal user interface (TUI) built in Rust. It's designed to simplify the installation, management, and customization of themes and fonts for **Oh My Posh**. Say goodbye to manual profile editing and JSON juggling—PoshBuddy does the heavy lifting for you with an immersive visual experience.
 
 ---
@@ -83,6 +78,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-<div align="center">
-  <i>Built with ❤️ for the developer community on Windows.</i>
-</div>
+*Built with ❤️ for the developer community on Windows.*
