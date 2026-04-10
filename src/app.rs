@@ -684,3 +684,69 @@ mod tests {
         assert_eq!(app.filtered_fonts().len(), 0);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::widgets::ListState;
+
+    fn create_test_app() -> App {
+        App {
+            state: AppState::Main,
+            active_view: ActiveView::Themes,
+            themes: vec![
+                "agnoster".to_string(),
+                "amro".to_string(),
+                "atomic".to_string(),
+                "catppuccin_frappe".to_string(),
+                "Catppuccin_Macchiato".to_string(),
+                "cyberpunk".to_string(),
+            ],
+            fonts: vec![],
+            filter: "".to_string(),
+            fonts_filter: "".to_string(),
+            themes_dir: PathBuf::from("/mock/themes/dir"),
+            version: "1.0.0".to_string(),
+            list_state: ListState::default(),
+            fonts_list_state: ListState::default(),
+            spinner_tick: 0,
+            has_nerd_font: true,
+            theme_preview: "".to_string(),
+            detected_profiles: vec![],
+        }
+    }
+
+    #[test]
+    fn test_filtered_themes_empty_filter() {
+        let app = create_test_app();
+        let filtered = app.filtered_themes();
+        assert_eq!(filtered.len(), 6);
+    }
+
+    #[test]
+    fn test_filtered_themes_case_insensitive() {
+        let mut app = create_test_app();
+        app.filter = "cAtP".to_string();
+        let filtered = app.filtered_themes();
+        assert_eq!(filtered.len(), 2);
+        assert!(filtered.contains(&"catppuccin_frappe".to_string()));
+        assert!(filtered.contains(&"Catppuccin_Macchiato".to_string()));
+    }
+
+    #[test]
+    fn test_filtered_themes_partial_match() {
+        let mut app = create_test_app();
+        app.filter = "amro".to_string();
+        let filtered = app.filtered_themes();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0], "amro");
+    }
+
+    #[test]
+    fn test_filtered_themes_no_match() {
+        let mut app = create_test_app();
+        app.filter = "nonexistent".to_string();
+        let filtered = app.filtered_themes();
+        assert_eq!(filtered.len(), 0);
+    }
+}
