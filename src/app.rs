@@ -217,9 +217,10 @@ impl App {
     /// Atomically updates all detected shell profiles to initialize Oh My Posh with the selected theme
     pub fn apply_theme(&self, theme_name: &str) -> io::Result<()> {
         let theme_path = self.themes_dir.join(theme_name);
+        let safe_path = theme_path.to_string_lossy().replace("'", "''");
         let config_line = format!(
             "oh-my-posh init pwsh --config '{}' | Invoke-Expression",
-            theme_path.to_string_lossy()
+            safe_path
         );
 
         for profile in &self.detected_profiles {

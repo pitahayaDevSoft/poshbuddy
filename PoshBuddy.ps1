@@ -83,7 +83,8 @@ function Save-Theme ($themeName, $localPath) {
 
 function Apply-Theme ($themePath) {
     if (!$themePath -or !(Test-Path $themePath)) { return }
-    $line = "oh-my-posh init pwsh --config '$themePath' | Invoke-Expression"
+    $safePath = $themePath -replace "'", "''"
+    $line = "oh-my-posh init pwsh --config '$safePath' | Invoke-Expression"
     if (!(Test-Path $PoshBuddy.Profile)) { New-Item -ItemType File -Path $PoshBuddy.Profile -Force | Out-Null }
     
     $content = Get-Content $PoshBuddy.Profile
