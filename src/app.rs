@@ -320,7 +320,12 @@ impl App {
 
             // Search for existing Oh My Posh init line to replace or add a new one at the end
             for line in content.lines() {
-                if line.to_lowercase().contains("oh-my-posh init") {
+                if line.len() >= 15
+                    && line
+                        .as_bytes()
+                        .windows(15)
+                        .any(|w| w.eq_ignore_ascii_case(b"oh-my-posh init"))
+                {
                     new_content.push(config_line.clone());
                     found = true;
                 } else {
