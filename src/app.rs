@@ -360,10 +360,10 @@ impl App {
 
             match output {
                 Ok(_) => {
-                    let _ = tx.send(AppMessage::FontInstalled(font_name_cloned)).await;
+                    if tx.send(AppMessage::FontInstalled(font_name_cloned)).await.is_err() {}
                 }
                 Err(e) => {
-                    let _ = tx.send(AppMessage::Error(e.to_string())).await;
+                    if tx.send(AppMessage::Error(e.to_string())).await.is_err() {}
                 }
             }
         });
@@ -412,20 +412,26 @@ impl App {
                 Ok(out) => {
                     let raw = String::from_utf8_lossy(&out.stdout).to_string();
                     let preview = format!(" {}", raw.trim_end());
-                    let _ = tx
+                    if tx
                         .send(AppMessage::ThemePreviewLoaded {
                             theme: theme_name_cloned,
                             preview,
                         })
-                        .await;
+                        .await
+                        .is_err()
+                    {
+                    }
                 }
                 Err(e) => {
-                    let _ = tx
+                    if tx
                         .send(AppMessage::ThemePreviewLoaded {
                             theme: theme_name_cloned,
                             preview: format!(" Error: {}", e),
                         })
-                        .await;
+                        .await
+                        .is_err()
+                    {
+                    }
                 }
             }
         });
@@ -468,19 +474,22 @@ impl App {
 
                     // Stream output lines to the TUI debug box in real-time
                     while let Ok(Some(line)) = reader.next_line().await {
-                        let _ = tx.send(AppMessage::InstallProgress { line }).await;
+                        if tx.send(AppMessage::InstallProgress { line }).await.is_err() { break; }
                     }
 
                     match child.wait().await {
                         Ok(status) if status.success() => {
-                            let _ = tx.send(AppMessage::InstallFinished).await;
+                            if tx.send(AppMessage::InstallFinished).await.is_err() {}
                         }
                         _ => {
-                            let _ = tx
+                            if tx
                                 .send(AppMessage::Error(
                                     "Installation failed via Winget".to_string(),
                                 ))
-                                .await;
+                                .await
+                                .is_err()
+                            {
+                            }
                         }
                     }
                 }
@@ -542,12 +551,12 @@ impl App {
 
             if is_active {
                 // Remove the plugin
-                new_lines.retain(|l| !l.contains(&payload.split('\n').next().unwrap_or(&payload)));
+                new_lines.retain(|l| !l.contains(payload.split('\n').next().unwrap_or(&payload)));
             } else {
                 // Add the plugin
                 if !new_lines
                     .iter()
-                    .any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload)))
+                    .any(|l| l.contains(payload.split('\n').next().unwrap_or(&payload)))
                 {
                     new_lines.push(payload.clone());
                 }
@@ -580,7 +589,7 @@ impl App {
 
             match output {
                 Ok(out) if out.status.success() => {
-                    let _ = tx.send(AppMessage::PluginInstalled(name)).await;
+                    if tx.send(AppMessage::PluginInstalled(name)).await.is_err() {}
                 }
                 _ => {
                     let _ = tx
@@ -800,7 +809,7 @@ mod tests {
 }
 
 #[cfg(test)]
-mod tests {
+mod tests_extra {
     use super::*;
     use ratatui::widgets::ListState;
 
@@ -827,6 +836,9 @@ mod tests {
             has_nerd_font: true,
             theme_preview: "".to_string(),
             detected_profiles: vec![],
+            plugins: vec![],
+            plugins_filter: "".to_string(),
+            plugins_list_state: ratatui::widgets::ListState::default(),
         }
     }
 
