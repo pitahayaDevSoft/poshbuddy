@@ -12,8 +12,8 @@ pub async fn setup_app_task(tx: mpsc::Sender<AppMessage>, themes_dir: PathBuf) {
 pub async fn setup_app_task_with_urls(
     tx: mpsc::Sender<AppMessage>,
     _themes_dir: PathBuf,
-    themes_url: &str,
-    fonts_url: &str,
+    _themes_url: &str,
+    _fonts_url: &str,
 ) {
     let client = reqwest::Client::new();
 

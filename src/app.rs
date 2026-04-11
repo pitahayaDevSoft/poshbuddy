@@ -542,12 +542,12 @@ impl App {
 
             if is_active {
                 // Remove the plugin
-                new_lines.retain(|l| !l.contains(&payload.split('\n').next().unwrap_or(&payload)));
+                new_lines.retain(|l| !l.contains(payload.split('\n').next().unwrap_or(&payload)));
             } else {
                 // Add the plugin
                 if !new_lines
                     .iter()
-                    .any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload)))
+                    .any(|l| l.contains(payload.split('\n').next().unwrap_or(&payload)))
                 {
                     new_lines.push(payload.clone());
                 }
@@ -800,7 +800,7 @@ mod tests {
 }
 
 #[cfg(test)]
-mod tests {
+mod tests_filtered {
     use super::*;
     use ratatui::widgets::ListState;
 
@@ -817,12 +817,15 @@ mod tests {
                 "cyberpunk".to_string(),
             ],
             fonts: vec![],
+            plugins: vec![],
             filter: "".to_string(),
             fonts_filter: "".to_string(),
+            plugins_filter: "".to_string(),
             themes_dir: PathBuf::from("/mock/themes/dir"),
             version: "1.0.0".to_string(),
             list_state: ListState::default(),
             fonts_list_state: ListState::default(),
+            plugins_list_state: ListState::default(),
             spinner_tick: 0,
             has_nerd_font: true,
             theme_preview: "".to_string(),
