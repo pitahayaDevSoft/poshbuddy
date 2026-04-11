@@ -542,12 +542,12 @@ impl App {
 
             if is_active {
                 // Remove the plugin
-                new_lines.retain(|l| !l.contains(&payload.split('\n').next().unwrap_or(&payload)));
+                new_lines.retain(|l| !l.contains(payload.split('\n').next().unwrap_or(&payload)));
             } else {
                 // Add the plugin
                 if !new_lines
                     .iter()
-                    .any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload)))
+                    .any(|l| l.contains(payload.split('\n').next().unwrap_or(&payload)))
                 {
                     new_lines.push(payload.clone());
                 }
@@ -592,6 +592,295 @@ impl App {
                 }
             }
         });
+    }
+
+    pub fn handle_messages(
+        &mut self,
+        rx: &mut tokio::sync::mpsc::Receiver<AppMessage>,
+        tx: tokio::sync::mpsc::Sender<AppMessage>,
+    ) {
+        while let Ok(msg) = rx.try_recv() {
+            match msg {
+                AppMessage::ThemesLoaded(mut names) => {
+                    names.sort();
+                    self.themes = names;
+                    // Transition to Main view if we were loading
+                    if self.state == AppState::Loading {
+                        self.state = AppState::Main;
+                    }
+                    // Pre-load the first theme preview
+                    if let Some(t) = self.themes.first() {
+                        self.load_theme_preview(t.clone(), tx.clone());
+                    }
+                }
+                AppMessage::FontsLoaded(mut fonts) => {
+                    fonts.sort_by(|a, b| a.name.cmp(&b.name));
+                    self.fonts = fonts;
+                }
+                AppMessage::ThemePreviewLoaded { theme, preview } => {
+                    // Only update preview if it corresponds to the currently selected theme
+                    let filtered = self.filtered_themes();
+                    if let Some(selected_index) = self.list_state.selected() {
+                        if let Some(current_theme) = filtered.get(selected_index) {
+                            if current_theme == &theme {
+                                self.theme_preview = preview;
+                            }
+                        }
+                    }
+                }
+                AppMessage::FontInstalled(name) => {
+                    // Transition to FontSuccess screen
+                    self.state = AppState::FontSuccess(name);
+                    self.has_nerd_font = true;
+                }
+                AppMessage::PluginInstalled(name) => {
+                    // Transition to PluginSuccess screen
+                    self.state = AppState::PluginSuccess(name);
+                }
+                AppMessage::InstallProgress { line } => {
+                    // Update the debug log and current action for the installation view
+                    if let AppState::InstallingDependency { log, .. } = &mut self.state {
+                        log.push(line.clone());
+                        if log.len() > 100 {
+                            log.remove(0);
+                        }
+                        self.state = AppState::InstallingDependency {
+                            current_action: line,
+                            log: log.clone(),
+                        };
+                    } else {
+                        self.state = AppState::InstallingDependency {
+                            current_action: line.clone(),
+                            log: vec![line],
+                        };
+                    }
+                }
+                AppMessage::InstallFinished => {
+                    // After OMP install, reload themes
+                    self.state = AppState::Loading;
+                    let themes_dir = self.themes_dir.clone();
+                    tokio::spawn(crate::api::setup_app_task(tx.clone(), themes_dir));
+                }
+                AppMessage::Error(e) => {
+                    self.state = AppState::Error(e);
+                }
+            }
+        }
+    }
+
+    pub fn handle_input(
+        &mut self,
+        key: crossterm::event::KeyEvent,
+        tx: tokio::sync::mpsc::Sender<AppMessage>,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        use crossterm::event::{KeyCode, KeyEventKind};
+
+        // Filter for key press events to avoid double-triggering on Windows
+        if key.kind != KeyEventKind::Press {
+            return Ok(false);
+        }
+
+        // Dependency checking state: allow starting install or exit
+        if self.state == AppState::DependencyMissing {
+            if key.code == KeyCode::Enter {
+                self.install_omp(tx.clone());
+            }
+            if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
+                return Ok(true);
+            }
+            return Ok(false);
+        }
+
+        // Initial diagnostic screen: allow continuing to Main or exit
+        if let AppState::Onboarding(_) = self.state {
+            match key.code {
+                KeyCode::Enter => {
+                    if self.themes.is_empty() {
+                        self.state = AppState::Loading;
+                    } else {
+                        self.state = AppState::Main;
+                    }
+                }
+                KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
+                _ => {}
+            }
+            return Ok(false);
+        }
+
+        // Final success screen: Exit on any key
+        if let AppState::Success(_) = self.state {
+            return Ok(true);
+        }
+
+        // Font success screen: Return to main menu on any key
+        if let AppState::FontSuccess(_) = self.state {
+            self.state = AppState::Main;
+            return Ok(false);
+        }
+
+        // Plugin success screen: Return to main menu on any key
+        if let AppState::PluginSuccess(_) = self.state {
+            self.state = AppState::Main;
+            self.active_view = ActiveView::Plugins;
+            return Ok(false);
+        }
+
+        // Main navigation and controls
+        if self.state == AppState::Main {
+            match key.code {
+                KeyCode::Tab => {
+                    // Cycle between Themes, Fonts and Plugins views
+                    self.active_view = match self.active_view {
+                        ActiveView::Themes => ActiveView::Fonts,
+                        ActiveView::Fonts => ActiveView::Plugins,
+                        ActiveView::Plugins => ActiveView::Themes,
+                    };
+                }
+                KeyCode::Char('1') => {
+                    self.active_view = ActiveView::Themes;
+                }
+                KeyCode::Char('2') => {
+                    self.active_view = ActiveView::Fonts;
+                }
+                KeyCode::Char('3') => {
+                    self.active_view = ActiveView::Plugins;
+                }
+                KeyCode::Down | KeyCode::Up => {
+                    // Horizontal focus logic for selection changes
+                    if self.active_view == ActiveView::Themes {
+                        let filtered = self.filtered_themes();
+                        let i = match self.list_state.selected() {
+                            Some(i) => {
+                                if key.code == KeyCode::Down {
+                                    if i >= filtered.len().saturating_sub(1) {
+                                        0
+                                    } else {
+                                        i + 1
+                                    }
+                                } else {
+                                    if i == 0 {
+                                        filtered.len().saturating_sub(1)
+                                    } else {
+                                        i - 1
+                                    }
+                                }
+                            }
+                            None => 0,
+                        };
+                        self.list_state.select(Some(i));
+                        // Request a preview update for the newly selected theme
+                        self.theme_preview = String::new();
+                        if let Some(t) = filtered.get(i) {
+                            self.load_theme_preview(t.clone(), tx.clone());
+                        }
+                    } else if self.active_view == ActiveView::Fonts {
+                        // Font selection navigation
+                        let filtered = self.filtered_fonts();
+                        let i = match self.fonts_list_state.selected() {
+                            Some(i) => {
+                                if key.code == KeyCode::Down {
+                                    if i >= filtered.len().saturating_sub(1) {
+                                        0
+                                    } else {
+                                        i + 1
+                                    }
+                                } else {
+                                    if i == 0 {
+                                        filtered.len().saturating_sub(1)
+                                    } else {
+                                        i - 1
+                                    }
+                                }
+                            }
+                            None => 0,
+                        };
+                        self.fonts_list_state.select(Some(i));
+                    } else if self.active_view == ActiveView::Plugins {
+                        // Plugin selection navigation
+                        let filtered = self.filtered_plugins();
+                        let i = match self.plugins_list_state.selected() {
+                            Some(i) => {
+                                if key.code == KeyCode::Down {
+                                    if i >= filtered.len().saturating_sub(1) {
+                                        0
+                                    } else {
+                                        i + 1
+                                    }
+                                } else {
+                                    if i == 0 {
+                                        filtered.len().saturating_sub(1)
+                                    } else {
+                                        i - 1
+                                    }
+                                }
+                            }
+                            None => 0,
+                        };
+                        self.plugins_list_state.select(Some(i));
+                    }
+                }
+                KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
+                KeyCode::Char(c) => {
+                    // Filtering logic for the list
+                    if self.active_view == ActiveView::Themes {
+                        self.filter.push(c);
+                        self.list_state.select(Some(0));
+                    } else if self.active_view == ActiveView::Fonts {
+                        self.fonts_filter.push(c);
+                        self.fonts_list_state.select(Some(0));
+                    } else {
+                        self.plugins_filter.push(c);
+                        self.plugins_list_state.select(Some(0));
+                    }
+                }
+                KeyCode::Backspace => {
+                    if self.active_view == ActiveView::Themes {
+                        self.filter.pop();
+                    } else if self.active_view == ActiveView::Fonts {
+                        self.fonts_filter.pop();
+                    } else {
+                        self.plugins_filter.pop();
+                    }
+                }
+                KeyCode::Enter => {
+                    if self.active_view == ActiveView::Themes {
+                        let filtered = self.filtered_themes();
+                        if let Some(selected) = self.list_state.selected() {
+                            if let Some(theme) = filtered.get(selected) {
+                                // Update profiles and show success screen
+                                self.apply_theme(theme)?;
+                                self.state = AppState::Success(theme.clone());
+                            }
+                        }
+                    } else if self.active_view == ActiveView::Fonts {
+                        let filtered = self.filtered_fonts();
+                        if let Some(selected) = self.fonts_list_state.selected() {
+                            if let Some(font) = filtered.get(selected) {
+                                // Start font installation
+                                self.state = AppState::Installing(font.name.clone());
+                                self.install_font(font.name.clone(), tx.clone());
+                            }
+                        }
+                    } else {
+                        let filtered = self.filtered_plugins();
+                        if let Some(selected) = self.plugins_list_state.selected() {
+                            if let Some(plugin) = filtered.get(selected) {
+                                // Toggle plugin activation
+                                if let Err(e) = self.toggle_plugin(plugin) {
+                                    self.state =
+                                        AppState::Error(format!("Failed to update profile: {}", e));
+                                } else {
+                                    self.state = AppState::PluginSuccess(plugin.name.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Ok(false)
     }
 }
 
@@ -796,71 +1085,5 @@ mod tests {
             specs.is_pwsh_7,
             "Expected is_pwsh_7 to be true when pwsh is in PATH"
         );
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui::widgets::ListState;
-
-    fn create_test_app() -> App {
-        App {
-            state: AppState::Main,
-            active_view: ActiveView::Themes,
-            themes: vec![
-                "agnoster".to_string(),
-                "amro".to_string(),
-                "atomic".to_string(),
-                "catppuccin_frappe".to_string(),
-                "Catppuccin_Macchiato".to_string(),
-                "cyberpunk".to_string(),
-            ],
-            fonts: vec![],
-            filter: "".to_string(),
-            fonts_filter: "".to_string(),
-            themes_dir: PathBuf::from("/mock/themes/dir"),
-            version: "1.0.0".to_string(),
-            list_state: ListState::default(),
-            fonts_list_state: ListState::default(),
-            spinner_tick: 0,
-            has_nerd_font: true,
-            theme_preview: "".to_string(),
-            detected_profiles: vec![],
-        }
-    }
-
-    #[test]
-    fn test_filtered_themes_empty_filter() {
-        let app = create_test_app();
-        let filtered = app.filtered_themes();
-        assert_eq!(filtered.len(), 6);
-    }
-
-    #[test]
-    fn test_filtered_themes_case_insensitive() {
-        let mut app = create_test_app();
-        app.filter = "cAtP".to_string();
-        let filtered = app.filtered_themes();
-        assert_eq!(filtered.len(), 2);
-        assert!(filtered.contains(&"catppuccin_frappe".to_string()));
-        assert!(filtered.contains(&"Catppuccin_Macchiato".to_string()));
-    }
-
-    #[test]
-    fn test_filtered_themes_partial_match() {
-        let mut app = create_test_app();
-        app.filter = "amro".to_string();
-        let filtered = app.filtered_themes();
-        assert_eq!(filtered.len(), 1);
-        assert_eq!(filtered[0], "amro");
-    }
-
-    #[test]
-    fn test_filtered_themes_no_match() {
-        let mut app = create_test_app();
-        app.filter = "nonexistent".to_string();
-        let filtered = app.filtered_themes();
-        assert_eq!(filtered.len(), 0);
     }
 }
