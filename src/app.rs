@@ -800,7 +800,7 @@ mod tests {
 }
 
 #[cfg(test)]
-mod tests {
+mod filtering_tests {
     use super::*;
     use ratatui::widgets::ListState;
 
@@ -817,12 +817,15 @@ mod tests {
                 "cyberpunk".to_string(),
             ],
             fonts: vec![],
+            plugins: vec![],
             filter: "".to_string(),
             fonts_filter: "".to_string(),
+            plugins_filter: "".to_string(),
             themes_dir: PathBuf::from("/mock/themes/dir"),
             version: "1.0.0".to_string(),
             list_state: ListState::default(),
             fonts_list_state: ListState::default(),
+            plugins_list_state: ListState::default(),
             spinner_tick: 0,
             has_nerd_font: true,
             theme_preview: "".to_string(),

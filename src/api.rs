@@ -18,7 +18,6 @@ pub async fn setup_app_task_with_urls(
     let client = reqwest::Client::new();
 
     // 1. Fetching available themes from the official Oh My Posh repository
-    let themes_url = "https://api.github.com/repos/JanDeDobbeleer/oh-my-posh/contents/themes";
     let resp = client
         .get(themes_url)
         .header("User-Agent", "poshbuddy")
@@ -42,7 +41,6 @@ pub async fn setup_app_task_with_urls(
     }
 
     // 2. Fetching Nerd Fonts metadata from the Nerd Fonts repository (patched fonts list)
-    let fonts_url = "https://api.github.com/repos/ryanoasis/nerd-fonts/contents/patched-fonts";
     let resp_fonts = client
         .get(fonts_url)
         .header("User-Agent", "poshbuddy")
