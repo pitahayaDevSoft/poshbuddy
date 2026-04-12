@@ -1,7 +1,9 @@
 use ratatui::widgets::ListState;
+use std::env;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use tokio::sync::mpsc;
 
 const OMP_BINARY: &str = if cfg!(windows) {
@@ -61,10 +63,17 @@ pub struct PluginAsset {
 pub enum AppMessage {
     ThemesLoaded(Vec<String>),
     FontsLoaded(Vec<FontAsset>),
-    ThemePreviewLoaded { theme: String, preview: String },
+    ThemePreviewLoaded {
+        theme: String,
+        preview: String,
+    },
+    #[allow(dead_code)]
     FontInstalled(String),
+    #[allow(dead_code)]
     PluginInstalled(String),
-    InstallProgress { line: String },
+    InstallProgress {
+        line: String,
+    },
     InstallFinished,
     Error(String),
 }
@@ -135,7 +144,7 @@ impl App {
                     description: "A smarter cd command. It remembers which directories you use most often.".to_string(),
                     documentation: "Usage: type 'z <name>' to jump. Replaces 'cd' with intelligent fuzzy matching.".to_string(),
                     module_name: "zoxide".to_string(),
-                    init_script: Some("zoxide init pwsh | Invoke-Expression".to_string()),
+                    init_script: Some("if (Get-Command zoxide -ErrorAction SilentlyContinue) { zoxide init pwsh | Invoke-Expression }".to_string()),
                 },
                 PluginAsset {
                     name: "PSReadLine Mastery".to_string(),
@@ -143,6 +152,27 @@ impl App {
                     documentation: "Optimizes command history search and adds visual feedback while typing.".to_string(),
                     module_name: "PSReadLine".to_string(),
                     init_script: Some("Set-PSReadLineOption -PredictionSource History\nSet-PSReadLineOption -PredictionViewStyle ListView".to_string()),
+                },
+                PluginAsset {
+                    name: "Spotify Integración".to_string(),
+                    description: "Habilita el segmento de Spotify en OMP.".to_string(),
+                    documentation: "Muestra la canción actual.\n\nLink: https://ohmyposh.dev/docs/segments/spotify".to_string(),
+                    module_name: "Spotify".to_string(),
+                    init_script: Some("Write-Host 'ℹ️ El segmento de Spotify no requiere un módulo extra de PWSH, pero necesita la API activa.'".to_string()),
+                },
+                PluginAsset {
+                    name: "Docker Completion".to_string(),
+                    description: "Habilita herramientas para el segmento de Docker.".to_string(),
+                    documentation: "Muestra la versión y contexto actual de Docker.\n\nLink: https://ohmyposh.dev/docs/segments/docker".to_string(),
+                    module_name: "DockerCompletion".to_string(),
+                    init_script: None,
+                },
+                PluginAsset {
+                    name: "Cloud Context (Azure/AWS)".to_string(),
+                    description: "Conecta OMP con tus identidades en la Nube.".to_string(),
+                    documentation: "Muestra la suscripción actual de Azure o AWS CLI.\n\nLink: https://ohmyposh.dev/docs/segments/azure".to_string(),
+                    module_name: "Az.Accounts".to_string(),
+                    init_script: None,
                 },
             ],
             filter: String::new(),
@@ -524,7 +554,11 @@ impl App {
         let payload = if let Some(init) = &plugin.init_script {
             init.clone()
         } else {
-            format!("Import-Module {}", plugin.module_name)
+            // SilentlyContinue avoids red error walls if the user doesn't have the module installed
+            format!(
+                "Import-Module {} -ErrorAction SilentlyContinue",
+                plugin.module_name
+            )
         };
 
         for profile in &self.detected_profiles {
@@ -542,12 +576,12 @@ impl App {
 
             if is_active {
                 // Remove the plugin
-                new_lines.retain(|l| !l.contains(payload.split('\n').next().unwrap_or(&payload)));
+                new_lines.retain(|l| !l.contains(&payload.split('\n').next().unwrap_or(&payload)));
             } else {
                 // Add the plugin
                 if !new_lines
                     .iter()
-                    .any(|l| l.contains(payload.split('\n').next().unwrap_or(&payload)))
+                    .any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload)))
                 {
                     new_lines.push(payload.clone());
                 }
@@ -559,6 +593,7 @@ impl App {
     }
 
     /// Asynchronously installs a PowerShell module via the system shell
+    #[allow(dead_code)]
     pub fn install_plugin(&self, name: String, module_name: String, tx: mpsc::Sender<AppMessage>) {
         tokio::spawn(async move {
             let _ = tx
@@ -593,295 +628,6 @@ impl App {
             }
         });
     }
-
-    pub fn handle_messages(
-        &mut self,
-        rx: &mut tokio::sync::mpsc::Receiver<AppMessage>,
-        tx: tokio::sync::mpsc::Sender<AppMessage>,
-    ) {
-        while let Ok(msg) = rx.try_recv() {
-            match msg {
-                AppMessage::ThemesLoaded(mut names) => {
-                    names.sort();
-                    self.themes = names;
-                    // Transition to Main view if we were loading
-                    if self.state == AppState::Loading {
-                        self.state = AppState::Main;
-                    }
-                    // Pre-load the first theme preview
-                    if let Some(t) = self.themes.first() {
-                        self.load_theme_preview(t.clone(), tx.clone());
-                    }
-                }
-                AppMessage::FontsLoaded(mut fonts) => {
-                    fonts.sort_by(|a, b| a.name.cmp(&b.name));
-                    self.fonts = fonts;
-                }
-                AppMessage::ThemePreviewLoaded { theme, preview } => {
-                    // Only update preview if it corresponds to the currently selected theme
-                    let filtered = self.filtered_themes();
-                    if let Some(selected_index) = self.list_state.selected() {
-                        if let Some(current_theme) = filtered.get(selected_index) {
-                            if current_theme == &theme {
-                                self.theme_preview = preview;
-                            }
-                        }
-                    }
-                }
-                AppMessage::FontInstalled(name) => {
-                    // Transition to FontSuccess screen
-                    self.state = AppState::FontSuccess(name);
-                    self.has_nerd_font = true;
-                }
-                AppMessage::PluginInstalled(name) => {
-                    // Transition to PluginSuccess screen
-                    self.state = AppState::PluginSuccess(name);
-                }
-                AppMessage::InstallProgress { line } => {
-                    // Update the debug log and current action for the installation view
-                    if let AppState::InstallingDependency { log, .. } = &mut self.state {
-                        log.push(line.clone());
-                        if log.len() > 100 {
-                            log.remove(0);
-                        }
-                        self.state = AppState::InstallingDependency {
-                            current_action: line,
-                            log: log.clone(),
-                        };
-                    } else {
-                        self.state = AppState::InstallingDependency {
-                            current_action: line.clone(),
-                            log: vec![line],
-                        };
-                    }
-                }
-                AppMessage::InstallFinished => {
-                    // After OMP install, reload themes
-                    self.state = AppState::Loading;
-                    let themes_dir = self.themes_dir.clone();
-                    tokio::spawn(crate::api::setup_app_task(tx.clone(), themes_dir));
-                }
-                AppMessage::Error(e) => {
-                    self.state = AppState::Error(e);
-                }
-            }
-        }
-    }
-
-    pub fn handle_input(
-        &mut self,
-        key: crossterm::event::KeyEvent,
-        tx: tokio::sync::mpsc::Sender<AppMessage>,
-    ) -> Result<bool, Box<dyn std::error::Error>> {
-        use crossterm::event::{KeyCode, KeyEventKind};
-
-        // Filter for key press events to avoid double-triggering on Windows
-        if key.kind != KeyEventKind::Press {
-            return Ok(false);
-        }
-
-        // Dependency checking state: allow starting install or exit
-        if self.state == AppState::DependencyMissing {
-            if key.code == KeyCode::Enter {
-                self.install_omp(tx.clone());
-            }
-            if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
-                return Ok(true);
-            }
-            return Ok(false);
-        }
-
-        // Initial diagnostic screen: allow continuing to Main or exit
-        if let AppState::Onboarding(_) = self.state {
-            match key.code {
-                KeyCode::Enter => {
-                    if self.themes.is_empty() {
-                        self.state = AppState::Loading;
-                    } else {
-                        self.state = AppState::Main;
-                    }
-                }
-                KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
-                _ => {}
-            }
-            return Ok(false);
-        }
-
-        // Final success screen: Exit on any key
-        if let AppState::Success(_) = self.state {
-            return Ok(true);
-        }
-
-        // Font success screen: Return to main menu on any key
-        if let AppState::FontSuccess(_) = self.state {
-            self.state = AppState::Main;
-            return Ok(false);
-        }
-
-        // Plugin success screen: Return to main menu on any key
-        if let AppState::PluginSuccess(_) = self.state {
-            self.state = AppState::Main;
-            self.active_view = ActiveView::Plugins;
-            return Ok(false);
-        }
-
-        // Main navigation and controls
-        if self.state == AppState::Main {
-            match key.code {
-                KeyCode::Tab => {
-                    // Cycle between Themes, Fonts and Plugins views
-                    self.active_view = match self.active_view {
-                        ActiveView::Themes => ActiveView::Fonts,
-                        ActiveView::Fonts => ActiveView::Plugins,
-                        ActiveView::Plugins => ActiveView::Themes,
-                    };
-                }
-                KeyCode::Char('1') => {
-                    self.active_view = ActiveView::Themes;
-                }
-                KeyCode::Char('2') => {
-                    self.active_view = ActiveView::Fonts;
-                }
-                KeyCode::Char('3') => {
-                    self.active_view = ActiveView::Plugins;
-                }
-                KeyCode::Down | KeyCode::Up => {
-                    // Horizontal focus logic for selection changes
-                    if self.active_view == ActiveView::Themes {
-                        let filtered = self.filtered_themes();
-                        let i = match self.list_state.selected() {
-                            Some(i) => {
-                                if key.code == KeyCode::Down {
-                                    if i >= filtered.len().saturating_sub(1) {
-                                        0
-                                    } else {
-                                        i + 1
-                                    }
-                                } else {
-                                    if i == 0 {
-                                        filtered.len().saturating_sub(1)
-                                    } else {
-                                        i - 1
-                                    }
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.list_state.select(Some(i));
-                        // Request a preview update for the newly selected theme
-                        self.theme_preview = String::new();
-                        if let Some(t) = filtered.get(i) {
-                            self.load_theme_preview(t.clone(), tx.clone());
-                        }
-                    } else if self.active_view == ActiveView::Fonts {
-                        // Font selection navigation
-                        let filtered = self.filtered_fonts();
-                        let i = match self.fonts_list_state.selected() {
-                            Some(i) => {
-                                if key.code == KeyCode::Down {
-                                    if i >= filtered.len().saturating_sub(1) {
-                                        0
-                                    } else {
-                                        i + 1
-                                    }
-                                } else {
-                                    if i == 0 {
-                                        filtered.len().saturating_sub(1)
-                                    } else {
-                                        i - 1
-                                    }
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.fonts_list_state.select(Some(i));
-                    } else if self.active_view == ActiveView::Plugins {
-                        // Plugin selection navigation
-                        let filtered = self.filtered_plugins();
-                        let i = match self.plugins_list_state.selected() {
-                            Some(i) => {
-                                if key.code == KeyCode::Down {
-                                    if i >= filtered.len().saturating_sub(1) {
-                                        0
-                                    } else {
-                                        i + 1
-                                    }
-                                } else {
-                                    if i == 0 {
-                                        filtered.len().saturating_sub(1)
-                                    } else {
-                                        i - 1
-                                    }
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.plugins_list_state.select(Some(i));
-                    }
-                }
-                KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
-                KeyCode::Char(c) => {
-                    // Filtering logic for the list
-                    if self.active_view == ActiveView::Themes {
-                        self.filter.push(c);
-                        self.list_state.select(Some(0));
-                    } else if self.active_view == ActiveView::Fonts {
-                        self.fonts_filter.push(c);
-                        self.fonts_list_state.select(Some(0));
-                    } else {
-                        self.plugins_filter.push(c);
-                        self.plugins_list_state.select(Some(0));
-                    }
-                }
-                KeyCode::Backspace => {
-                    if self.active_view == ActiveView::Themes {
-                        self.filter.pop();
-                    } else if self.active_view == ActiveView::Fonts {
-                        self.fonts_filter.pop();
-                    } else {
-                        self.plugins_filter.pop();
-                    }
-                }
-                KeyCode::Enter => {
-                    if self.active_view == ActiveView::Themes {
-                        let filtered = self.filtered_themes();
-                        if let Some(selected) = self.list_state.selected() {
-                            if let Some(theme) = filtered.get(selected) {
-                                // Update profiles and show success screen
-                                self.apply_theme(theme)?;
-                                self.state = AppState::Success(theme.clone());
-                            }
-                        }
-                    } else if self.active_view == ActiveView::Fonts {
-                        let filtered = self.filtered_fonts();
-                        if let Some(selected) = self.fonts_list_state.selected() {
-                            if let Some(font) = filtered.get(selected) {
-                                // Start font installation
-                                self.state = AppState::Installing(font.name.clone());
-                                self.install_font(font.name.clone(), tx.clone());
-                            }
-                        }
-                    } else {
-                        let filtered = self.filtered_plugins();
-                        if let Some(selected) = self.plugins_list_state.selected() {
-                            if let Some(plugin) = filtered.get(selected) {
-                                // Toggle plugin activation
-                                if let Err(e) = self.toggle_plugin(plugin) {
-                                    self.state =
-                                        AppState::Error(format!("Failed to update profile: {}", e));
-                                } else {
-                                    self.state = AppState::PluginSuccess(plugin.name.clone());
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        Ok(false)
-    }
 }
 
 #[cfg(test)]
@@ -889,6 +635,45 @@ mod tests {
     use super::*;
     use ratatui::widgets::ListState;
     use std::path::PathBuf;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    struct EnvGuard {
+        wt_session: Option<String>,
+        term_program: Option<String>,
+        path: Option<String>,
+    }
+
+    impl EnvGuard {
+        fn new() -> Self {
+            Self {
+                wt_session: env::var("WT_SESSION").ok(),
+                term_program: env::var("TERM_PROGRAM").ok(),
+                path: env::var("PATH").ok(),
+            }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            if let Some(ref v) = self.wt_session {
+                env::set_var("WT_SESSION", v);
+            } else {
+                env::remove_var("WT_SESSION");
+            }
+            if let Some(ref v) = self.term_program {
+                env::set_var("TERM_PROGRAM", v);
+            } else {
+                env::remove_var("TERM_PROGRAM");
+            }
+            if let Some(ref v) = self.path {
+                env::set_var("PATH", v);
+            } else {
+                env::remove_var("PATH");
+            }
+        }
+    }
 
     fn mock_app() -> App {
         App {
@@ -973,46 +758,104 @@ mod tests {
         assert_eq!(app.filtered_fonts().len(), 0);
     }
 
-    use std::env;
-    use std::sync::Mutex;
+    #[test]
+    fn test_detect_profiles() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _guard = EnvGuard::new();
 
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+        let original_path = env::var("PATH").unwrap_or_default();
+        let dir = env::temp_dir().join("fake_detect_profiles_bin");
+        std::fs::create_dir_all(&dir).unwrap();
 
-    struct EnvGuard {
-        wt_session: Option<String>,
-        term_program: Option<String>,
-        path: Option<String>,
-    }
+        let pwsh_name = if cfg!(windows) { "pwsh.cmd" } else { "pwsh" };
+        let pwsh_path = dir.join(pwsh_name);
 
-    impl EnvGuard {
-        fn new() -> Self {
-            Self {
-                wt_session: env::var("WT_SESSION").ok(),
-                term_program: env::var("TERM_PROGRAM").ok(),
-                path: env::var("PATH").ok(),
-            }
+        let content = if cfg!(windows) {
+            "@echo off\necho /mock/path/profile.ps1"
+        } else {
+            "#!/bin/sh\necho -n '/mock/path/profile.ps1'"
+        };
+
+        std::fs::write(&pwsh_path, content).unwrap();
+
+        if cfg!(windows) {
+            let powershell_path = dir.join("powershell.cmd");
+            std::fs::write(
+                &powershell_path,
+                "@echo off\necho /mock/path/powershell_profile.ps1",
+            )
+            .unwrap();
+        }
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&pwsh_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+
+        let sep = if cfg!(windows) { ";" } else { ":" };
+        let new_path = format!("{}{}{}", dir.display(), sep, original_path);
+        env::set_var("PATH", &new_path);
+
+        let profiles = App::detect_profiles();
+
+        assert!(!profiles.is_empty(), "Profiles should not be empty");
+        assert!(
+            profiles.contains(&PathBuf::from("/mock/path/profile.ps1")),
+            "Should contain mocked pwsh profile"
+        );
+
+        if cfg!(windows) {
+            assert!(
+                profiles.contains(&PathBuf::from("/mock/path/powershell_profile.ps1")),
+                "Should contain mocked powershell profile"
+            );
         }
     }
 
-    impl Drop for EnvGuard {
-        fn drop(&mut self) {
-            if let Some(ref v) = self.wt_session {
-                env::set_var("WT_SESSION", v);
-            } else {
-                env::remove_var("WT_SESSION");
-            }
-            if let Some(ref v) = self.term_program {
-                env::set_var("TERM_PROGRAM", v);
-            } else {
-                env::remove_var("TERM_PROGRAM");
-            }
-            if let Some(ref v) = self.path {
-                env::set_var("PATH", v);
-            } else {
-                env::remove_var("PATH");
-            }
+    #[test]
+    fn test_detect_profiles_empty_output() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _guard = EnvGuard::new();
+
+        let original_path = env::var("PATH").unwrap_or_default();
+        let dir = env::temp_dir().join("fake_detect_profiles_empty_bin");
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let pwsh_name = if cfg!(windows) { "pwsh.cmd" } else { "pwsh" };
+        let pwsh_path = dir.join(pwsh_name);
+
+        let content = if cfg!(windows) {
+            "@echo off"
+        } else {
+            "#!/bin/sh\nexit 0"
+        };
+
+        std::fs::write(&pwsh_path, content).unwrap();
+
+        if cfg!(windows) {
+            let powershell_path = dir.join("powershell.cmd");
+            std::fs::write(&powershell_path, "@echo off").unwrap();
         }
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&pwsh_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+
+        let sep = if cfg!(windows) { ";" } else { ":" };
+        let new_path = format!("{}{}{}", dir.display(), sep, original_path);
+        env::set_var("PATH", &new_path);
+
+        let profiles = App::detect_profiles();
+
+        assert!(
+            profiles.is_empty(),
+            "Profiles should be empty when output is blank"
+        );
     }
+}
 
     #[test]
     fn test_gather_system_specs() {
@@ -1086,105 +929,12 @@ mod tests {
             "Expected is_pwsh_7 to be true when pwsh is in PATH"
         );
     }
+}
 
-    #[test]
-    fn test_check_nerd_font() {
-        let _lock = ENV_LOCK.lock().unwrap();
-        let _guard = EnvGuard::new();
-
-        // 1. TERM_PROGRAM = vscode
-        env::set_var("TERM_PROGRAM", "vscode");
-        assert!(
-            App::check_nerd_font(),
-            "Should be true if TERM_PROGRAM is vscode"
-        );
-        env::remove_var("TERM_PROGRAM");
-
-        // For the next tests, we need to mock powershell/powershell.exe.
-        let dir = env::temp_dir().join("fake_pwsh_nerd_font");
-        std::fs::create_dir_all(&dir).unwrap();
-
-        let pwsh_name = if cfg!(windows) {
-            "powershell.exe"
-        } else {
-            "powershell"
-        };
-        let pwsh_path = dir.join(pwsh_name);
-
-        let original_path = env::var("PATH").unwrap_or_default();
-        let sep = if cfg!(windows) { ";" } else { ":" };
-        let new_path = format!("{}{}{}", dir.display(), sep, original_path);
-        env::set_var("PATH", &new_path);
-
-        // Helper to write mock powershell script that outputs a specific string
-        let write_mock = |output: &str| {
-            let script = format!("#!/bin/sh\necho \"{}\"\n", output);
-            std::fs::write(&pwsh_path, script).unwrap();
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                std::fs::set_permissions(&pwsh_path, std::fs::Permissions::from_mode(0o755))
-                    .unwrap();
-            }
-        };
-
-        // 2. Command succeeds, outputs typical non-nerd font ("Consolas")
-        write_mock("Consolas");
-        assert!(
-            !App::check_nerd_font(),
-            "Should be false if it outputs 'Consolas'"
-        );
-
-        // 3. Command succeeds, outputs empty string
-        write_mock("   ");
-        assert!(
-            App::check_nerd_font(),
-            "Should be true if outputs only whitespace"
-        );
-
-        // 4. Command succeeds, outputs a nerd font name
-        write_mock("CaskaydiaCove NF");
-        assert!(
-            App::check_nerd_font(),
-            "Should be true for a font with 'NF'"
-        );
-
-        write_mock("MesloLGS Nerd Font");
-        assert!(
-            App::check_nerd_font(),
-            "Should be true for a font with 'nerd'"
-        );
-
-        write_mock("FiraCode Retina");
-        assert!(
-            App::check_nerd_font(),
-            "Should be true for a font with 'retina'"
-        );
-
-        write_mock("Fira Code");
-        assert!(
-            App::check_nerd_font(),
-            "Should be true for a font with 'code'"
-        );
-
-        write_mock("Meslo LG");
-        assert!(
-            App::check_nerd_font(),
-            "Should be true for a font with 'meslo'"
-        );
-
-        // 5. Command fails (remove mock to simulate command not found)
-        std::fs::remove_file(&pwsh_path).unwrap();
-        // NOTE: if the system HAS a real powershell/powershell.exe in the rest of PATH,
-        // this might fall back to it. To ensure failure, we clear PATH completely.
-        env::set_var("PATH", "");
-        assert!(
-            App::check_nerd_font(),
-            "Should default to true on command failure"
-        );
-
-        env::set_var("PATH", &original_path);
-    }
+#[cfg(test)]
+mod filtering_tests {
+    use super::*;
+    use ratatui::widgets::ListState;
 
     fn create_test_app() -> App {
         App {
