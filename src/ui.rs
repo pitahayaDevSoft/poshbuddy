@@ -308,11 +308,17 @@ pub fn ui(f: &mut Frame, app: &mut App) {
                     let filtered = app.filtered_themes();
                     let themes: Vec<ListItem> =
                         filtered.iter().map(|t| ListItem::new(t.as_str())).collect();
+                    let themes_title = if app.filter.is_empty() {
+                        " Themes Explorer ".to_string()
+                    } else {
+                        format!(" Themes Explorer (Filter: {}) ", app.filter)
+                    };
+
                     let themes_list = List::new(themes)
                         .block(
                             Block::default()
                                 .borders(Borders::ALL)
-                                .title(" Themes Explorer "),
+                                .title(themes_title.as_str()),
                         )
                         .highlight_style(
                             Style::default()
@@ -378,11 +384,17 @@ pub fn ui(f: &mut Frame, app: &mut App) {
                         .iter()
                         .map(|f| ListItem::new(f.name.as_str()))
                         .collect();
+                    let fonts_title = if app.fonts_filter.is_empty() {
+                        " Recommended Fonts ".to_string()
+                    } else {
+                        format!(" Recommended Fonts (Filter: {}) ", app.fonts_filter)
+                    };
+
                     let font_list = List::new(font_items)
                         .block(
                             Block::default()
                                 .borders(Borders::ALL)
-                                .title(" Recommended Fonts "),
+                                .title(fonts_title.as_str()),
                         )
                         .highlight_style(
                             Style::default()
@@ -416,11 +428,17 @@ pub fn ui(f: &mut Frame, app: &mut App) {
                         })
                         .collect();
 
+                    let plugins_title = if app.plugins_filter.is_empty() {
+                        " Modules & Extensions ".to_string()
+                    } else {
+                        format!(" Modules & Extensions (Filter: {}) ", app.plugins_filter)
+                    };
+
                     let plugin_list = List::new(plugin_items)
                         .block(
                             Block::default()
                                 .borders(Borders::ALL)
-                                .title(" Modules & Extensions "),
+                                .title(plugins_title.as_str()),
                         )
                         .highlight_style(
                             Style::default()
