@@ -92,8 +92,8 @@ mod tests {
             .with_body(
                 r#"
             [
-                {"name": "theme1.omp.json", "type": "file"},
-                {"name": "theme2.omp.json", "type": "file"}
+                {"name": "theme1.omp.json", "type": "file", "download_url": "http://example.com/t1", "sha": "s1"},
+                {"name": "theme2.omp.json", "type": "file", "download_url": "http://example.com/t2", "sha": "s2"}
             ]
             "#,
             )
@@ -123,12 +123,12 @@ mod tests {
         setup_app_task_with_urls(tx, PathBuf::from("dummy"), &themes_url, &fonts_url).await;
 
         let msg1 = rx.recv().await.unwrap();
-        if let AppMessage::ThemesLoaded(themes) = msg1 {
+        if let AppMessage::RemoteThemesLoaded(themes) = msg1 {
             assert_eq!(themes.len(), 2);
-            assert_eq!(themes[0].name, "theme1.omp.json");
-            assert_eq!(themes[1].name, "theme2.omp.json");
+            assert_eq!(themes[0].name, "theme1");
+            assert_eq!(themes[1].name, "theme2");
         } else {
-            panic!("Expected ThemesLoaded message");
+            panic!("Expected RemoteThemesLoaded message");
         }
 
         let msg2 = rx.recv().await.unwrap();
@@ -155,9 +155,9 @@ mod tests {
             .with_body(
                 r#"
             [
-                {"name": "theme1.omp.json", "type": "file"},
-                {"name": "readme.md", "type": "file"},
-                {"name": "theme2.omp.json", "type": "file"}
+                {"name": "theme1.omp.json", "type": "file", "download_url": "http://example.com/t1", "sha": "s1"},
+                {"name": "readme.md", "type": "file", "download_url": "http://example.com/r", "sha": "sr"},
+                {"name": "theme2.omp.json", "type": "file", "download_url": "http://example.com/t2", "sha": "s2"}
             ]
             "#,
             )
@@ -180,12 +180,12 @@ mod tests {
         setup_app_task_with_urls(tx, PathBuf::from("dummy"), &themes_url, &fonts_url).await;
 
         let msg1 = rx.recv().await.unwrap();
-        if let AppMessage::ThemesLoaded(themes) = msg1 {
+        if let AppMessage::RemoteThemesLoaded(themes) = msg1 {
             assert_eq!(themes.len(), 2);
-            assert_eq!(themes[0].name, "theme1.omp.json");
-            assert_eq!(themes[1].name, "theme2.omp.json");
+            assert_eq!(themes[0].name, "theme1");
+            assert_eq!(themes[1].name, "theme2");
         } else {
-            panic!("Expected ThemesLoaded message");
+            panic!("Expected RemoteThemesLoaded message");
         }
     }
 
