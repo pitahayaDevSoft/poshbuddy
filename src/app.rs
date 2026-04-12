@@ -35,6 +35,21 @@ pub struct FontAsset {
     pub download_url: String,
 }
 
+/// Dynamic metadata for a remote Oh My Posh theme
+#[derive(Clone, Debug, serde::Deserialize)]
+pub struct RemoteTheme {
+    pub name: String,
+    pub download_url: String,
+    pub sha: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ThemeAsset {
+    pub name: String,
+    pub is_local: bool,
+    pub download_url: Option<String>,
+}
+
 /// System specifications for diagnostic display
 #[derive(Debug, Clone, PartialEq)]
 pub struct SystemSpecs {
@@ -47,12 +62,13 @@ pub struct SystemSpecs {
 pub enum AppMessage {
     ThemesLoaded(Vec<String>),
     FontsLoaded(Vec<FontAsset>),
-    ThemePreviewLoaded { theme: String, preview: String },
+    ThemePreviewLoaded { theme: ThemeAsset, preview: String },
     InstallProgress { line: String },
     InstallFinished,
     Error(String),
     FontInstalled(String),
     PluginInstalled(String),
+    RemoteThemesLoaded(Vec<RemoteTheme>),
 }
 
 /// Represents the different states the application can be in
@@ -86,7 +102,8 @@ pub enum ActiveView {
 pub struct App {
     pub state: AppState,
     pub active_view: ActiveView,
-    pub themes: Vec<String>,
+    pub themes: Vec<ThemeAsset>,
+    pub remote_themes: Vec<RemoteTheme>,
     pub fonts: Vec<FontAsset>,
     pub filter: String,
     pub fonts_filter: String,
@@ -142,6 +159,7 @@ impl App {
             state: AppState::Welcome,
             active_view: ActiveView::Themes,
             themes: Vec::new(),
+            remote_themes: Vec::new(),
             fonts: Vec::new(),
             plugins: vec![
                 PluginAsset {
@@ -392,15 +410,86 @@ impl App {
         }
     }
 
-    /// Returns a filtered list of themes based on search criteria
-    pub fn filtered_themes(&self) -> Vec<String> {
+    /// Returns a unified list of filtered themes (Local + Unique Remote)
+    pub fn filtered_themes(&self) -> Vec<ThemeAsset> {
         let filter_lower = self.filter.to_lowercase();
-        self.themes
-            .iter()
-            .filter(|t| t.to_lowercase().contains(&filter_lower))
-            .cloned()
-            .collect()
+        let mut unified = Vec::new();
+
+        // Add Local
+        for t in &self.themes {
+            if t.name.to_lowercase().contains(&filter_lower) {
+                unified.push(t.clone());
+            }
+        }
+
+        // Add Remote (only if not local)
+        for rt in &self.remote_themes {
+            if rt.name.to_lowercase().contains(&filter_lower) {
+                if !self.themes.iter().any(|t| t.name == rt.name) {
+                    unified.push(ThemeAsset {
+                        name: rt.name.clone(),
+                        is_local: false,
+                        download_url: Some(rt.download_url.clone()),
+                    });
+                }
+            }
+        }
+
+        unified
     }
+
+    /// Asynchronously fetches the official themes catalog from GitHub
+    pub fn fetch_official_themes(&self, tx: mpsc::Sender<AppMessage>) {
+        tokio::spawn(async move {
+            let client = reqwest::Client::new();
+            let res = client.get("https://api.github.com/repos/JanDeDobbeleer/oh-my-posh/contents/themes")
+                .header("User-Agent", "PoshBuddy-Updater")
+                .send()
+                .await;
+
+            match res {
+                Ok(response) => {
+                    if let Ok(items) = response.json::<Vec<serde_json::Value>>().await {
+                        let themes: Vec<RemoteTheme> = items.into_iter()
+                            .filter(|i| i["name"].as_str().unwrap_or("").ends_with(".omp.json"))
+                            .map(|i| RemoteTheme {
+                                name: i["name"].as_str().unwrap_or("").replace(".omp.json", "").to_string(),
+                                download_url: i["download_url"].as_str().unwrap_or("").to_string(),
+                                sha: i["sha"].as_str().unwrap_or("").to_string(),
+                            })
+                            .collect();
+                        let _ = tx.send(AppMessage::RemoteThemesLoaded(themes)).await;
+                    }
+                }
+                Err(e) => {
+                    let _ = tx.send(AppMessage::Error(format!("Fetch themes failed: {}", e))).await;
+                }
+            }
+        });
+    }
+
+    /// Downloads and installs a remote theme locally
+    pub fn download_theme(&self, theme: RemoteTheme, tx: mpsc::Sender<AppMessage>) {
+        let path = self.themes_dir.join(format!("{}.omp.json", theme.name));
+        tokio::spawn(async move {
+            match reqwest::get(&theme.download_url).await {
+                Ok(resp) => {
+                    if let Ok(bytes) = resp.bytes().await {
+                        if let Err(e) = fs::write(&path, &bytes) {
+                            let _ = tx.send(AppMessage::Error(format!("Save failed: {}", e))).await;
+                        } else {
+                            // After download, tell the app to refresh local themes
+                            let _ = tx.send(AppMessage::ThemesLoaded(vec![theme.name])).await;
+                        }
+                    }
+                }
+                Err(e) => {
+                    let _ = tx.send(AppMessage::Error(format!("Download failed: {}", e))).await;
+                }
+            }
+        });
+    }
+
 
     /// Returns a filtered list of fonts based on search criteria
     pub fn filtered_fonts(&self) -> Vec<FontAsset> {
@@ -589,30 +678,29 @@ impl App {
         });
     }
 
-    /// Asynchronously generates a real prompt preview for a theme using isolation (no parent environment inheritance)
-    pub fn load_theme_preview(&self, theme_name: String, tx: mpsc::Sender<AppMessage>) {
+    /// Asynchronously generates a real prompt preview for a theme using isolation
+    pub fn load_theme_preview(&self, theme: ThemeAsset, tx: mpsc::Sender<AppMessage>) {
+        if !theme.is_local {
+            let _ = tx.send(AppMessage::ThemePreviewLoaded {
+                theme,
+                preview: " [Remote Theme: Pulsa ENTER para descargar y previsualizar] ".to_string(),
+            });
+            return;
+        }
+
         let cmd = OMP_BINARY;
-        let theme_path = self.themes_dir.join(&theme_name);
-        let theme_name_cloned = theme_name.clone();
+        let theme_name = theme.name.clone();
+        let theme_path = self.themes_dir.join(format!("{}.omp.json", theme_name));
+        let theme_cloned = theme.clone();
 
         tokio::spawn(async move {
             let mut cmd_obj = tokio::process::Command::new(cmd);
-            // Cleaning parent env vars to ensure we see the theme as specified, ignoring current shell profile
             cmd_obj
                 .env_clear()
                 .env("PATH", std::env::var("PATH").unwrap_or_default())
-                .env(
-                    "USERPROFILE",
-                    std::env::var("USERPROFILE").unwrap_or_default(),
-                )
-                .env(
-                    "SYSTEMROOT",
-                    std::env::var("SYSTEMROOT").unwrap_or_default(),
-                )
-                .env(
-                    "SystemDrive",
-                    std::env::var("SystemDrive").unwrap_or_default(),
-                )
+                .env("USERPROFILE", std::env::var("USERPROFILE").unwrap_or_default())
+                .env("SYSTEMROOT", std::env::var("SYSTEMROOT").unwrap_or_default())
+                .env("SystemDrive", std::env::var("SystemDrive").unwrap_or_default())
                 .env("TEMP", std::env::var("TEMP").unwrap_or_default())
                 .args([
                     "print",
@@ -632,20 +720,16 @@ impl App {
                 Ok(out) => {
                     let raw = String::from_utf8_lossy(&out.stdout).to_string();
                     let preview = format!(" {}", raw.trim_end());
-                    let _ = tx
-                        .send(AppMessage::ThemePreviewLoaded {
-                            theme: theme_name_cloned,
-                            preview,
-                        })
-                        .await;
+                    let _ = tx.send(AppMessage::ThemePreviewLoaded {
+                        theme: theme_cloned,
+                        preview,
+                    }).await;
                 }
                 Err(e) => {
-                    let _ = tx
-                        .send(AppMessage::ThemePreviewLoaded {
-                            theme: theme_name_cloned,
-                            preview: format!(" Error: {}", e),
-                        })
-                        .await;
+                    let _ = tx.send(AppMessage::ThemePreviewLoaded {
+                        theme: theme_cloned,
+                        preview: format!(" Error: {}", e),
+                    }).await;
                 }
             }
         });
@@ -875,9 +959,17 @@ impl App {
     ) {
         while let Ok(msg) = rx.try_recv() {
             match msg {
-                AppMessage::ThemesLoaded(mut names) => {
-                    names.sort();
-                    self.themes = names;
+                AppMessage::ThemesLoaded(new_themes) => {
+                    for t in new_themes {
+                        if !self.themes.iter().any(|existing| existing.name == t) {
+                            self.themes.push(ThemeAsset {
+                                name: t,
+                                is_local: true,
+                                download_url: None,
+                            });
+                        }
+                    }
+                    self.themes.sort_by(|a, b| a.name.cmp(&b.name));
                     if self.state == AppState::Loading {
                         self.state = AppState::Main;
                     }
@@ -893,11 +985,14 @@ impl App {
                     let filtered = self.filtered_themes();
                     if let Some(selected_index) = self.list_state.selected() {
                         if let Some(current_theme) = filtered.get(selected_index) {
-                            if current_theme == &theme {
+                            if current_theme.name == theme.name {
                                 self.theme_preview = preview;
                             }
                         }
                     }
+                }
+                AppMessage::RemoteThemesLoaded(themes) => {
+                    self.remote_themes = themes;
                 }
                 AppMessage::FontInstalled(name) => {
                     self.state = AppState::FontSuccess(name);
@@ -1025,16 +1120,18 @@ impl App {
                                     .duration_since(UNIX_EPOCH)
                                     .unwrap_or_default()
                                     .as_secs() as usize;
-                                let random_index = seed % self.themes.len();
-                                let random_theme = self.themes[random_index].clone();
-                                if let Err(e) = self.apply_theme(&random_theme) {
-                                    self.state =
-                                        AppState::Error(format!("Error aplicando tema: {}", e));
-                                } else {
-                                    self.state = AppState::Success(format!(
-                                        "Tema '{}' aplicado!",
-                                        random_theme
-                                    ));
+                                let idx = seed % self.themes.len();
+                                if let Some(random_theme) = self.themes.get(idx) {
+                                    let name = random_theme.name.clone();
+                                    if let Err(e) = self.apply_theme(&name) {
+                                        self.state =
+                                            AppState::Error(format!("Failed to apply fallback: {}", e));
+                                    } else {
+                                        self.state = AppState::Success(format!(
+                                            "Tema '{}' aplicado!",
+                                            name
+                                        ));
+                                    }
                                 }
                             } else {
                                 self.state =
@@ -1275,8 +1372,18 @@ impl App {
                         let filtered = self.filtered_themes();
                         if let Some(selected) = self.list_state.selected() {
                             if let Some(theme) = filtered.get(selected) {
-                                self.apply_theme(theme)?;
-                                self.state = AppState::Success(theme.clone());
+                                if theme.is_local {
+                                    self.apply_theme(&theme.name)?;
+                                    self.state = AppState::Success(format!("Tema '{}' aplicado!", theme.name));
+                                } else if let Some(url) = &theme.download_url {
+                                    // Trigger download
+                                    self.state = AppState::Installing(format!("Descargando {}...", theme.name));
+                                    self.download_theme(RemoteTheme {
+                                        name: theme.name.clone(),
+                                        download_url: url.clone(),
+                                        sha: String::new(), // Not critical for simple download
+                                    }, tx.clone());
+                                }
                             }
                         }
                     } else if self.active_view == ActiveView::Fonts {

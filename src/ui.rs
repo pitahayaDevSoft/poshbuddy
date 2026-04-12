@@ -201,13 +201,19 @@ fn render_themes_view(f: &mut Frame, area: Rect, app: &mut App) {
         .split(area);
 
     let themes = app.filtered_themes();
-    let theme_items: Vec<ListItem> = themes
-        .iter()
-        .map(|t| ListItem::new(format!("  • {}", t)))
-        .collect();
+    let mut theme_items = Vec::new();
 
+    for t in themes {
+        if t.is_local {
+            theme_items.push(ListItem::new(format!(" [L] {}", t.name)).style(Style::default().fg(Color::Cyan)));
+        } else {
+            theme_items.push(ListItem::new(format!(" [G] {}", t.name)).style(Style::default().fg(Color::Gray)));
+        }
+    }
+
+    let items_count = theme_items.len();
     let list = List::new(theme_items)
-        .block(Block::default().borders(Borders::ALL).title(format!(" Themes Catalog ({}) ", themes.len())))
+        .block(Block::default().borders(Borders::ALL).title(format!(" Themes Catalog ({}) ", items_count)))
         .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
         .highlight_symbol(">> ");
 

@@ -1,4 +1,4 @@
-use crate::app::{AppMessage, FontAsset};
+use crate::app::{AppMessage, FontAsset, RemoteTheme};
 use std::path::PathBuf;
 use tokio::sync::mpsc;
 
@@ -26,17 +26,23 @@ pub async fn setup_app_task_with_urls(
 
     if let Ok(r) = resp {
         if let Ok(json) = r.json::<serde_json::Value>().await {
-            // Processing JSON response to extract filenames ending in .omp.json
-            let names: Vec<String> = json
+            // Processing JSON response to extract filenames and download URLs
+            let themes: Vec<RemoteTheme> = json
                 .as_array()
                 .unwrap_or(&vec![])
                 .iter()
-                .filter_map(|v| v["name"].as_str().map(|s| s.to_string()))
-                .filter(|s| s.ends_with(".omp.json"))
+                .filter_map(|v| {
+                    let name = v["name"].as_str()?.to_string();
+                    if !name.ends_with(".omp.json") { return None; }
+                    let download_url = v["download_url"].as_str()?.to_string();
+                    let sha = v["sha"].as_str()?.to_string();
+                    let clean_name = name.replace(".omp.json", "");
+                    Some(RemoteTheme { name: clean_name, download_url, sha })
+                })
                 .collect();
 
-            // Sending the theme list back to the main UI loop
-            let _ = tx.send(AppMessage::ThemesLoaded(names)).await;
+            // Sending the remote themes metadata back to the main UI loop
+            let _ = tx.send(AppMessage::RemoteThemesLoaded(themes)).await;
         }
     }
 

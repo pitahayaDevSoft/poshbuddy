@@ -38,6 +38,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Initial fetch of themes and fonts in the background
     let themes_dir = app.themes_dir.clone();
     tokio::spawn(setup_app_task(tx.clone(), themes_dir));
+    app.fetch_official_themes(tx.clone());
 
     // 3. Main Application Loop
     loop {
