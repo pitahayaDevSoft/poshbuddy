@@ -577,6 +577,20 @@ impl App {
         });
     }
 
+    /// Precise matching for plugin lines to avoid partial matches
+    fn is_plugin_line(line: &str, plugin: &PluginAsset) -> bool {
+        let trimmed = line.trim();
+        if let Some(init) = &plugin.init_script {
+            // Check for exact match of init script lines
+            init.lines().any(|init_line| trimmed == init_line.trim())
+        } else {
+            // Check for exact "Import-Module <module_name>" pattern
+            let module_pattern = format!("Import-Module {}", plugin.module_name);
+            trimmed == module_pattern
+                || trimmed.starts_with(&format!("Import-Module {} -", plugin.module_name))
+        }
+    }
+
     /// Checks if a plugin is currently 'activated' (imported) in at least one PowerShell profile
     pub fn is_plugin_active(&self, plugin: &PluginAsset) -> bool {
         for profile in &self.detected_profiles {
@@ -584,12 +598,10 @@ impl App {
                 continue;
             }
             if let Ok(content) = fs::read_to_string(profile) {
-                let check_str = if let Some(init) = &plugin.init_script {
-                    init.split('\n').next().unwrap_or(init).to_string()
-                } else {
-                    format!("Import-Module {}", plugin.module_name)
-                };
-                if content.contains(&check_str) {
+                if content
+                    .lines()
+                    .any(|line| Self::is_plugin_line(line, plugin))
+                {
                     return true;
                 }
             }
@@ -650,14 +662,11 @@ impl App {
             let mut new_lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
 
             if is_active {
-                // Remove the plugin
-                new_lines.retain(|l| !l.contains(&payload.split('\n').next().unwrap_or(&payload)));
+                // Remove the plugin - use precise matching to avoid partial matches
+                new_lines.retain(|l| !Self::is_plugin_line(l, plugin));
             } else {
-                // Add the plugin
-                if !new_lines
-                    .iter()
-                    .any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload)))
-                {
+                // Add the plugin - check for exact match
+                if !new_lines.iter().any(|l| Self::is_plugin_line(l, plugin)) {
                     new_lines.push(payload.clone());
                 }
             }
