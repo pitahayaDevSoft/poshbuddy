@@ -4,7 +4,9 @@
 
 # poshbuddy
 
-![Build](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-0.2.1-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg)
+![Version](https://img.shields.io/badge/version-0.2.1-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
   **The definitive TUI manager for Oh My Posh on Windows & PowerShell**
 
