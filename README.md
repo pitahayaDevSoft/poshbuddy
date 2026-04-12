@@ -1,5 +1,6 @@
 <div align="center">
   <img src="docs/logo.png" alt="PoshBuddy Logo" width="180" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
+</div>
 
 # poshbuddy
 
