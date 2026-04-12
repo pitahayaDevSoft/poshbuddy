@@ -9,3 +9,11 @@ Cargo.lock
 # GitHub App credentials
 gha-creds-*.json
 artifacts
+cargo_check_2.txt
+cargo_test_restored.txt
+cargo_test_restored_2.txt
+cargo_test_restored_3.txt
+cargo_test_final.txt
+cargo_test_final_v3.txt
+cargo_test_final_v2.txt
+cargo_check.txt
