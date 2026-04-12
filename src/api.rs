@@ -56,9 +56,9 @@ pub async fn setup_app_task_with_urls(
                 .iter()
                 .filter(|v| v["type"] == "dir")
                 .filter_map(|v| {
-                    v["name"].as_str().map(|s| FontAsset {
-                        name: s.to_string(),
-                    })
+                    let name = v["name"].as_str()?.to_string();
+                    let download_url = v["html_url"].as_str().unwrap_or("").to_string();
+                    Some(FontAsset { name, download_url })
                 })
                 .collect();
 

@@ -152,14 +152,6 @@ pub fn ui(f: &mut Frame, app: &mut App) {
 
             // System Status
             let status_text = if let Some(specs) = &app.system_specs {
-                let backup_count = if let Some(ref last) = app.last_backup {
-                    format!(
-                        "✓ (último: {})",
-                        last.file_name().unwrap_or_default().to_string_lossy()
-                    )
-                } else {
-                    "0".to_string()
-                };
                 format!(
                     "PowerShell 7: {} | Windows Terminal: {} | Backups: {}\n\
                      Nerd Font: {} | Perfiles: {} | Themes: {}",
@@ -169,7 +161,7 @@ pub fn ui(f: &mut Frame, app: &mut App) {
                     } else {
                         "✗"
                     },
-                    backup_count,
+                    app.total_backups,
                     if specs.has_nerd_font { "✓" } else { "✗" },
                     app.detected_profiles.len(),
                     app.themes.len()

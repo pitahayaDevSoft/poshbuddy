@@ -106,7 +106,7 @@ impl BackupManager {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
-            .as_secs();
+            .as_millis() as u64;
 
         let filename = original_path
             .file_stem()
@@ -155,7 +155,7 @@ impl BackupManager {
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
-                .as_secs()
+                .as_millis() as u64
         );
         fs::write(meta_path, meta_content)?;
 
@@ -184,15 +184,19 @@ impl BackupManager {
             if let Some(filename) = path.file_stem().and_then(|s| s.to_str()) {
                 // Buscar backups que coincidan con el nombre del perfil
                 if filename.starts_with(&format!("{}_", profile_name))
-                    && path.extension() == Some(std::ffi::OsStr::new("backup"))
+                    && filename.contains(".backup")
+                    && (path.extension() == Some(std::ffi::OsStr::new("backup"))
+                        || path.extension() == Some(std::ffi::OsStr::new("ps1")))
                 {
+
                     let metadata = fs::metadata(&path)?;
                     let size_bytes = metadata.len();
 
                     // Extraer timestamp del nombre
                     let timestamp = filename
                         .split('_')
-                        .nth(1)
+                        .last()
+                        .and_then(|t| t.split('.').next())
                         .and_then(|t| t.parse::<u64>().ok())
                         .unwrap_or(0);
 

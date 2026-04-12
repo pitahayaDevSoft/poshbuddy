@@ -1,4 +1,5 @@
 use ratatui::widgets::ListState;
+use std::env;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -18,30 +19,18 @@ pub struct PluginAsset {
 }
 
 /// Metadata for a font asset
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FontAsset {
     pub name: String,
     pub download_url: String,
 }
 
 /// System specifications for diagnostic display
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SystemSpecs {
     pub is_pwsh_7: bool,
     pub has_nerd_font: bool,
     pub is_windows_terminal: bool,
-}
-
-// ... (rest of the code remains the same)
-
-/// Metadata for a PowerShell module/extension
-#[derive(Clone, Debug)]
-pub struct PluginAsset {
-    pub name: String,
-    pub description: String,
-    pub documentation: String,
-    pub module_name: String,
-    pub init_script: Option<String>,
 }
 
 /// Message types sent across the mpsc channel to update the TUI from background tasks
@@ -109,6 +98,7 @@ pub struct App {
     // Welcome screen state
     pub welcome_selected_action: usize, // Índice de la acción rápida seleccionada
     pub system_specs: Option<SystemSpecs>, // Cache de especificaciones del sistema
+    pub total_backups: usize, // Total de perfiles respaldados encontrados
 }
 
 impl App {
@@ -211,7 +201,11 @@ impl App {
             plugin_installer: crate::plugin_installer::PluginInstaller::new(),
             welcome_selected_action: 0,
             system_specs: Some(specs),
+            total_backups: 0,
         };
+
+        // Initialize backup count
+        app.refresh_backup_count();
 
         // 2. Pre-check for Oh My Posh installation
         if !app.check_omp_installed() {
@@ -257,28 +251,31 @@ impl App {
     /// Dynamically identifies all active PowerShell profile paths ($PROFILE) on the system
     pub fn detect_profiles() -> Vec<PathBuf> {
         let mut profiles = Vec::new();
-        // Check both classic PowerShell and modern pwsh
-        let shells = if cfg!(windows) {
-            vec!["powershell", "pwsh"]
-        } else {
-            vec!["pwsh"]
-        };
 
-        for shell in shells {
-            let output = std::process::Command::new(shell)
-                .args(["-NoProfile", "-Command", "Write-Host -NoNewline $PROFILE"])
-                .output();
+        // 1. Try to guess standard paths first (Zero-latency)
+        if let Some(mut docs) = dirs::document_dir() {
+            let pwsh5 = docs.join("WindowsPowerShell").join("Microsoft.PowerShell_profile.ps1");
+            let pwsh7 = docs.join("PowerShell").join("Microsoft.PowerShell_profile.ps1");
+            if pwsh5.exists() { profiles.push(pwsh5); }
+            if pwsh7.exists() { profiles.push(pwsh7); }
+        }
 
-            if let Ok(out) = output {
-                let path_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                if !path_str.is_empty() {
-                    let path = PathBuf::from(path_str);
-                    profiles.push(path);
+        // 2. If nothing found or to be sure, ask the shells (Lazy detection later would be better, but let's at least deduplicate)
+        if profiles.is_empty() {
+            let shells = if cfg!(windows) { vec!["powershell", "pwsh"] } else { vec!["pwsh"] };
+            for shell in shells {
+                if let Ok(out) = std::process::Command::new(shell)
+                    .args(["-NoProfile", "-Command", "Write-Host -NoNewline $PROFILE"])
+                    .output()
+                {
+                    let path_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if !path_str.is_empty() {
+                        profiles.push(PathBuf::from(path_str));
+                    }
                 }
             }
         }
 
-        // Cleanup and deduplicate (linked profiles)
         profiles.sort();
         profiles.dedup();
         profiles
@@ -553,15 +550,6 @@ impl App {
 
             match child {
                 Ok(mut child) => {
-                    use tokio::io::{AsyncBufReadExt, BufReader};
-                    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
-                    let mut reader = BufReader::new(stdout).lines();
-
-                    // Stream output lines to the TUI debug box in real-time
-                    while let Ok(Some(line)) = reader.next_line().await {
-                        let _ = tx.send(AppMessage::InstallProgress { line }).await;
-                    }
-
                     match child.wait().await {
                         Ok(status) if status.success() => {
                             let _ = tx.send(AppMessage::InstallFinished).await;
@@ -902,31 +890,21 @@ impl App {
                             }
                         }
                         1 => {
-                            // Instalar Nerd Font
-                            self.state = AppState::Installing("CascadiaCode-Nerd-Font".to_string());
-                            let tx_clone = tx.clone();
-                            tokio::spawn(async move {
-                                // Simular instalación - aquí iría la lógica real
-                                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                                tx_clone
-                                    .send(AppMessage::FontInstalled(
-                                        "CascadiaCode-Nerd-Font".to_string(),
-                                    ))
-                                    .await
-                                    .ok();
-                            });
+                            // Instalar Nerd Font (Acción real)
+                            let font_name = "CascadiaCode".to_string();
+                            self.state = AppState::Installing(font_name.clone());
+                            self.install_font(font_name, tx.clone());
                         }
                         2 => {
-                            // Instalar Terminal-Icons
-                            self.state = AppState::Installing("Terminal-Icons".to_string());
-                            let tx_clone = tx.clone();
-                            tokio::spawn(async move {
-                                // Instalación async
-                                tx_clone
-                                    .send(AppMessage::PluginInstalled("Terminal-Icons".to_string()))
-                                    .await
-                                    .ok();
-                            });
+                            // Instalar Terminal-Icons (Acción real)
+                            let plugin = self.plugins.iter().find(|p| p.name == "Terminal-Icons").cloned();
+                            if let Some(p) = plugin {
+                                if let Err(e) = self.toggle_plugin(&p) {
+                                    self.state = AppState::Error(format!("Failed to install plugin: {}", e));
+                                } else {
+                                    self.state = AppState::PluginSuccess(p.name);
+                                }
+                            }
                         }
                         3 => {
                             // Ver diagnóstico
@@ -1167,6 +1145,15 @@ impl App {
             .list_backups(profile_path)
             .unwrap_or_default()
     }
+
+    /// Actualiza el contador total de backups detectados en todos los perfiles
+    pub fn refresh_backup_count(&mut self) {
+        let mut count = 0;
+        for profile in &self.detected_profiles {
+            count += self.get_backup_info(profile).len();
+        }
+        self.total_backups = count;
+    }
 }
 
 #[cfg(test)]
@@ -1239,6 +1226,7 @@ mod tests {
             plugin_installer: crate::plugin_installer::PluginInstaller::new(),
             welcome_selected_action: 0,
             system_specs: None,
+            total_backups: 0,
         }
     }
 
@@ -1273,12 +1261,15 @@ mod tests {
         app.fonts = vec![
             FontAsset {
                 name: "CascaidaCode".to_string(),
+                download_url: "https://example.com/cascadia".to_string(),
             },
             FontAsset {
                 name: "FiraCode".to_string(),
+                download_url: "https://example.com/fira".to_string(),
             },
             FontAsset {
                 name: "JetBrainsMono".to_string(),
+                download_url: "https://example.com/jetbrains".to_string(),
             },
         ];
 
@@ -1290,7 +1281,8 @@ mod tests {
         assert_eq!(
             app.filtered_fonts(),
             vec![FontAsset {
-                name: "FiraCode".to_string()
+                name: "FiraCode".to_string(),
+                download_url: "https://example.com/fira".to_string(),
             }]
         );
 
@@ -1558,6 +1550,7 @@ mod filtering_tests {
             plugin_installer: crate::plugin_installer::PluginInstaller::new(),
             welcome_selected_action: 0,
             system_specs: None,
+            total_backups: 0,
         }
     }
 

@@ -173,7 +173,7 @@ impl PluginInstaller {
 
                 // Paso 4: Rollback si la instalación falló y tenemos backup
                 if let Some(backup_info) = backup_result {
-                    match backup_manager.restore_backup(profile_path, &backup_info) {
+                    match backup_manager.restore_backup(&backup_info, profile_path) {
                         Ok(_) => {
                             result.rolled_back = true;
                             result.message.push_str(" (Perfil restaurado del backup)");
@@ -396,6 +396,7 @@ mod tests {
     #[test]
     fn test_pre_check_result() {
         let mut result = PreCheckResult::new();
+        result.has_powershell = true;
         assert!(result.is_ready());
 
         result.has_powershell = true;

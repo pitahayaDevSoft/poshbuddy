@@ -147,8 +147,9 @@ impl Diagnostic {
             // Verificar que la ruta al tema existe
             if let Some(theme_idx) = script.find("--config") {
                 let after_config = &script[theme_idx + 8..];
-                if let Some(quote_idx) = after_config.find('"') {
-                    let path_end = after_config[quote_idx + 1..].find('"').unwrap_or(0);
+                if let Some(quote_idx) = after_config.find(['"', '\'']) {
+                    let quote_char = after_config.chars().nth(quote_idx).unwrap();
+                    let path_end = after_config[quote_idx + 1..].find(quote_char).unwrap_or(0);
                     if path_end > 0 {
                         let theme_path = &after_config[quote_idx + 1..quote_idx + 1 + path_end];
                         if !std::path::Path::new(theme_path).exists() {
