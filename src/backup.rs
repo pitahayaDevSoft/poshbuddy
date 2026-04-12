@@ -195,7 +195,7 @@ impl BackupManager {
                     // Extraer timestamp del nombre
                     let timestamp = filename
                         .split('_')
-                        .last()
+                        .next_back()
                         .and_then(|t| t.split('.').next())
                         .and_then(|t| t.parse::<u64>().ok())
                         .unwrap_or(0);

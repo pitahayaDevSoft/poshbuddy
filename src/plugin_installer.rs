@@ -218,8 +218,7 @@ impl PluginInstaller {
             Ok(version)
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(io::Error::new(
-                io::ErrorKind::Other,
+            Err(io::Error::other(
                 format!("PowerShell error: {}", stderr),
             ))
         }
@@ -257,8 +256,7 @@ impl PluginInstaller {
             let stdout = String::from_utf8_lossy(&output.stdout);
             Ok(!stdout.trim().is_empty())
         } else {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
+            Err(io::Error::other(
                 "Failed to check module status",
             ))
         }
@@ -276,8 +274,7 @@ impl PluginInstaller {
         if output.status.success() {
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
         } else {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
+            Err(io::Error::other(
                 "Failed to check execution policy",
             ))
         }
@@ -321,8 +318,7 @@ impl PluginInstaller {
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(io::Error::new(
-                io::ErrorKind::Other,
+            Err(io::Error::other(
                 format!("Failed to uninstall: {}", stderr),
             ))
         }
@@ -367,8 +363,7 @@ impl PluginInstaller {
                 description: description.unwrap_or_default(),
             }))
         } else {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
+            Err(io::Error::other(
                 "Failed to get module info",
             ))
         }

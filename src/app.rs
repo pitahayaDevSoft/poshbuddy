@@ -424,15 +424,14 @@ impl App {
 
         // Add Remote (only if not local)
         for rt in &self.remote_themes {
-            if rt.name.to_lowercase().contains(&filter_lower) {
-                if !self.themes.iter().any(|t| t.name == rt.name) {
+            if rt.name.to_lowercase().contains(&filter_lower)
+                && !self.themes.iter().any(|t| t.name == rt.name) {
                     unified.push(ThemeAsset {
                         name: rt.name.clone(),
                         is_local: false,
                         download_url: Some(rt.download_url.clone()),
                     });
                 }
-            }
         }
 
         unified
@@ -606,11 +605,11 @@ impl App {
 
         if toggled {
             let new_json = serde_json::to_string_pretty(&json)
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| io::Error::other(e.to_string()))?;
             fs::write(path, new_json)?;
             Ok(())
         } else {
-            Err(io::Error::new(io::ErrorKind::Other, "Could not find a valid segments block to edit"))
+            Err(io::Error::other("Could not find a valid segments block to edit"))
         }
     }
 
@@ -873,7 +872,7 @@ impl App {
 
         for profile in &self.detected_profiles {
             self.backup_manager.backup_profile(profile, &format!("Apply Theme: {}", theme_name))
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| io::Error::other(e.to_string()))?;
 
             self.update_profile_safe(
                 profile, 
@@ -896,7 +895,7 @@ impl App {
 
         for profile in &self.detected_profiles {
             self.backup_manager.backup_profile(profile, &format!("Toggle Plugin: {}", plugin.name))
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| io::Error::other(e.to_string()))?;
 
             if is_active {
                 self.remove_profile_block(profile, &key)?;
@@ -1797,8 +1796,22 @@ mod tests {
                     .unwrap();
             }
 
-            // Use ONLY the mock directory in PATH
+            // The 'where' command might not exist on linux/unix systems.
+            // On Unix systems, whereis or which is used, but app.rs hardcodes `where` via `WHERE_CMD`.
+            // We need to provide a mock `where` script to pass the test on Unix.
+            #[cfg(unix)]
+            {
+                let where_path = dir.join("where");
+                std::fs::write(&where_path, format!("#!/bin/sh\nif [ \"$1\" = \"pwsh\" ]; then echo '{}'; exit 0; else exit 1; fi", pwsh_path.display())).unwrap();
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&where_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+            }
+
+            // Use ONLY mock directory in PATH if we are mocking `where` as well
+            #[cfg(unix)]
             env::set_var("PATH", &dir);
+            #[cfg(windows)]
+            env::set_var("PATH", format!("{};{}", dir.display(), original_path));
 
             let specs = App::gather_system_specs(false);
 

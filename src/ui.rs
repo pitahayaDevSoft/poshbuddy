@@ -7,8 +7,6 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
     Frame,
 };
-use chrono;
-use whoami;
 
 /// Main UI rendering function called for each frame
 pub fn ui(f: &mut Frame, app: &mut App) {
@@ -102,16 +100,14 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         .split(area);
 
     // Left Sidebar: Quick Actions
-    let actions = vec![
-        (" 1 ", "Tema Aleatorio", "Enter"),
+    let actions = [(" 1 ", "Tema Aleatorio", "Enter"),
         (" 2 ", "Instalar Nerd Font", "f"),
         (" 3 ", "Terminal-Icons", "i"),
         (" 4 ", "Diagnóstico", "d"),
         (" 5 ", "Ver Backups", "b"),
         (" 6 ", "Ir a Temas", "t"),
         (" 7 ", "Ir a Fuentes", "F"),
-        (" 8 ", "Ir a Segmentos", "p"),
-    ];
+        (" 8 ", "Ir a Segmentos", "p")];
 
     let items: Vec<ListItem> = actions
         .iter()
@@ -160,7 +156,7 @@ fn render_main_dashboard(f: &mut Frame, area: Rect, app: &mut App) {
         .split(area);
 
     // Sidebar Navigation
-    let tabs = vec![" [T] Temas ", " [F] Fuentes ", " [S] Segmentos "];
+    let tabs = [" [T] Temas ", " [F] Fuentes ", " [S] Segmentos "];
     let items: Vec<ListItem> = tabs
         .iter()
         .enumerate()
@@ -212,8 +208,13 @@ fn render_themes_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     let items_count = theme_items.len();
+    let title = if app.filter.is_empty() {
+        format!(" Themes Catalog ({}) ", items_count)
+    } else {
+        format!(" Themes Catalog ({}) [Filter: {}] ", items_count, app.filter)
+    };
     let list = List::new(theme_items)
-        .block(Block::default().borders(Borders::ALL).title(format!(" Themes Catalog ({}) ", items_count)))
+        .block(Block::default().borders(Borders::ALL).title(title))
         .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
         .highlight_symbol(">> ");
 
@@ -232,8 +233,13 @@ fn render_fonts_view(f: &mut Frame, area: Rect, app: &mut App) {
         .map(|f| ListItem::new(format!("  • {}", f.name)))
         .collect();
 
+    let title = if app.fonts_filter.is_empty() {
+        format!(" Nerd Fonts Available ({}) ", fonts.len())
+    } else {
+        format!(" Nerd Fonts Available ({}) [Filter: {}] ", fonts.len(), app.fonts_filter)
+    };
     let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(format!(" Nerd Fonts Available ({}) ", fonts.len())))
+        .block(Block::default().borders(Borders::ALL).title(title))
         .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
         .highlight_symbol(">> ");
 
@@ -250,8 +256,13 @@ fn render_segments_view(f: &mut Frame, area: Rect, app: &mut App) {
         })
         .collect();
 
+    let title = if app.segments_filter.is_empty() {
+        format!(" OMP Segments ({}) ", segments.len())
+    } else {
+        format!(" OMP Segments ({}) [Filter: {}] ", segments.len(), app.segments_filter)
+    };
     let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(format!(" OMP Segments ({}) ", segments.len())))
+        .block(Block::default().borders(Borders::ALL).title(title))
         .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
         .highlight_symbol(">> ");
 
