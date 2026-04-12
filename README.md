@@ -1,24 +1,25 @@
-<!-- markdownlint-disable MD033 -->
 <div align="center">
   <img src="docs/logo.png" alt="PoshBuddy Logo" width="180" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
+</div>
 
-  # PoshBuddy
+# poshbuddy
+
+![Build](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-0.2.1-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
   **The definitive TUI manager for Oh My Posh on Windows & PowerShell**
 
   *Sleek, fast, and unified theme management for your terminal.*
 
-  <p align="center">
-    <a href="https://www.rust-lang.org">
-      <img src="https://img.shields.io/badge/Rust-1.94+-orange.svg?style=flat-square&logo=rust" alt="Rust"/>
-    </a>
-    <a href="LICENSE">
-      <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License"/>
-    </a>
-    <img src="https://img.shields.io/badge/Platform-Windows-blue?style=flat-square&logo=windows" alt="Platform"/>
-    <img src="https://img.shields.io/badge/State-Beta-green?style=flat-square" alt="State"/>
-  </p>
-</div>
+**Your terminal should be a weapon, not a chore.**
+
+![PoshBuddy Demo](demo.gif)
+
+**poshbuddy** is the TUI that treats your prompt like the precision instrument it is. Browse 200+ themes with live previews. Install fonts without leaving the terminal. Toggle PowerShell modules like you're switching channels. No `notepad $PROFILE`. No broken configs. No regrets.
+
+This isn't theme management. This is **terminal aesthetics at the speed of thought**.
+
+> "A developer's prompt is their throne. PoshBuddy makes sure it actually looks like one."
+> — Someone who got tired of `cmd.exe` flashbacks
 
 ---
 
@@ -114,6 +115,7 @@ A: Themes are cached in `~/.poshthemes/` and synced from the official Oh My Posh
 - Check the [Troubleshooting Guide](docs/wiki/troubleshooting.md) if symbols don't show correctly.
 - Post issues or feature requests on our GitHub tracker.
 
-*Built with ❤️ for the developer community on Windows.*
+Built for terminal perfectionists, by one.
+**Your prompt. Your rules. Zero friction.**
 
-<!-- markdownlint-enable MD033 -->
+[GitHub](https://github.com/julesklord/poshbuddy) · [Documentation](./docs) · [Changelog](./CHANGELOG.md)
