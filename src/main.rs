@@ -11,6 +11,9 @@ use tokio::sync::mpsc;
 
 mod api;
 mod app;
+mod backup;
+mod diagnostic;
+mod plugin_installer;
 mod ui;
 
 use crate::api::setup_app_task;

@@ -86,6 +86,117 @@ pub fn ui(f: &mut Frame, app: &mut App) {
             );
         }
 
+        // Welcome screen with quick actions
+        AppState::Welcome => {
+            let area = main_layout[1];
+
+            // Layout: header, actions list, system status, footer
+            let welcome_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3), // Header
+                    Constraint::Min(10),   // Quick actions
+                    Constraint::Length(6), // System status
+                    Constraint::Length(2), // Footer
+                ])
+                .split(area);
+
+            // Header
+            let header = Paragraph::new("🚀 Bienvenido a PoshBuddy")
+                .alignment(Alignment::Center)
+                .block(Block::default().borders(Borders::NONE))
+                .style(
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                );
+            f.render_widget(header, welcome_chunks[0]);
+
+            // Quick Actions
+            let actions = vec![
+                (" 1 ", "Aplicar tema aleatorio", "Enter"),
+                (" 2 ", "Instalar Nerd Font", "f"),
+                (" 3 ", "Instalar Terminal-Icons", "i"),
+                (" 4 ", "Ver diagnóstico del sistema", "d"),
+                (" 5 ", "Ver backups disponibles", "b"),
+                (" 6 ", "Ir a temas", "t"),
+                (" 7 ", "Ir a fuentes", "F"),
+                (" 8 ", "Ir a plugins", "p"),
+            ];
+
+            let action_items: Vec<ListItem> = actions
+                .iter()
+                .enumerate()
+                .map(|(i, (num, desc, key))| {
+                    let style = if i == app.welcome_selected_action {
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .bg(Color::DarkGray)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(Color::White)
+                    };
+                    ListItem::new(format!("{} {} [{}]", num, desc, key)).style(style)
+                })
+                .collect();
+
+            let actions_list = List::new(action_items)
+                .block(
+                    Block::default()
+                        .title(" ⚡ Acciones Rápidas ")
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Cyan)),
+                )
+                .highlight_symbol("▶ ");
+            f.render_widget(actions_list, welcome_chunks[1]);
+
+            // System Status
+            let status_text = if let Some(specs) = &app.system_specs {
+                let backup_count = if let Some(ref last) = app.last_backup {
+                    format!(
+                        "✓ (último: {})",
+                        last.file_name().unwrap_or_default().to_string_lossy()
+                    )
+                } else {
+                    "0".to_string()
+                };
+                format!(
+                    "PowerShell 7: {} | Windows Terminal: {} | Backups: {}\n\
+                     Nerd Font: {} | Perfiles: {} | Themes: {}",
+                    if specs.is_pwsh_7 { "✓" } else { "✗" },
+                    if specs.is_windows_terminal {
+                        "✓"
+                    } else {
+                        "✗"
+                    },
+                    backup_count,
+                    if specs.has_nerd_font { "✓" } else { "✗" },
+                    app.detected_profiles.len(),
+                    app.themes.len()
+                )
+            } else {
+                "Cargando información del sistema...".to_string()
+            };
+
+            let status = Paragraph::new(status_text)
+                .block(
+                    Block::default()
+                        .title(" 📊 Estado del Sistema ")
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Blue)),
+                )
+                .style(Style::default().fg(Color::White));
+            f.render_widget(status, welcome_chunks[2]);
+
+            // Footer help
+            let footer = Paragraph::new(
+                "↑↓: Navegar | Enter: Seleccionar | t: Temas | f: Fuentes | p: Plugins | q: Salir",
+            )
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::Gray));
+            f.render_widget(footer, welcome_chunks[3]);
+        }
+
         // Generic loading spinner view
         AppState::Loading => {
             let area = main_layout[1];

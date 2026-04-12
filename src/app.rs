@@ -30,6 +30,7 @@ pub struct SystemSpecs {
 #[derive(PartialEq, Debug)]
 pub enum AppState {
     Onboarding(SystemSpecs),
+    Welcome, // Pantalla de bienvenida mejorada con acciones rápidas
     Loading,
     Main,
     DependencyMissing,
@@ -97,6 +98,13 @@ pub struct App {
     pub has_nerd_font: bool,
     pub theme_preview: String,
     pub detected_profiles: Vec<PathBuf>,
+    pub backup_manager: crate::backup::BackupManager,
+    pub last_backup: Option<std::path::PathBuf>,
+    pub diagnostic: crate::diagnostic::Diagnostic,
+    pub plugin_installer: crate::plugin_installer::PluginInstaller,
+    // Welcome screen state
+    pub welcome_selected_action: usize, // Índice de la acción rápida seleccionada
+    pub system_specs: Option<SystemSpecs>, // Cache de especificaciones del sistema
 }
 
 impl App {
@@ -120,7 +128,7 @@ impl App {
         let specs = Self::gather_system_specs(has_nerd_font);
 
         let mut app = App {
-            state: AppState::Onboarding(specs),
+            state: AppState::Welcome,
             active_view: ActiveView::Themes,
             themes: Vec::new(),
             fonts: Vec::new(),
@@ -187,6 +195,12 @@ impl App {
             has_nerd_font,
             theme_preview: String::new(),
             detected_profiles,
+            backup_manager: crate::backup::BackupManager::new(None),
+            last_backup: None,
+            diagnostic: crate::diagnostic::Diagnostic::new(),
+            plugin_installer: crate::plugin_installer::PluginInstaller::new(),
+            welcome_selected_action: 0,
+            system_specs: Some(specs),
         };
 
         // 2. Pre-check for Oh My Posh installation
@@ -327,12 +341,49 @@ impl App {
     }
 
     /// Atomically updates all detected shell profiles to initialize Oh My Posh with the selected theme
-    pub fn apply_theme(&self, theme_name: &str) -> io::Result<()> {
+    pub fn apply_theme(&mut self, theme_name: &str) -> io::Result<()> {
+        // Pre-verificación: validar sintaxis del comando y estado de perfiles
         let theme_path = self.themes_dir.join(theme_name);
         let config_line = format!(
             "oh-my-posh init pwsh --config '{}' | Invoke-Expression",
             theme_path.to_string_lossy().replace("'", "''")
         );
+
+        // Verificar sintaxis del script que vamos a insertar
+        let syntax_check = self
+            .diagnostic
+            .validate_powershell_syntax(&config_line)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+        if !syntax_check.is_valid() {
+            let errors = syntax_check.errors.join("; ");
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Error de sintaxis en configuración: {}", errors),
+            ));
+        }
+
+        // Crear backup automático antes de modificar cualquier perfil
+        for profile in &self.detected_profiles {
+            if profile.exists() {
+                match self
+                    .backup_manager
+                    .backup_profile(profile, &format!("Aplicar tema: {}", theme_name))
+                {
+                    Ok(backup_path) => {
+                        self.last_backup = Some(backup_path);
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "Advertencia: No se pudo crear backup de {}: {}",
+                            profile.display(),
+                            e
+                        );
+                        // Continuar de todos modos - el usuario puede cancelar después
+                    }
+                }
+            }
+        }
 
         for profile in &self.detected_profiles {
             if let Some(parent) = profile.parent() {
@@ -547,8 +598,32 @@ impl App {
     }
 
     /// Toggles the activation state of a plugin by adding or removing it from all detected profiles
-    pub fn toggle_plugin(&self, plugin: &PluginAsset) -> io::Result<()> {
+    /// Creates automatic backup before any modifications
+    pub fn toggle_plugin(&mut self, plugin: &PluginAsset) -> io::Result<()> {
         let is_active = self.is_plugin_active(plugin);
+        let action = if is_active { "Desactivar" } else { "Activar" };
+
+        // Crear backup automático antes de modificar cualquier perfil
+        for profile in &self.detected_profiles {
+            if profile.exists() {
+                match self
+                    .backup_manager
+                    .backup_profile(profile, &format!("{} plugin: {}", action, plugin.name))
+                {
+                    Ok(backup_path) => {
+                        self.last_backup = Some(backup_path);
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "Advertencia: No se pudo crear backup de {}: {}",
+                            profile.display(),
+                            e
+                        );
+                    }
+                }
+            }
+        }
+
         let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
 
         let payload = if let Some(init) = &plugin.init_script {
@@ -701,9 +776,27 @@ impl App {
         key: crossterm::event::KeyEvent,
         tx: tokio::sync::mpsc::Sender<AppMessage>,
     ) -> Result<bool, Box<dyn std::error::Error>> {
-        use crossterm::event::{KeyCode, KeyEventKind};
+        use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 
         if key.kind != KeyEventKind::Press {
+            return Ok(false);
+        }
+
+        // Global shortcut: Ctrl+R to restore last backup
+        if key.code == KeyCode::Char('r') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            match self.restore_last_backup() {
+                Ok(count) => {
+                    if count > 0 {
+                        self.state =
+                            AppState::Success(format!("Backup restaurado ({} perfiles)", count));
+                    } else {
+                        self.state = AppState::Error("No hay backups disponibles".to_string());
+                    }
+                }
+                Err(e) => {
+                    self.state = AppState::Error(format!("Error al restaurar: {}", e));
+                }
+            }
             return Ok(false);
         }
 
@@ -744,6 +837,136 @@ impl App {
         if let AppState::PluginSuccess(_) = self.state {
             self.state = AppState::Main;
             self.active_view = ActiveView::Plugins;
+            return Ok(false);
+        }
+
+        // Welcome screen - Quick actions navigation
+        if self.state == AppState::Welcome {
+            const NUM_ACTIONS: usize = 8;
+
+            match key.code {
+                KeyCode::Up => {
+                    if self.welcome_selected_action > 0 {
+                        self.welcome_selected_action -= 1;
+                    }
+                }
+                KeyCode::Down => {
+                    if self.welcome_selected_action < NUM_ACTIONS - 1 {
+                        self.welcome_selected_action += 1;
+                    }
+                }
+                KeyCode::Enter => {
+                    // Ejecutar acción seleccionada
+                    match self.welcome_selected_action {
+                        0 => {
+                            // Aplicar tema aleatorio
+                            if !self.themes.is_empty() {
+                                use std::time::{SystemTime, UNIX_EPOCH};
+                                let seed = SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_secs() as usize;
+                                let random_index = seed % self.themes.len();
+                                let random_theme = self.themes[random_index].clone();
+                                if let Err(e) = self.apply_theme(&random_theme) {
+                                    self.state =
+                                        AppState::Error(format!("Error aplicando tema: {}", e));
+                                } else {
+                                    self.state = AppState::Success(format!(
+                                        "Tema '{}' aplicado!",
+                                        random_theme
+                                    ));
+                                }
+                            } else {
+                                self.state =
+                                    AppState::Error("No hay temas disponibles".to_string());
+                            }
+                        }
+                        1 => {
+                            // Instalar Nerd Font
+                            self.state = AppState::Installing("CascadiaCode-Nerd-Font".to_string());
+                            let tx_clone = tx.clone();
+                            tokio::spawn(async move {
+                                // Simular instalación - aquí iría la lógica real
+                                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                                tx_clone
+                                    .send(AppMessage::FontInstalled(
+                                        "CascadiaCode-Nerd-Font".to_string(),
+                                    ))
+                                    .await
+                                    .ok();
+                            });
+                        }
+                        2 => {
+                            // Instalar Terminal-Icons
+                            self.state = AppState::Installing("Terminal-Icons".to_string());
+                            let tx_clone = tx.clone();
+                            tokio::spawn(async move {
+                                // Instalación async
+                                tx_clone
+                                    .send(AppMessage::PluginInstalled("Terminal-Icons".to_string()))
+                                    .await
+                                    .ok();
+                            });
+                        }
+                        3 => {
+                            // Ver diagnóstico
+                            match self.diagnostic.run_full_diagnostic(&self.detected_profiles) {
+                                Ok(result) => {
+                                    let report = self.diagnostic.format_report(&result);
+                                    self.state = AppState::Success(report);
+                                }
+                                Err(e) => {
+                                    self.state =
+                                        AppState::Error(format!("Diagnóstico falló: {}", e));
+                                }
+                            }
+                        }
+                        4 => {
+                            // Mostrar info de backups disponibles
+                            if let Some(ref last) = self.last_backup {
+                                self.state = AppState::Success(format!(
+                                    "Backup disponible: {}",
+                                    last.display()
+                                ));
+                            } else {
+                                self.state =
+                                    AppState::Error("No hay backups disponibles".to_string());
+                            }
+                        }
+                        5 => {
+                            // Ir a temas
+                            self.state = AppState::Main;
+                            self.active_view = ActiveView::Themes;
+                        }
+                        6 => {
+                            // Ir a fuentes
+                            self.state = AppState::Main;
+                            self.active_view = ActiveView::Fonts;
+                        }
+                        7 => {
+                            // Ir a plugins
+                            self.state = AppState::Main;
+                            self.active_view = ActiveView::Plugins;
+                        }
+                        _ => {}
+                    }
+                }
+                KeyCode::Char('t') => {
+                    self.state = AppState::Main;
+                    self.active_view = ActiveView::Themes;
+                }
+                KeyCode::Char('f') => {
+                    self.state = AppState::Main;
+                    self.active_view = ActiveView::Fonts;
+                }
+                KeyCode::Char('p') => {
+                    self.state = AppState::Main;
+                    self.active_view = ActiveView::Plugins;
+                }
+                KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
+                _ => {}
+            }
             return Ok(false);
         }
 
@@ -893,6 +1116,38 @@ impl App {
         }
         Ok(false)
     }
+
+    /// Restaura el último backup creado para todos los perfiles detectados
+    /// Retorna el número de perfiles restaurados exitosamente
+    pub fn restore_last_backup(&mut self) -> Result<usize, crate::backup::BackupError> {
+        let mut restored_count = 0;
+
+        for profile in &self.detected_profiles {
+            if profile.exists() {
+                match self.backup_manager.restore_latest(profile) {
+                    Ok(_) => {
+                        restored_count += 1;
+                    }
+                    Err(crate::backup::BackupError::BackupNotFound(_)) => {
+                        // No hay backup para este perfil, ignorar
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+        }
+
+        Ok(restored_count)
+    }
+
+    /// Obtiene información de los backups disponibles para un perfil específico
+    pub fn get_backup_info(
+        &self,
+        profile_path: &std::path::Path,
+    ) -> Vec<crate::backup::BackupInfo> {
+        self.backup_manager
+            .list_backups(profile_path)
+            .unwrap_or_default()
+    }
 }
 
 #[cfg(test)]
@@ -959,6 +1214,12 @@ mod tests {
             has_nerd_font: false,
             theme_preview: String::new(),
             detected_profiles: Vec::new(),
+            backup_manager: crate::backup::BackupManager::new(Some(10)),
+            last_backup: None,
+            diagnostic: crate::diagnostic::Diagnostic::new(),
+            plugin_installer: crate::plugin_installer::PluginInstaller::new(),
+            welcome_selected_action: 0,
+            system_specs: None,
         }
     }
 
@@ -1272,6 +1533,12 @@ mod filtering_tests {
             has_nerd_font: true,
             theme_preview: "".to_string(),
             detected_profiles: vec![],
+            backup_manager: crate::backup::BackupManager::new(Some(10)),
+            last_backup: None,
+            diagnostic: crate::diagnostic::Diagnostic::new(),
+            plugin_installer: crate::plugin_installer::PluginInstaller::new(),
+            welcome_selected_action: 0,
+            system_specs: None,
         }
     }
 

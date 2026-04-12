@@ -1,0 +1,6 @@
+services:
+  poshbuddy:
+    image: poshbuddy
+    build:
+      context: .
+      dockerfile: ./Dockerfile
