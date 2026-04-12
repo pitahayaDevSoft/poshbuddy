@@ -857,78 +857,77 @@ mod tests {
     }
 }
 
-    #[test]
-    fn test_gather_system_specs() {
-        let _lock = ENV_LOCK.lock().unwrap();
-        let _guard = EnvGuard::new();
+#[test]
+fn test_gather_system_specs() {
+    let _lock = ENV_LOCK.lock().unwrap();
+    let _guard = EnvGuard::new();
 
-        // Ensure we save original path so 'which' or 'where.exe' still work
-        let original_path = env::var("PATH").unwrap_or_default();
+    // Ensure we save original path so 'which' or 'where.exe' still work
+    let original_path = env::var("PATH").unwrap_or_default();
 
-        // Scenario 1: Default behavior (no WT_SESSION, no vscode, mock pwsh absent)
-        env::remove_var("WT_SESSION");
-        env::remove_var("TERM_PROGRAM");
+    // Scenario 1: Default behavior (no WT_SESSION, no vscode, mock pwsh absent)
+    env::remove_var("WT_SESSION");
+    env::remove_var("TERM_PROGRAM");
 
-        // Ensure pwsh is not in PATH. But we need 'which' to work, so we keep original path but make sure there's no pwsh in it.
-        // For testing purposes, we can just let 'pwsh' command fail naturally on CI if it's not installed,
-        // but if it is installed, it might be true. Wait, we want to deterministically test both false and true.
-        // Actually, if we prepend a fake empty directory to PATH, it won't override a real 'pwsh' if it exists.
-        // So Scenario 1 might not be reliably tested to be 'false' if the system actually has pwsh installed.
-        // However, we can test Scenario 1 assuming pwsh isn't there, OR we skip asserting is_pwsh_7 in Scenario 1 and focus on Scenario 4.
+    // Ensure pwsh is not in PATH. But we need 'which' to work, so we keep original path but make sure there's no pwsh in it.
+    // For testing purposes, we can just let 'pwsh' command fail naturally on CI if it's not installed,
+    // but if it is installed, it might be true. Wait, we want to deterministically test both false and true.
+    // Actually, if we prepend a fake empty directory to PATH, it won't override a real 'pwsh' if it exists.
+    // So Scenario 1 might not be reliably tested to be 'false' if the system actually has pwsh installed.
+    // However, we can test Scenario 1 assuming pwsh isn't there, OR we skip asserting is_pwsh_7 in Scenario 1 and focus on Scenario 4.
 
-        // Let's create an isolated path that only contains the system binaries.
-        // Since it's tricky, let's just test that without the fake pwsh, it matches what 'which pwsh' says normally,
-        // but wait, if it's installed, it will be true. So let's just assert on terminal properties for Scenario 1.
-        let specs = App::gather_system_specs(false);
-        assert!(
-            !specs.is_windows_terminal,
-            "Expected is_windows_terminal to be false"
-        );
-        assert!(!specs.has_nerd_font, "Expected has_nerd_font to be false");
+    // Let's create an isolated path that only contains the system binaries.
+    // Since it's tricky, let's just test that without the fake pwsh, it matches what 'which pwsh' says normally,
+    // but wait, if it's installed, it will be true. So let's just assert on terminal properties for Scenario 1.
+    let specs = App::gather_system_specs(false);
+    assert!(
+        !specs.is_windows_terminal,
+        "Expected is_windows_terminal to be false"
+    );
+    assert!(!specs.has_nerd_font, "Expected has_nerd_font to be false");
 
-        // Scenario 2: WT_SESSION set
-        env::set_var("WT_SESSION", "1");
-        let specs = App::gather_system_specs(true);
-        assert!(
-            specs.is_windows_terminal,
-            "Expected is_windows_terminal to be true when WT_SESSION is set"
-        );
-        assert!(specs.has_nerd_font, "Expected has_nerd_font to be true");
+    // Scenario 2: WT_SESSION set
+    env::set_var("WT_SESSION", "1");
+    let specs = App::gather_system_specs(true);
+    assert!(
+        specs.is_windows_terminal,
+        "Expected is_windows_terminal to be true when WT_SESSION is set"
+    );
+    assert!(specs.has_nerd_font, "Expected has_nerd_font to be true");
 
-        // Scenario 3: TERM_PROGRAM=vscode set
-        env::remove_var("WT_SESSION");
-        env::set_var("TERM_PROGRAM", "vscode");
-        let specs = App::gather_system_specs(false);
-        assert!(
-            specs.is_windows_terminal,
-            "Expected is_windows_terminal to be true when TERM_PROGRAM is vscode"
-        );
+    // Scenario 3: TERM_PROGRAM=vscode set
+    env::remove_var("WT_SESSION");
+    env::set_var("TERM_PROGRAM", "vscode");
+    let specs = App::gather_system_specs(false);
+    assert!(
+        specs.is_windows_terminal,
+        "Expected is_windows_terminal to be true when TERM_PROGRAM is vscode"
+    );
 
-        // Scenario 4: Pwsh command available
-        let dir = env::temp_dir().join("fake_pwsh_bin");
-        std::fs::create_dir_all(&dir).unwrap();
+    // Scenario 4: Pwsh command available
+    let dir = env::temp_dir().join("fake_pwsh_bin");
+    std::fs::create_dir_all(&dir).unwrap();
 
-        let pwsh_name = if cfg!(windows) { "pwsh.exe" } else { "pwsh" };
-        let pwsh_path = dir.join(pwsh_name);
+    let pwsh_name = if cfg!(windows) { "pwsh.exe" } else { "pwsh" };
+    let pwsh_path = dir.join(pwsh_name);
 
-        std::fs::write(&pwsh_path, "#!/bin/sh\nexit 0").unwrap();
+    std::fs::write(&pwsh_path, "#!/bin/sh\nexit 0").unwrap();
 
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&pwsh_path, std::fs::Permissions::from_mode(0o755)).unwrap();
-        }
-
-        let sep = if cfg!(windows) { ";" } else { ":" };
-        let new_path = format!("{}{}{}", dir.display(), sep, original_path);
-        env::set_var("PATH", &new_path);
-
-        let specs = App::gather_system_specs(false);
-        assert!(
-            specs.is_pwsh_7,
-            "Expected is_pwsh_7 to be true when pwsh is in PATH"
-        );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&pwsh_path, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
+
+    let sep = if cfg!(windows) { ";" } else { ":" };
+    let new_path = format!("{}{}{}", dir.display(), sep, original_path);
+    env::set_var("PATH", &new_path);
+
+    let specs = App::gather_system_specs(false);
+    assert!(
+        specs.is_pwsh_7,
+        "Expected is_pwsh_7 to be true when pwsh is in PATH"
+    );
 }
 
 #[cfg(test)]
