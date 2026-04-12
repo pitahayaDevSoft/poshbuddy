@@ -8,7 +8,7 @@ use tokio::sync::mpsc;
 const OMP_BINARY: &str = "oh-my-posh";
 const WHERE_CMD: &str = "where";
 
-/// Metadata for a PowerShell module/extension
+/// Metadata for a PowerShell module/extension (Legacy Plugins)
 #[derive(Clone, Debug)]
 pub struct PluginAsset {
     pub name: String,
@@ -16,6 +16,16 @@ pub struct PluginAsset {
     pub documentation: String,
     pub module_name: String,
     pub init_script: Option<String>,
+}
+
+/// Metadata for an Oh My Posh Segment
+#[derive(Clone, Debug)]
+pub struct SegmentAsset {
+    pub name: String,
+    pub segment_type: String,
+    pub description: String,
+    pub documentation: String,
+    pub category: String, // e.g., "Development", "System", "Cloud"
 }
 
 /// Metadata for a font asset
@@ -69,7 +79,7 @@ pub enum AppState {
 pub enum ActiveView {
     Themes,
     Fonts,
-    Plugins,
+    Segments,
 }
 
 /// State container for the PoshBuddy application
@@ -86,11 +96,14 @@ pub struct App {
     pub fonts_list_state: ListState,
     pub plugins_list_state: ListState,
     pub plugins: Vec<PluginAsset>,
+    pub segments: Vec<SegmentAsset>,
     pub plugins_filter: String,
+    pub segments_filter: String,
     pub spinner_tick: usize,
     pub has_nerd_font: bool,
     pub theme_preview: String,
     pub detected_profiles: Vec<PathBuf>,
+    pub active_config_path: Option<PathBuf>,
     pub backup_manager: crate::backup::BackupManager,
     pub last_backup: Option<std::path::PathBuf>,
     pub diagnostic: crate::diagnostic::Diagnostic,
@@ -125,9 +138,7 @@ impl App {
         // 1. Initial system diagnostics
         let has_nerd_font = Self::check_nerd_font();
         let detected_profiles = Self::detect_profiles();
-        let specs = Self::gather_system_specs(has_nerd_font);
-
-        let mut app = App {
+        let specs = Self::gather_system_specs(has_nerd_font);        let mut app = App {
             state: AppState::Welcome,
             active_view: ActiveView::Themes,
             themes: Vec::new(),
@@ -138,13 +149,6 @@ impl App {
                     description: "Adds file and folder icons to your terminal outputs (ls, dir).".to_string(),
                     documentation: "Requires a Nerd Font. Enhances visual data parsing in long lists.".to_string(),
                     module_name: "Terminal-Icons".to_string(),
-                    init_script: None,
-                },
-                PluginAsset {
-                    name: "posh-git".to_string(),
-                    description: "Powerful Git status summary and tab-completion for PowerShell.".to_string(),
-                    documentation: "Provides info about your current branch, staged files, and ahead/behind status.".to_string(),
-                    module_name: "posh-git".to_string(),
                     init_script: None,
                 },
                 PluginAsset {
@@ -161,40 +165,72 @@ impl App {
                     module_name: "PSReadLine".to_string(),
                     init_script: Some("Set-PSReadLineOption -PredictionSource History\nSet-PSReadLineOption -PredictionViewStyle ListView".to_string()),
                 },
-                PluginAsset {
-                    name: "Spotify Integration".to_string(),
-                    description: "Enables the Spotify segment in OMP.".to_string(),
-                    documentation: "Shows current playing song.\n\nLink: https://ohmyposh.dev/docs/segments/spotify".to_string(),
-                    module_name: "Spotify".to_string(),
-                    init_script: Some("Write-Host 'Note: The Spotify segment does not require an extra PWSH module, but needs the active API.'".to_string()),
+            ],
+            segments: vec![
+                SegmentAsset {
+                    name: "Git Status".to_string(),
+                    segment_type: "git".to_string(),
+                    description: "Muestra la rama actual y el estado de archivos de Git.".to_string(),
+                    documentation: "Esencial para el desarrollo colaborativo.".to_string(),
+                    category: "Development".to_string(),
                 },
-                PluginAsset {
-                    name: "Docker Completion".to_string(),
-                    description: "Habilita herramientas para el segmento de Docker.".to_string(),
-                    documentation: "Muestra la versión y contexto actual de Docker.\n\nLink: https://ohmyposh.dev/docs/segments/docker".to_string(),
-                    module_name: "DockerCompletion".to_string(),
-                    init_script: None,
+                SegmentAsset {
+                    name: "Path (Ruta)".to_string(),
+                    segment_type: "path".to_string(),
+                    description: "Muestra la ubicación actual en el sistema de archivos.".to_string(),
+                    documentation: "Configurable para mostrar ruta completa o corta.".to_string(),
+                    category: "System".to_string(),
                 },
-                PluginAsset {
-                    name: "Cloud Context (Azure/AWS)".to_string(),
-                    description: "Conecta OMP con tus identidades en la Nube.".to_string(),
-                    documentation: "Muestra la suscripción actual de Azure o AWS CLI.\n\nLink: https://ohmyposh.dev/docs/segments/azure".to_string(),
-                    module_name: "Az.Accounts".to_string(),
-                    init_script: None,
+                SegmentAsset {
+                    name: "Session (User)".to_string(),
+                    segment_type: "session".to_string(),
+                    description: "Muestra el usuario y host actual.".to_string(),
+                    documentation: "Útil para identificar rápidamente en qué cuenta/máquina estás.".to_string(),
+                    category: "System".to_string(),
+                },
+                SegmentAsset {
+                    name: "Battery (Batería)".to_string(),
+                    segment_type: "battery".to_string(),
+                    description: "Visualiza el porcentaje de batería y estado de carga.".to_string(),
+                    documentation: "Cambia de color según el nivel de carga.".to_string(),
+                    category: "System".to_string(),
+                },
+                SegmentAsset {
+                    name: "Execution Time".to_string(),
+                    segment_type: "executiontime".to_string(),
+                    description: "Muestra cuánto duró el último comando ejecutado.".to_string(),
+                    documentation: "Perfecto para medir rendimiento de scripts.".to_string(),
+                    category: "System".to_string(),
+                },
+                SegmentAsset {
+                    name: "Node.js info".to_string(),
+                    segment_type: "node".to_string(),
+                    description: "Muestra la versión de Node activa en el directorio.".to_string(),
+                    documentation: "Se activa automáticamente en proyectos Node.".to_string(),
+                    category: "Development".to_string(),
+                },
+                SegmentAsset {
+                    name: "Docker".to_string(),
+                    segment_type: "docker".to_string(),
+                    description: "Muestra el estado de Docker y el contexto actual.".to_string(),
+                    documentation: "Requiere que Docker esté instalado y corriendo.".to_string(),
+                    category: "Cloud".to_string(),
                 },
             ],
             filter: String::new(),
             fonts_filter: String::new(),
             plugins_filter: String::new(),
+            segments_filter: String::new(),
             themes_dir,
-            version: "0.2.1-rust".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
             list_state,
             fonts_list_state,
             plugins_list_state,
             spinner_tick: 0,
             has_nerd_font,
             theme_preview: String::new(),
-            detected_profiles,
+            detected_profiles: detected_profiles.clone(),
+            active_config_path: None,
             backup_manager: crate::backup::BackupManager::new(None),
             last_backup: None,
             diagnostic: crate::diagnostic::Diagnostic::new(),
@@ -203,6 +239,9 @@ impl App {
             system_specs: Some(specs),
             total_backups: 0,
         };
+
+        // Initialize active config path
+        app.active_config_path = app.find_active_config_path();
 
         // Initialize backup count
         app.refresh_backup_count();
@@ -213,6 +252,42 @@ impl App {
         }
 
         app
+    }
+
+    /// Busca la ruta del archivo de configuración activo desde el perfil de PowerShell
+    pub fn find_active_config_path(&self) -> Option<PathBuf> {
+        for profile in &self.detected_profiles {
+            if !profile.exists() {
+                continue;
+            }
+
+            if let Ok(content) = fs::read_to_string(profile) {
+                for line in content.lines() {
+                    if line.contains("oh-my-posh init") && line.contains("--config") {
+                        // Intentar extraer la ruta entre comillas o después de --config
+                        let parts: Vec<&str> = line.split("--config").collect();
+                        if parts.len() > 1 {
+                            let path_part = parts[1].trim();
+                            // Tomar el contenido entre comillas si existe
+                            let config_path = if path_part.starts_with('"') || path_part.starts_with('\'') {
+                                let quote = path_part.chars().next().unwrap();
+                                path_part.split(quote).nth(1).map(|s| s.to_string())
+                            } else {
+                                path_part.split_whitespace().next().map(|s| s.to_string())
+                            };
+
+                            if let Some(p_str) = config_path {
+                                let path = PathBuf::from(p_str);
+                                if path.exists() {
+                                    return Some(path);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        None
     }
 
     /// Verifies if 'oh-my-posh' binary is present in the system PATH
@@ -337,7 +412,21 @@ impl App {
             .collect()
     }
 
-    /// Returns a filtered list of plugins based on search criteria
+    /// Returns a filtered list of segments based on search criteria
+    pub fn filtered_segments(&self) -> Vec<SegmentAsset> {
+        let filter_lower = self.segments_filter.to_lowercase();
+        self.segments
+            .iter()
+            .filter(|p| {
+                p.name.to_lowercase().contains(&filter_lower)
+                    || p.description.to_lowercase().contains(&filter_lower)
+                    || p.category.to_lowercase().contains(&filter_lower)
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Returns a filtered list of legacy plugins based on search criteria
     pub fn filtered_plugins(&self) -> Vec<PluginAsset> {
         let filter_lower = self.plugins_filter.to_lowercase();
         self.plugins
@@ -347,91 +436,134 @@ impl App {
             .collect()
     }
 
-    /// Atomically updates all detected shell profiles to initialize Oh My Posh with the selected theme
-    pub fn apply_theme(&mut self, theme_name: &str) -> io::Result<()> {
-        // Pre-verificación: validar sintaxis del comando y estado de perfiles
-        let theme_path = self.themes_dir.join(theme_name);
-        let config_line = format!(
-            "oh-my-posh init pwsh --config '{}' | Invoke-Expression",
-            theme_path.to_string_lossy().replace("'", "''")
-        );
+    /// Checks if a segment is active in the currently loaded Oh My Posh config
+    pub fn is_segment_active(&self, segment: &SegmentAsset) -> bool {
+        let path = if let Some(p) = &self.active_config_path {
+            p
+        } else {
+            return false;
+        };
 
-        // Verificar sintaxis del script que vamos a insertar
-        let syntax_check = self
-            .diagnostic
-            .validate_powershell_syntax(&config_line)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-        if !syntax_check.is_valid() {
-            let errors = syntax_check.errors.join("; ");
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("Error de sintaxis en configuración: {}", errors),
-            ));
-        }
-
-        // Crear backup automático antes de modificar cualquier perfil
-        for profile in &self.detected_profiles {
-            if profile.exists() {
-                match self
-                    .backup_manager
-                    .backup_profile(profile, &format!("Aplicar tema: {}", theme_name))
-                {
-                    Ok(backup_path) => {
-                        self.last_backup = Some(backup_path);
+        if let Ok(content) = fs::read_to_string(path) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                // In modern OMP themes, segments are usually in blocks[].segments[]
+                // We'll check top-level segments first, then look into blocks
+                if let Some(segments) = json.get("segments").and_then(|v| v.as_array()) {
+                    if segments.iter().any(|s| {
+                        s.get("type").and_then(|v| v.as_str()) == Some(&segment.segment_type)
+                    }) {
+                        return true;
                     }
-                    Err(e) => {
-                        eprintln!(
-                            "Advertencia: No se pudo crear backup de {}: {}",
-                            profile.display(),
-                            e
-                        );
-                        // Continuar de todos modos - el usuario puede cancelar después
+                }
+                
+                if let Some(blocks) = json.get("blocks").and_then(|v| v.as_array()) {
+                    for block in blocks {
+                        if let Some(segments) = block.get("segments").and_then(|v| v.as_array()) {
+                            if segments.iter().any(|s| {
+                                s.get("type").and_then(|v| v.as_str()) == Some(&segment.segment_type)
+                            }) {
+                                return true;
+                            }
+                        }
                     }
                 }
             }
         }
+        false
+    }
 
-        for profile in &self.detected_profiles {
-            if let Some(parent) = profile.parent() {
-                fs::create_dir_all(parent)?;
-            }
+    /// Surgical JSON edit to toggle a segment in the active Oh My Posh theme
+    pub fn toggle_segment(&mut self, segment: &SegmentAsset) -> io::Result<()> {
+        let path = self.active_config_path.as_ref()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No active config found"))?;
 
-            let content = if profile.exists() {
-                fs::read_to_string(profile)?
-            } else {
-                String::new()
-            };
+        let content = fs::read_to_string(path)?;
+        let mut json: serde_json::Value = serde_json::from_str(&content)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
 
-            let mut new_content = Vec::new();
-            let mut found = false;
+        // Logic to find and remove or add to the FIRST block found
+        let mut toggled = false;
+        
+        if let Some(blocks) = json.get_mut("blocks").and_then(|v| v.as_array_mut()) {
+            if let Some(first_block) = blocks.first_mut() {
+                if let Some(segments) = first_block.get_mut("segments").and_then(|v| v.as_array_mut()) {
+                    let pos = segments.iter().position(|s| {
+                        s.get("type").and_then(|v| v.as_str()) == Some(&segment.segment_type)
+                    });
 
-            // Search for existing Oh My Posh init line to replace or add a new one at the end
-            for line in content.lines() {
-                if line.len() >= 15
-                    && line
-                        .as_bytes()
-                        .windows(15)
-                        .any(|w| w.eq_ignore_ascii_case(b"oh-my-posh init"))
-                {
-                    new_content.push(config_line.clone());
-                    found = true;
-                } else {
-                    new_content.push(line.to_string());
+                    if let Some(i) = pos {
+                        segments.remove(i);
+                        toggled = true;
+                    } else {
+                        // Add new segment
+                        let new_segment = serde_json::json!({
+                            "type": segment.segment_type,
+                            "style": "powerline",
+                            "powerline_symbol": "\u{e0b0}",
+                            "foreground": "#ffffff",
+                            "background": "#61afef",
+                            "template": format!(" {} ", segment.segment_type)
+                        });
+                        segments.push(new_segment);
+                        toggled = true;
+                    }
                 }
             }
-
-            if !found {
-                if !content.is_empty() {
-                    new_content.push("".to_string());
-                }
-                new_content.push(config_line.clone());
-            }
-
-            let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
-            fs::write(profile, new_content.join(line_ending))?;
         }
 
+        if toggled {
+            let new_json = serde_json::to_string_pretty(&json)
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            fs::write(path, new_json)?;
+            Ok(())
+        } else {
+            Err(io::Error::new(io::ErrorKind::Other, "Could not find a valid segments block to edit"))
+        }
+    }
+
+
+    /// Actualiza quirúrgicamente una sección del perfil de PowerShell envuelta en marcadores de PoshBuddy
+    pub fn update_profile_safe(&self, profile: &std::path::Path, key: &str, content: &str, description: &str) -> io::Result<()> {
+        let start_marker = format!("# <PoshBuddy: START - {}>", key);
+        let end_marker = format!("# <PoshBuddy: END - {}>", key);
+        let mut new_lines = Vec::new();
+
+        let existing_content = if profile.exists() {
+            fs::read_to_string(profile)?
+        } else {
+            String::new()
+        };
+
+        let mut inside_block = false;
+        let mut found = false;
+
+        for line in existing_content.lines() {
+            if line.contains(&start_marker) {
+                inside_block = true;
+                found = true;
+                new_lines.push(start_marker.clone());
+                new_lines.push(format!("# {}", description));
+                new_lines.push(content.to_string());
+            } else if line.contains(&end_marker) {
+                inside_block = false;
+                new_lines.push(end_marker.clone());
+            } else if !inside_block {
+                new_lines.push(line.to_string());
+            }
+        }
+
+        if !found {
+            if !existing_content.is_empty() && !existing_content.ends_with('\n') {
+                new_lines.push(String::new());
+            }
+            new_lines.push(start_marker);
+            new_lines.push(format!("# {}", description));
+            new_lines.push(content.to_string());
+            new_lines.push(end_marker);
+        }
+
+        let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
+        fs::write(profile, new_lines.join(line_ending))?;
         Ok(())
     }
 
@@ -607,70 +739,95 @@ impl App {
         false
     }
 
+    /// Elimina un bloque gestionado por PoshBuddy del perfil
+    pub fn remove_profile_block(&self, profile: &std::path::Path, key: &str) -> io::Result<()> {
+        if !profile.exists() {
+            return Ok(());
+        }
+
+        let content = fs::read_to_string(profile)?;
+        let start_marker = format!("# <PoshBuddy: START - {}>", key);
+        let end_marker = format!("# <PoshBuddy: END - {}>", key);
+
+        let mut new_lines = Vec::new();
+        let mut inside_block = false;
+        let mut found = false;
+
+        for line in content.lines() {
+            if line.contains(&start_marker) {
+                inside_block = true;
+                found = true;
+                continue;
+            }
+            if line.contains(&end_marker) {
+                inside_block = false;
+                continue;
+            }
+            if !inside_block {
+                new_lines.push(line.to_string());
+            }
+        }
+
+        if found {
+            fs::write(profile, new_lines.join("\n"))?;
+        }
+        Ok(())
+    }
+
+    /// Atomically updates all detected shell profiles to initialize Oh My Posh with the selected theme
+    pub fn apply_theme(&mut self, theme_name: &str) -> io::Result<()> {
+        let theme_path = self.themes_dir.join(theme_name);
+        
+        let config_line = format!(
+            "oh-my-posh init powershell --config \"{}\" | Out-String | Invoke-Expression",
+            theme_path.display()
+        );
+
+        for profile in &self.detected_profiles {
+            self.backup_manager.backup_profile(profile, &format!("Apply Theme: {}", theme_name))
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+            self.update_profile_safe(
+                profile, 
+                "THEME", 
+                &config_line, 
+                &format!("Aplica el tema de Oh My Posh: {}", theme_name)
+            )?;
+        }
+
+        // Dejar rastro del tema actual para la UI
+        self.active_config_path = Some(theme_path);
+        
+        Ok(())
+    }
+
     /// Toggles the activation state of a plugin by adding or removing it from all detected profiles
-    /// Creates automatic backup before any modifications
     pub fn toggle_plugin(&mut self, plugin: &PluginAsset) -> io::Result<()> {
         let is_active = self.is_plugin_active(plugin);
-        let action = if is_active { "Desactivar" } else { "Activar" };
-
-        // Crear backup automático antes de modificar cualquier perfil
-        for profile in &self.detected_profiles {
-            if profile.exists() {
-                match self
-                    .backup_manager
-                    .backup_profile(profile, &format!("{} plugin: {}", action, plugin.name))
-                {
-                    Ok(backup_path) => {
-                        self.last_backup = Some(backup_path);
-                    }
-                    Err(e) => {
-                        eprintln!(
-                            "Advertencia: No se pudo crear backup de {}: {}",
-                            profile.display(),
-                            e
-                        );
-                    }
-                }
-            }
-        }
-
-        let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
-
-        let payload = if let Some(init) = &plugin.init_script {
-            init.clone()
-        } else {
-            // SilentlyContinue avoids red error walls if the user doesn't have the module installed
-            format!(
-                "Import-Module {} -ErrorAction SilentlyContinue",
-                plugin.module_name
-            )
-        };
+        let key = format!("PLUGIN_{}", plugin.module_name.to_uppercase());
 
         for profile in &self.detected_profiles {
-            if let Some(parent) = profile.parent() {
-                fs::create_dir_all(parent)?;
-            }
-
-            let content = if profile.exists() {
-                fs::read_to_string(profile)?
-            } else {
-                String::new()
-            };
-
-            let mut new_lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+            self.backup_manager.backup_profile(profile, &format!("Toggle Plugin: {}", plugin.name))
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
             if is_active {
-                // Remove the plugin - use precise matching to avoid partial matches
-                new_lines.retain(|l| !Self::is_plugin_line(l, plugin));
+                self.remove_profile_block(profile, &key)?;
             } else {
-                // Add the plugin - check for exact match
-                if !new_lines.iter().any(|l| Self::is_plugin_line(l, plugin)) {
-                    new_lines.push(payload.clone());
-                }
-            }
+                let payload = if let Some(init) = &plugin.init_script {
+                    init.clone()
+                } else {
+                    format!("Import-Module {} -ErrorAction SilentlyContinue", plugin.module_name)
+                };
 
-            fs::write(profile, new_lines.join(line_ending))?;
+                self.update_profile_safe(
+                    profile, 
+                    &key, 
+                    &payload, 
+                    &format!("Plugin: {} - {}", plugin.name, plugin.description)
+                )?;
+            }
         }
+
         Ok(())
     }
 
@@ -759,11 +916,6 @@ impl App {
                             current_action: line,
                             log: log.clone(),
                         };
-                    } else {
-                        self.state = AppState::InstallingDependency {
-                            current_action: line.clone(),
-                            log: vec![line],
-                        };
                     }
                 }
                 AppMessage::InstallFinished => {
@@ -843,7 +995,7 @@ impl App {
 
         if let AppState::PluginSuccess(_) = self.state {
             self.state = AppState::Main;
-            self.active_view = ActiveView::Plugins;
+            self.active_view = ActiveView::Segments;
             return Ok(false);
         }
 
@@ -944,22 +1096,63 @@ impl App {
                         7 => {
                             // Ir a plugins
                             self.state = AppState::Main;
-                            self.active_view = ActiveView::Plugins;
+                            self.active_view = ActiveView::Segments;
                         }
                         _ => {}
                     }
                 }
-                KeyCode::Char('t') => {
+                KeyCode::Char('1') => {
+                    // Accion 1: Tema Aleatorio (Se requiere seleccion en Enter)
+                    self.welcome_selected_action = 0;
+                }
+                KeyCode::Char('2') | KeyCode::Char('f') => {
+                    // Accion 2: Instalar Nerd Font
+                    let font_name = "CascadiaCode".to_string();
+                    self.state = AppState::Installing(font_name.clone());
+                    self.install_font(font_name, tx.clone());
+                }
+                KeyCode::Char('3') | KeyCode::Char('i') => {
+                    // Accion 3: Terminal-Icons
+                    let plugin = self.plugins.iter().find(|p| p.name == "Terminal-Icons").cloned();
+                    if let Some(p) = plugin {
+                        if let Err(e) = self.toggle_plugin(&p) {
+                            self.state = AppState::Error(format!("Error: {}", e));
+                        } else {
+                            self.state = AppState::PluginSuccess(p.name);
+                        }
+                    }
+                }
+                KeyCode::Char('4') | KeyCode::Char('d') => {
+                    // Accion 4: Diagnostico
+                    match self.diagnostic.run_full_diagnostic(&self.detected_profiles) {
+                        Ok(result) => {
+                            let report = self.diagnostic.format_report(&result);
+                            self.state = AppState::Success(report);
+                        }
+                        Err(e) => {
+                            self.state = AppState::Error(format!("Error: {}", e));
+                        }
+                    }
+                }
+                KeyCode::Char('5') | KeyCode::Char('b') => {
+                    // Accion 5: Backups
+                    if let Some(ref last) = self.last_backup {
+                        self.state = AppState::Success(format!("Backup: {}", last.display()));
+                    } else {
+                        self.state = AppState::Error("No backups found".to_string());
+                    }
+                }
+                KeyCode::Char('6') | KeyCode::Char('t') => {
                     self.state = AppState::Main;
                     self.active_view = ActiveView::Themes;
                 }
-                KeyCode::Char('f') => {
+                KeyCode::Char('7') | KeyCode::Char('F') => {
                     self.state = AppState::Main;
                     self.active_view = ActiveView::Fonts;
                 }
-                KeyCode::Char('p') => {
+                KeyCode::Char('8') | KeyCode::Char('p') | KeyCode::Char('s') => {
                     self.state = AppState::Main;
-                    self.active_view = ActiveView::Plugins;
+                    self.active_view = ActiveView::Segments;
                 }
                 KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
                 _ => {}
@@ -972,8 +1165,8 @@ impl App {
                 KeyCode::Tab => {
                     self.active_view = match self.active_view {
                         ActiveView::Themes => ActiveView::Fonts,
-                        ActiveView::Fonts => ActiveView::Plugins,
-                        ActiveView::Plugins => ActiveView::Themes,
+                        ActiveView::Fonts => ActiveView::Segments,
+                        ActiveView::Segments => ActiveView::Themes,
                     };
                 }
                 KeyCode::Char('1') => {
@@ -983,7 +1176,7 @@ impl App {
                     self.active_view = ActiveView::Fonts;
                 }
                 KeyCode::Char('3') => {
-                    self.active_view = ActiveView::Plugins;
+                    self.active_view = ActiveView::Segments;
                 }
                 KeyCode::Down | KeyCode::Up => {
                     if self.active_view == ActiveView::Themes {
@@ -1032,8 +1225,8 @@ impl App {
                             None => 0,
                         };
                         self.fonts_list_state.select(Some(i));
-                    } else if self.active_view == ActiveView::Plugins {
-                        let filtered = self.filtered_plugins();
+                    } else if self.active_view == ActiveView::Segments {
+                        let filtered = self.filtered_segments();
                         let i = match self.plugins_list_state.selected() {
                             Some(i) => {
                                 if key.code == KeyCode::Down {
@@ -1063,8 +1256,8 @@ impl App {
                     } else if self.active_view == ActiveView::Fonts {
                         self.fonts_filter.push(c);
                         self.fonts_list_state.select(Some(0));
-                    } else {
-                        self.plugins_filter.push(c);
+                    } else if self.active_view == ActiveView::Segments {
+                        self.segments_filter.push(c);
                         self.plugins_list_state.select(Some(0));
                     }
                 }
@@ -1073,8 +1266,8 @@ impl App {
                         self.filter.pop();
                     } else if self.active_view == ActiveView::Fonts {
                         self.fonts_filter.pop();
-                    } else {
-                        self.plugins_filter.pop();
+                    } else if self.active_view == ActiveView::Segments {
+                        self.segments_filter.pop();
                     }
                 }
                 KeyCode::Enter => {
@@ -1094,15 +1287,15 @@ impl App {
                                 self.install_font(font.name.clone(), tx.clone());
                             }
                         }
-                    } else {
-                        let filtered = self.filtered_plugins();
+                    } else if self.active_view == ActiveView::Segments {
+                        let filtered = self.filtered_segments();
                         if let Some(selected) = self.plugins_list_state.selected() {
-                            if let Some(plugin) = filtered.get(selected) {
-                                if let Err(e) = self.toggle_plugin(plugin) {
+                            if let Some(segment) = filtered.get(selected) {
+                                if let Err(e) = self.toggle_segment(segment) {
                                     self.state =
-                                        AppState::Error(format!("Failed to update profile: {}", e));
+                                        AppState::Error(format!("Failed to toggle segment: {}", e));
                                 } else {
-                                    self.state = AppState::PluginSuccess(plugin.name.clone());
+                                    self.state = AppState::PluginSuccess(segment.name.clone());
                                 }
                             }
                         }
