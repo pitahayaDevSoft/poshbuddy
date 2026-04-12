@@ -62,9 +62,7 @@ pub enum AppMessage {
     ThemesLoaded(Vec<String>),
     FontsLoaded(Vec<FontAsset>),
     ThemePreviewLoaded { theme: String, preview: String },
-    #[allow(dead_code)]
     FontInstalled(String),
-    #[allow(dead_code)]
     PluginInstalled(String),
     InstallProgress { line: String },
     InstallFinished,
@@ -137,7 +135,7 @@ impl App {
                     description: "A smarter cd command. It remembers which directories you use most often.".to_string(),
                     documentation: "Usage: type 'z <name>' to jump. Replaces 'cd' with intelligent fuzzy matching.".to_string(),
                     module_name: "zoxide".to_string(), 
-                    init_script: Some("if (Get-Command zoxide -ErrorAction SilentlyContinue) { zoxide init pwsh | Invoke-Expression }".to_string()),
+                    init_script: Some("zoxide init pwsh | Invoke-Expression".to_string()),
                 },
                 PluginAsset {
                     name: "PSReadLine Mastery".to_string(),
@@ -145,27 +143,6 @@ impl App {
                     documentation: "Optimizes command history search and adds visual feedback while typing.".to_string(),
                     module_name: "PSReadLine".to_string(),
                     init_script: Some("Set-PSReadLineOption -PredictionSource History\nSet-PSReadLineOption -PredictionViewStyle ListView".to_string()),
-                },
-                PluginAsset {
-                    name: "Spotify Integración".to_string(),
-                    description: "Habilita el segmento de Spotify en OMP.".to_string(),
-                    documentation: "Muestra la canción actual.\n\nLink: https://ohmyposh.dev/docs/segments/spotify".to_string(),
-                    module_name: "Spotify".to_string(),
-                    init_script: Some("Write-Host 'ℹ️ El segmento de Spotify no requiere un módulo extra de PWSH, pero necesita la API activa.'".to_string()),
-                },
-                PluginAsset {
-                    name: "Docker Completion".to_string(),
-                    description: "Habilita herramientas para el segmento de Docker.".to_string(),
-                    documentation: "Muestra la versión y contexto actual de Docker.\n\nLink: https://ohmyposh.dev/docs/segments/docker".to_string(),
-                    module_name: "DockerCompletion".to_string(),
-                    init_script: None,
-                },
-                PluginAsset {
-                    name: "Cloud Context (Azure/AWS)".to_string(),
-                    description: "Conecta OMP con tus identidades en la Nube.".to_string(),
-                    documentation: "Muestra la suscripción actual de Azure o AWS CLI.\n\nLink: https://ohmyposh.dev/docs/segments/azure".to_string(),
-                    module_name: "Az.Accounts".to_string(),
-                    init_script: None,
                 },
             ],
             filter: String::new(),
@@ -547,8 +524,7 @@ impl App {
         let payload = if let Some(init) = &plugin.init_script {
             init.clone()
         } else {
-            // SilentlyContinue avoids red error walls if the user doesn't have the module installed
-            format!("Import-Module {} -ErrorAction SilentlyContinue", plugin.module_name)
+            format!("Import-Module {}", plugin.module_name)
         };
 
         for profile in &self.detected_profiles {
@@ -566,12 +542,12 @@ impl App {
 
             if is_active {
                 // Remove the plugin
-                new_lines.retain(|l| !l.contains(&payload.split('\n').next().unwrap_or(&payload)));
+                new_lines.retain(|l| !l.contains(payload.split('\n').next().unwrap_or(&payload)));
             } else {
                 // Add the plugin
                 if !new_lines
                     .iter()
-                    .any(|l| l.contains(&payload.split('\n').next().unwrap_or(&payload)))
+                    .any(|l| l.contains(payload.split('\n').next().unwrap_or(&payload)))
                 {
                     new_lines.push(payload.clone());
                 }
@@ -583,7 +559,6 @@ impl App {
     }
 
     /// Asynchronously installs a PowerShell module via the system shell
-    #[allow(dead_code)]
     pub fn install_plugin(&self, name: String, module_name: String, tx: mpsc::Sender<AppMessage>) {
         tokio::spawn(async move {
             let _ = tx
@@ -822,12 +797,73 @@ mod tests {
             "Expected is_pwsh_7 to be true when pwsh is in PATH"
         );
     }
-}
 
-#[cfg(test)]
-mod filtering_tests {
-    use super::*;
-    use ratatui::widgets::ListState;
+    #[test]
+    fn test_check_nerd_font() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _guard = EnvGuard::new();
+
+        // 1. TERM_PROGRAM = vscode
+        env::set_var("TERM_PROGRAM", "vscode");
+        assert!(App::check_nerd_font(), "Should be true if TERM_PROGRAM is vscode");
+        env::remove_var("TERM_PROGRAM");
+
+        // For the next tests, we need to mock powershell/powershell.exe.
+        let dir = env::temp_dir().join("fake_pwsh_nerd_font");
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let pwsh_name = if cfg!(windows) { "powershell" } else { "powershell.exe" };
+        let pwsh_path = dir.join(pwsh_name);
+
+        let original_path = env::var("PATH").unwrap_or_default();
+        let sep = if cfg!(windows) { ";" } else { ":" };
+        let new_path = format!("{}{}{}", dir.display(), sep, original_path);
+        env::set_var("PATH", &new_path);
+
+        // Helper to write mock powershell script that outputs a specific string
+        let write_mock = |output: &str| {
+            let script = format!("#!/bin/sh\necho \"{}\"\n", output);
+            std::fs::write(&pwsh_path, script).unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&pwsh_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+            }
+        };
+
+        // 2. Command succeeds, outputs typical non-nerd font ("Consolas")
+        write_mock("Consolas");
+        assert!(!App::check_nerd_font(), "Should be false if it outputs 'Consolas'");
+
+        // 3. Command succeeds, outputs empty string
+        write_mock("   ");
+        assert!(App::check_nerd_font(), "Should be true if outputs only whitespace");
+
+        // 4. Command succeeds, outputs a nerd font name
+        write_mock("CaskaydiaCove NF");
+        assert!(App::check_nerd_font(), "Should be true for a font with 'NF'");
+
+        write_mock("MesloLGS Nerd Font");
+        assert!(App::check_nerd_font(), "Should be true for a font with 'nerd'");
+
+        write_mock("FiraCode Retina");
+        assert!(App::check_nerd_font(), "Should be true for a font with 'retina'");
+
+        write_mock("Fira Code");
+        assert!(App::check_nerd_font(), "Should be true for a font with 'code'");
+
+        write_mock("Meslo LG");
+        assert!(App::check_nerd_font(), "Should be true for a font with 'meslo'");
+
+        // 5. Command fails (remove mock to simulate command not found)
+        std::fs::remove_file(&pwsh_path).unwrap();
+        // NOTE: if the system HAS a real powershell/powershell.exe in the rest of PATH,
+        // this might fall back to it. To ensure failure, we clear PATH completely.
+        env::set_var("PATH", "");
+        assert!(App::check_nerd_font(), "Should default to true on command failure");
+
+        env::set_var("PATH", &original_path);
+    }
 
     fn create_test_app() -> App {
         App {
