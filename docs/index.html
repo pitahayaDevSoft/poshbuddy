@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoshBuddy | El Gestor de Terminal para Poshers</title>
-    <meta name="description" content="PoshBuddy es la herramienta TUI definitiva para gestionar Oh My Posh, fuentes Nerd y configuraciones de terminal con un solo clic.">
+    <title>PoshBuddy | High-Density Theme Management</title>
+    <meta name="description" content="PoshBuddy is a professional Rust-based TUI for managing Oh My Posh themes, Nerd Fonts, and terminal segments with surgical precision.">
     <link rel="stylesheet" href="index.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,12 +21,12 @@
             <h1 class="logo-text">PoshBuddy</h1>
         </div>
         <p class="subtitle">
-            Gestión quirúrgica de segmentos, instalación de temas con un clic y 
-            perfiles de PowerShell siempre seguros. La terminal que mereces, sin fricciones.
+            A surgical management terminal for Oh My Posh. One-click theme installation, 
+            precise segment manipulation, and non-destructive PowerShell profile management.
         </p>
         <div class="cta-group">
-            <a href="#install" class="btn btn-primary">Empezar ahora</a>
-            <a href="https://github.com/julesklord/poshbuddy/wiki" class="btn btn-secondary">Leer la Wiki</a>
+            <a href="#install" class="btn btn-primary">Download v0.3.1</a>
+            <a href="https://github.com/julesklord/poshbuddy/wiki" class="btn btn-secondary">Documentation</a>
         </div>
 
         <div class="terminal-window">
@@ -34,63 +34,66 @@
                 <div class="dot red"></div>
                 <div class="dot yellow"></div>
                 <div class="dot green"></div>
-                <span style="margin-left: 10px; font-size: 0.8rem; color: var(--text-muted);">poshbuddy --version 0.3.1</span>
+                <span style="margin-left: 10px; font-size: 0.8rem; color: var(--text-muted);">poshbuddy --v 0.3.1</span>
             </div>
             <div class="terminal-body">
                 <div class="cmd-line"><span class="prompt">PS C:\></span> cargo run</div>
-                <div class="cmd-line" style="color: #abb2bf;">Loading local themes... <span class="success">DONE</span></div>
-                <div class="cmd-line" style="color: #abb2bf;">Fetching remote themes from GitHub... <span class="success">DONE</span></div>
+                <div class="cmd-line" style="color: #abb2bf;">Syncing themes catalog... <span class="success">OK</span></div>
+                <div class="cmd-line" style="color: #abb2bf;">Loading local assets... <span class="success">OK</span></div>
                 <div class="cmd-line"><span class="prompt">>></span> [L] Agnoster</div>
                 <div class="cmd-line"><span class="prompt">>></span> [L] Atomic</div>
-                <div class="cmd-line" style="color: var(--accent);"><span class="prompt">>></span> [G] Cloud (Nuevo tema disponible de OMP)</div>
-                <div class="cmd-line"><span class="prompt">Enter</span> para instalar y previsualizar</div>
+                <div class="cmd-line" style="color: var(--accent);"><span class="prompt">>></span> [G] Cloud (Available for download)</div>
+                <div class="cmd-line"><span class="prompt">Action</span> Press Enter to install and apply theme</div>
             </div>
         </div>
     </header>
 
     <main>
         <section class="features" id="features">
-            <h2 class="section-title">¿Por qué usar PoshBuddy?</h2>
+            <h2 class="section-title">The PoshBuddy Philosophy</h2>
             <div class="grid">
                 <div class="card">
-                    <i class="fas fa-layer-group"></i>
-                    <h3>Segment Manager</h3>
-                    <p>Activa o desactiva segmentos (Git, Batería, Node) directamente en tu JSON sin romper la estructura. Edición quirúrgica garantizada.</p>
+                    <i class="fas fa-microchip"></i>
+                    <h3>Surgical Precision</h3>
+                    <p>Unlike standard theme managers, PoshBuddy performs precise JSON edits on existing theme files. Toggle segments like Git, Node, or Battery metrics without losing your custom formatting.</p>
                 </div>
                 <div class="card">
-                    <i class="fas fa-cloud-arrow-down"></i>
-                    <h3>One-Click Install</h3>
-                    <p>¿Ves un tema que te gusta en el catálogo oficial de Oh My Posh? Selecciónalo y PoshBuddy lo descarga, instala y aplica al instante.</p>
+                    <i class="fas fa-network-wired"></i>
+                    <h3>Unified Experience</h3>
+                    <p>The ThemeAsset engine bridges local configuration with the entire official Oh My Posh collection. Discover, preview, and deploy themes directly from the TUI interface.</p>
                 </div>
                 <div class="card">
-                    <i class="fas fa-shield-halved"></i>
-                    <h3>Profile Shield</h3>
-                    <p>Gestionamos tu $PROFILE de PowerShell de forma no destructiva usando marcadores inteligentes. Nada se pierde, todo es reversible.</p>
+                    <i class="fas fa-user-shield"></i>
+                    <h3>Environment Integrity</h3>
+                    <p>Safety is not optional. Your PowerShell $PROFILE is managed using an injection system based on secure markers, ensuring that every modification is auditable and reversible.</p>
                 </div>
             </div>
         </section>
 
         <section class="features" id="install" style="background: rgba(255,255,255,0.02);">
-            <h2 class="section-title">Instalación Rápida</h2>
+            <h2 class="section-title">Getting Started</h2>
             <div style="max-width: 600px; margin: 0 auto;">
-                <div class="terminal-window" style="margin: 0;">
-                    <div class="terminal-body" style="background: #1e1e1e;">
-                        <span style="color: #dcdcaa;">git</span> clone https://github.com/julesklord/poshbuddy.git<br>
-                        <span style="color: #dcdcaa;">cd</span> poshbuddy<br>
-                        <span style="color: #dcdcaa;">cargo</span> install --path .
+                <p style="text-align: center; margin-bottom: 2rem; color: var(--text-muted);">
+                    Follow these steps to compile PoshBuddy for your system.
+                </p>
+                <div class="terminal-window" style="margin: 0; border-radius: 8px;">
+                    <div class="terminal-body" style="background: #111; font-size: 0.95rem;">
+                        <span style="color: #58a6ff;">git</span> clone https://github.com/julesklord/poshbuddy.git<br>
+                        <span style="color: #58a6ff;">cd</span> poshbuddy<br>
+                        <span style="color: #58a6ff;">cargo</span> install --path .
                     </div>
                 </div>
                 <p style="text-align: center; margin-top: 2rem; color: var(--text-muted);">
-                    Requiere Rust (Cargo) y Oh My Posh instalados en el sistema.
+                    Requires Rust toolchain and Oh My Posh binary on system PATH.
                 </p>
             </div>
         </section>
     </main>
 
     <footer>
-        <p>&copy; 2026 PoshBuddy Project. Hecho con ❤️ para la comunidad de terminales.</p>
+        <p>PoshBuddy Open Source Project &copy; 2026</p>
         <div style="margin-top: 1rem;">
-            <a href="https://github.com/julesklord/poshbuddy" style="color: var(--accent);"><i class="fab fa-github"></i> GitHub</a>
+            <a href="https://github.com/julesklord/poshbuddy" style="color: var(--accent); text-decoration: none;">GitHub Repository</a>
         </div>
     </footer>
 
