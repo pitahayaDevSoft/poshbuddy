@@ -152,7 +152,7 @@ impl App {
                     description: "A smarter cd command. It remembers which directories you use most often.".to_string(),
                     documentation: "Usage: type 'z <name>' to jump. Replaces 'cd' with intelligent fuzzy matching.".to_string(),
                     module_name: "zoxide".to_string(),
-                    init_script: Some("if (Get-Command zoxide -ErrorAction SilentlyContinue) { zoxide init pwsh | Invoke-Expression }".to_string()),
+                    init_script: Some("if (Get-Command zoxide -ErrorAction SilentlyContinue) { zoxide init powershell --hook pwd | Out-String | Invoke-Expression }".to_string()),
                 },
                 PluginAsset {
                     name: "PSReadLine Mastery".to_string(),
@@ -162,11 +162,11 @@ impl App {
                     init_script: Some("Set-PSReadLineOption -PredictionSource History\nSet-PSReadLineOption -PredictionViewStyle ListView".to_string()),
                 },
                 PluginAsset {
-                    name: "Spotify Integración".to_string(),
-                    description: "Habilita el segmento de Spotify en OMP.".to_string(),
-                    documentation: "Muestra la canción actual.\n\nLink: https://ohmyposh.dev/docs/segments/spotify".to_string(),
+                    name: "Spotify Integration".to_string(),
+                    description: "Enables the Spotify segment in OMP.".to_string(),
+                    documentation: "Shows current playing song.\n\nLink: https://ohmyposh.dev/docs/segments/spotify".to_string(),
                     module_name: "Spotify".to_string(),
-                    init_script: Some("Write-Host 'ℹ️ El segmento de Spotify no requiere un módulo extra de PWSH, pero necesita la API activa.'".to_string()),
+                    init_script: Some("Write-Host 'Note: The Spotify segment does not require an extra PWSH module, but needs the active API.'".to_string()),
                 },
                 PluginAsset {
                     name: "Docker Completion".to_string(),
