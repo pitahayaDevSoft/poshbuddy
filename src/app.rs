@@ -62,7 +62,9 @@ pub enum AppMessage {
     ThemesLoaded(Vec<String>),
     FontsLoaded(Vec<FontAsset>),
     ThemePreviewLoaded { theme: String, preview: String },
+    #[allow(dead_code)]
     FontInstalled(String),
+    #[allow(dead_code)]
     PluginInstalled(String),
     InstallProgress { line: String },
     InstallFinished,
@@ -135,7 +137,7 @@ impl App {
                     description: "A smarter cd command. It remembers which directories you use most often.".to_string(),
                     documentation: "Usage: type 'z <name>' to jump. Replaces 'cd' with intelligent fuzzy matching.".to_string(),
                     module_name: "zoxide".to_string(), 
-                    init_script: Some("zoxide init pwsh | Invoke-Expression".to_string()),
+                    init_script: Some("if (Get-Command zoxide -ErrorAction SilentlyContinue) { zoxide init pwsh | Invoke-Expression }".to_string()),
                 },
                 PluginAsset {
                     name: "PSReadLine Mastery".to_string(),
@@ -143,6 +145,27 @@ impl App {
                     documentation: "Optimizes command history search and adds visual feedback while typing.".to_string(),
                     module_name: "PSReadLine".to_string(),
                     init_script: Some("Set-PSReadLineOption -PredictionSource History\nSet-PSReadLineOption -PredictionViewStyle ListView".to_string()),
+                },
+                PluginAsset {
+                    name: "Spotify Integración".to_string(),
+                    description: "Habilita el segmento de Spotify en OMP.".to_string(),
+                    documentation: "Muestra la canción actual.\n\nLink: https://ohmyposh.dev/docs/segments/spotify".to_string(),
+                    module_name: "Spotify".to_string(),
+                    init_script: Some("Write-Host 'ℹ️ El segmento de Spotify no requiere un módulo extra de PWSH, pero necesita la API activa.'".to_string()),
+                },
+                PluginAsset {
+                    name: "Docker Completion".to_string(),
+                    description: "Habilita herramientas para el segmento de Docker.".to_string(),
+                    documentation: "Muestra la versión y contexto actual de Docker.\n\nLink: https://ohmyposh.dev/docs/segments/docker".to_string(),
+                    module_name: "DockerCompletion".to_string(),
+                    init_script: None,
+                },
+                PluginAsset {
+                    name: "Cloud Context (Azure/AWS)".to_string(),
+                    description: "Conecta OMP con tus identidades en la Nube.".to_string(),
+                    documentation: "Muestra la suscripción actual de Azure o AWS CLI.\n\nLink: https://ohmyposh.dev/docs/segments/azure".to_string(),
+                    module_name: "Az.Accounts".to_string(),
+                    init_script: None,
                 },
             ],
             filter: String::new(),
@@ -524,7 +547,8 @@ impl App {
         let payload = if let Some(init) = &plugin.init_script {
             init.clone()
         } else {
-            format!("Import-Module {}", plugin.module_name)
+            // SilentlyContinue avoids red error walls if the user doesn't have the module installed
+            format!("Import-Module {} -ErrorAction SilentlyContinue", plugin.module_name)
         };
 
         for profile in &self.detected_profiles {
@@ -559,6 +583,7 @@ impl App {
     }
 
     /// Asynchronously installs a PowerShell module via the system shell
+    #[allow(dead_code)]
     pub fn install_plugin(&self, name: String, module_name: String, tx: mpsc::Sender<AppMessage>) {
         tokio::spawn(async move {
             let _ = tx
