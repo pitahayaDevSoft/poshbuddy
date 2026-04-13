@@ -4,292 +4,951 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
-/// Main UI rendering function called for each frame
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const C_ACCENT:  Color = Color::Cyan;
+const C_LOCAL:   Color = Color::Green;
+const C_REMOTE:  Color = Color::Blue;
+const C_ACTIVE:  Color = Color::Yellow;
+const C_ERROR:   Color = Color::Red;
+const C_DIM:     Color = Color::DarkGray;
+const C_WHITE:   Color = Color::White;
+const C_BLACK:   Color = Color::Black;
+
+const SPINNER: &[&str] = &["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
+
+// ── Root dispatcher ────────────────────────────────────────────────────────────
 pub fn ui(f: &mut Frame, app: &mut App) {
-    // 1. Root container (Total area)
-    let chunks = Layout::default()
+    match app.state.clone() {
+        AppState::Welcome                                  => render_welcome(f, f.size(), app),
+        AppState::Onboarding(specs)                        => render_onboarding(f, f.size(), &specs),
+        AppState::DependencyMissing                        => render_dep_missing(f, f.size()),
+        AppState::Loading                                  => render_loading(f, f.size(), app),
+        AppState::InstallingDependency { log, current_action } => {
+            render_installing_dep(f, f.size(), &log, &current_action);
+        }
+        _ => render_main(f, f.size(), app),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  MAIN VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
+    let root = Layout::default()
         .direction(Direction::Vertical)
-        .margin(1)
         .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(0),    // Main Content
-            Constraint::Length(3), // Expanded Global Footer
-        ].as_ref())
-        .split(f.size());
+            Constraint::Length(1), // title bar
+            Constraint::Length(3), // tab bar
+            Constraint::Min(0),    // content
+            Constraint::Length(1), // footer
+        ])
+        .split(area);
 
-    // 2. Application Header
-    let header = Paragraph::new(" PoshBuddy — Premium Oh My Posh Theme Manager ")
-        .alignment(Alignment::Center)
-        .style(
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(format!(" PoshBuddy v{} ", app.version)),
-        );
-    f.render_widget(header, chunks[0]);
+    render_title_bar(f, root[0], app);
+    render_tab_bar(f, root[1], app);
 
-    // 3. Conditional view rendering based on AppState
-    match &app.state {
-        AppState::Onboarding(specs) => {
-            render_onboarding(f, chunks[1], specs);
+    match app.active_view {
+        ActiveView::Themes   => render_themes(f, root[2], app),
+        ActiveView::Fonts    => render_fonts(f, root[2], app),
+        ActiveView::Segments => render_segments(f, root[2], app),
+    }
+
+    render_main_footer(f, root[3], app);
+
+    // Floating modals — rendered on top of everything
+    match app.state.clone() {
+        AppState::Success(msg) => {
+            render_modal(f, area, " ✓ Applied ", &msg, C_ACTIVE, "any key to dismiss");
         }
-        AppState::Welcome => {
-            render_welcome(f, chunks[1], app);
+        AppState::FontSuccess(name) => {
+            render_modal(f, area, " ✓ Font Installed ", &format!("'{}' installed successfully.", name), C_LOCAL, "any key to continue");
         }
-        AppState::Main | AppState::Success(_) | AppState::Error(_) | AppState::Installing(_) | AppState::FontSuccess(_) | AppState::PluginSuccess(_) => {
-            render_main_dashboard(f, chunks[1], app);
+        AppState::PluginSuccess(name) => {
+            render_modal(f, area, " ✓ Segment Toggled ", &format!("'{}' toggled in your active theme.", name), C_LOCAL, "any key to continue");
         }
-        AppState::Loading => {
-            let msg = Paragraph::new("\n\n  🚀 Loading PoshBuddy Core...\n  Analyzing themes, fonts, and shell profiles.")
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(Color::Yellow));
-            f.render_widget(msg, chunks[1]);
+        AppState::Installing(name) => {
+            render_modal(f, area, " ⏳ Working ", &format!("Processing: {}\n\nThis may take a moment...", name), C_ACCENT, "please wait");
+        }
+        AppState::Error(msg) => {
+            render_modal(f, area, " ✗ Error ", &msg, C_ERROR, "any key to dismiss");
         }
         _ => {}
     }
-
-    // 4. Global Footer (High-Density Status Bar)
-    render_footer(f, chunks[2], app);
 }
 
-fn render_onboarding(f: &mut Frame, area: Rect, specs: &crate::app::SystemSpecs) {
-    let inner_chunks = Layout::default()
-        .direction(Direction::Vertical)
+// ── Title bar (1 line, no border) ─────────────────────────────────────────────
+fn render_title_bar(f: &mut Frame, area: Rect, app: &App) {
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(20),
-            Constraint::Length(15),
-            Constraint::Percentage(20),
+            Constraint::Percentage(33),
+            Constraint::Percentage(34),
+            Constraint::Percentage(33),
         ])
         .split(area);
 
-    let font_status = if specs.has_nerd_font { "[ √ ] Nerd Font Detected" } else { "[ ! ] Missing Nerd Font (Icons might be broken)" };
-    let ps_status = if specs.is_pwsh_7 { "[ √ ] PowerShell 7 Detected" } else { "[ ! ] Windows PowerShell 5.1 (PowerShell 7 recommended)" };
-    let term_status = if specs.is_windows_terminal { "[ √ ] Modern Terminal Detected" } else { "[ ! ] Classic Console (Windows Terminal recommended)" };
-
-    let msg = format!(
-        "\n  🔍 SYSTEM DIAGNOSTICS\n\n  {}\n  {}\n  {}\n\n  Press [ENTER] to continue\n  Press [Q] to quit",
-        font_status, ps_status, term_status
-    );
-
-    let color = if specs.has_nerd_font { Color::Cyan } else { Color::Yellow };
-
+    // Left: brand
     f.render_widget(
-        Paragraph::new(msg)
-            .alignment(Alignment::Center)
-            .block(Block::default().borders(Borders::ALL).title(" WELCOME "))
-            .style(Style::default().fg(color).add_modifier(Modifier::BOLD)),
-        inner_chunks[1],
+        Paragraph::new(format!("  PoshBuddy v{}", app.version))
+            .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        cols[0],
     );
-}
 
-fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
-    let welcome_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(30), // Sidebar menu
-            Constraint::Percentage(70), // Resource display
-        ])
-        .split(area);
-
-    // Left Sidebar: Quick Actions
-    let actions = [(" 1 ", "Tema Aleatorio", "Enter"),
-        (" 2 ", "Instalar Nerd Font", "f"),
-        (" 3 ", "Terminal-Icons", "i"),
-        (" 4 ", "Diagnóstico", "d"),
-        (" 5 ", "Ver Backups", "b"),
-        (" 6 ", "Ir a Temas", "t"),
-        (" 7 ", "Ir a Fuentes", "F"),
-        (" 8 ", "Ir a Segmentos", "p")];
-
-    let items: Vec<ListItem> = actions
-        .iter()
-        .enumerate()
-        .map(|(i, (id, label, _))| {
-            let style = if i == app.welcome_selected_action {
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::REVERSED)
-            } else {
-                Style::default().fg(Color::Gray)
-            };
-            ListItem::new(format!("{} {}", id, label)).style(style)
-        })
-        .collect();
-
-    let sidebar = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(" Quick Actions "))
-        .highlight_symbol(">> ");
-    f.render_widget(sidebar, welcome_chunks[0]);
-
-    // Right Content: Resources & Info
-    let info = vec![
-        Line::from(vec![Span::styled(" Useful Resources ", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))]),
-        Line::from(""),
-        Line::from(vec![Span::raw(" - "), Span::styled("Oh My Posh Docs: ", Style::default().fg(Color::Blue)), Span::raw("https://ohmyposh.dev")]),
-        Line::from(vec![Span::raw(" - "), Span::styled("Nerd Fonts: ", Style::default().fg(Color::Blue)), Span::raw("https://nerdfonts.com")]),
-        Line::from(vec![Span::raw(" - "), Span::styled("PowerShell Profile: ", Style::default().fg(Color::Blue)), Span::raw("$PROFILE")]),
-        Line::from(""),
-        Line::from(vec![Span::styled(" Tips: ", Style::default().fg(Color::Green))]),
-        Line::from(" Use [Tab] to navigate between sections efficiently."),
-        Line::from(" PoshBuddy automatically backups your profile before any edit."),
-    ];
-
-    let content = Paragraph::new(info)
-        .block(Block::default().borders(Borders::ALL).title(" Information "))
-        .wrap(Wrap { trim: true });
-    f.render_widget(content, welcome_chunks[1]);
-}
-
-fn render_main_dashboard(f: &mut Frame, area: Rect, app: &mut App) {
-    let main_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(25), // Navigation Sidebar
-            Constraint::Min(0),         // Dynamic Content Area
-        ])
-        .split(area);
-
-    // Sidebar Navigation
-    let tabs = [" [T] Temas ", " [F] Fuentes ", " [S] Segmentos "];
-    let items: Vec<ListItem> = tabs
-        .iter()
-        .enumerate()
-        .map(|(i, &t)| {
-            let view = match i {
-                0 => ActiveView::Themes,
-                1 => ActiveView::Fonts,
-                _ => ActiveView::Segments,
-            };
-
-            if app.active_view == view {
-                ListItem::new(t).style(Style::default().fg(Color::Cyan).add_modifier(Modifier::REVERSED))
-            } else {
-                ListItem::new(t).style(Style::default().fg(Color::Gray))
-            }
-        })
-        .collect();
-
-    let sidebar = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(" Navigation "));
-    f.render_widget(sidebar, main_chunks[0]);
-
-    // Right Content based on ActiveView
-    match app.active_view {
-        ActiveView::Themes => render_themes_view(f, main_chunks[1], app),
-        ActiveView::Fonts => render_fonts_view(f, main_chunks[1], app),
-        ActiveView::Segments => render_segments_view(f, main_chunks[1], app),
-    }
-}
-
-fn render_themes_view(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(0),
-            Constraint::Length(8), // Preview
-        ])
-        .split(area);
-
-    let themes = app.filtered_themes();
-    let mut theme_items = Vec::new();
-
-    for t in themes {
-        if t.is_local {
-            theme_items.push(ListItem::new(format!(" [L] {}", t.name)).style(Style::default().fg(Color::Cyan)));
-        } else {
-            theme_items.push(ListItem::new(format!(" [G] {}", t.name)).style(Style::default().fg(Color::Gray)));
-        }
-    }
-
-    let items_count = theme_items.len();
-    let title = if app.filter.is_empty() {
-        format!(" Themes Catalog ({}) ", items_count)
-    } else {
-        format!(" Themes Catalog ({}) [Filter: {}] ", items_count, app.filter)
-    };
-    let list = List::new(theme_items)
-        .block(Block::default().borders(Borders::ALL).title(title))
-        .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
-        .highlight_symbol(">> ");
-
-    f.render_stateful_widget(list, chunks[0], &mut app.list_state);
-
-    let preview_text = if app.theme_preview.is_empty() { " Loading preview..." } else { &app.theme_preview };
-    let preview = Paragraph::new(preview_text.into_text().unwrap_or_default())
-        .block(Block::default().borders(Borders::ALL).title(" Active Theme Preview "));
-    f.render_widget(preview, chunks[1]);
-}
-
-fn render_fonts_view(f: &mut Frame, area: Rect, app: &mut App) {
-    let fonts = app.filtered_fonts();
-    let items: Vec<ListItem> = fonts
-        .iter()
-        .map(|f| ListItem::new(format!("  • {}", f.name)))
-        .collect();
-
-    let title = if app.fonts_filter.is_empty() {
-        format!(" Nerd Fonts Available ({}) ", fonts.len())
-    } else {
-        format!(" Nerd Fonts Available ({}) [Filter: {}] ", fonts.len(), app.fonts_filter)
-    };
-    let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(title))
-        .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
-        .highlight_symbol(">> ");
-
-    f.render_stateful_widget(list, area, &mut app.fonts_list_state);
-}
-
-fn render_segments_view(f: &mut Frame, area: Rect, app: &mut App) {
-    let segments = app.filtered_segments();
-    let items: Vec<ListItem> = segments
-        .iter()
-        .map(|s| {
-            let active = if app.is_segment_active(s) { " [X] " } else { " [ ] " };
-            ListItem::new(format!("{}{}", active, s.name))
-        })
-        .collect();
-
-    let title = if app.segments_filter.is_empty() {
-        format!(" OMP Segments ({}) ", segments.len())
-    } else {
-        format!(" OMP Segments ({}) [Filter: {}] ", segments.len(), app.segments_filter)
-    };
-    let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(title))
-        .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
-        .highlight_symbol(">> ");
-
-    f.render_stateful_widget(list, area, &mut app.plugins_list_state);
-}
-
-fn render_footer(f: &mut Frame, area: Rect, app: &App) {
-    let current_time = chrono::Local::now().format("%H:%M:%S").to_string();
-    let theme_name = app.active_config_path.as_ref()
+    // Centre: active theme
+    let theme = app
+        .active_config_path
+        .as_ref()
         .and_then(|p| p.file_name())
         .and_then(|s| s.to_str())
-        .unwrap_or("Default");
-
-    let footer_text = format!(
-        " [1] Dashboard | [2] Temas | [3] Segmentos | [Tab] Switch | [Q] Quit  ────  🎨 Theme: {}  |  🕒 {}  |  👤 {} ",
-        theme_name,
-        current_time,
-        whoami::username()
+        .unwrap_or("no theme");
+    f.render_widget(
+        Paragraph::new(format!(" 🎨 {}", theme))
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(C_WHITE)),
+        cols[1],
     );
 
-    let footer = Paragraph::new(footer_text)
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::DarkGray))
+    // Right: user + clock
+    let time = chrono::Local::now().format("%H:%M").to_string();
+    let user = whoami::username();
+    f.render_widget(
+        Paragraph::new(format!("{}  {}  ", user, time))
+            .alignment(Alignment::Right)
+            .style(Style::default().fg(C_DIM)),
+        cols[2],
+    );
+}
+
+// ── Tab bar (3 lines with border bottom) ──────────────────────────────────────
+fn render_tab_bar(f: &mut Frame, area: Rect, app: &App) {
+    let tabs: &[(&str, ActiveView)] = &[
+        ("[1] Themes", ActiveView::Themes),
+        ("[2] Fonts", ActiveView::Fonts),
+        ("[3] Segments", ActiveView::Segments),
+    ];
+
+    let w = area.width / 3;
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(w), Constraint::Length(w), Constraint::Min(0)])
+        .split(area);
+
+    for (i, (label, view)) in tabs.iter().enumerate() {
+        let is_active = app.active_view == *view;
+        let count = match view {
+            ActiveView::Themes   => app.filtered_themes().len(),
+            ActiveView::Fonts    => app.filtered_fonts().len(),
+            ActiveView::Segments => app.filtered_segments().len(),
+        };
+        let text = format!("  {} ({})  ", label, count);
+        let (fg, bg, border_fg) = if is_active {
+            (C_BLACK, C_ACCENT, C_ACCENT)
+        } else {
+            (C_DIM, Color::Reset, C_DIM)
+        };
+        f.render_widget(
+            Paragraph::new(text)
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(fg).bg(bg).add_modifier(if is_active { Modifier::BOLD } else { Modifier::empty() }))
+                .block(
+                    Block::default()
+                        .borders(Borders::BOTTOM)
+                        .border_style(Style::default().fg(border_fg)),
+                ),
+            chunks[i],
+        );
+    }
+}
+
+// ── Context-sensitive footer (1 line, no border) ──────────────────────────────
+fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
+    let hint = match app.active_view {
+        ActiveView::Themes =>
+            "  ↑↓ Navigate  │  Enter Apply  │  Type Search  │  Bksp Delete  │  Tab Next Tab  │  Ctrl+R Restore Backup  │  Q Quit",
+        ActiveView::Fonts =>
+            "  ↑↓ Navigate  │  Enter Install  │  Type Search  │  Bksp Delete  │  Tab Next Tab  │  Ctrl+R Restore Backup  │  Q Quit",
+        ActiveView::Segments =>
+            "  ↑↓ Navigate  │  Enter Toggle  │  Type Search  │  Bksp Delete  │  Tab Next Tab  │  Ctrl+R Restore Backup  │  Q Quit",
+    };
+    f.render_widget(
+        Paragraph::new(hint).style(Style::default().fg(C_DIM)),
+        area,
+    );
+}
+
+// ── Floating modal ────────────────────────────────────────────────────────────
+fn render_modal(f: &mut Frame, area: Rect, title: &str, msg: &str, color: Color, dismiss: &str) {
+    let w = area.width.min(58);
+    let h = 7u16;
+    let x = area.x + (area.width.saturating_sub(w)) / 2;
+    let y = area.y + (area.height.saturating_sub(h)) / 2;
+    let modal = Rect::new(x, y, w, h);
+
+    f.render_widget(Clear, modal);
+    f.render_widget(
+        Paragraph::new(format!("\n  {}\n\n  Press {} to dismiss.", msg, dismiss))
+            .style(Style::default().fg(color))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(color))
+                    .title(title),
+            )
+            .wrap(Wrap { trim: true }),
+        modal,
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  THEMES VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+        .split(area);
+
+    // Left column: search + list
+    let left = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(cols[0]);
+
+    render_search_bar(f, left[0], &app.filter, "Themes");
+
+    let themes = app.filtered_themes();
+    let n_local  = app.themes.len();
+    let n_remote = app.remote_themes.len();
+
+    let items: Vec<ListItem> = themes.iter().map(|t| {
+        if t.is_local {
+            ListItem::new(format!("  L  {}", t.name))
+                .style(Style::default().fg(C_LOCAL))
+        } else {
+            ListItem::new(format!("  R  {}", t.name))
+                .style(Style::default().fg(C_REMOTE))
+        }
+    }).collect();
+
+    let title = if app.filter.is_empty() {
+        format!(" Themes  L:{}  R:{} ", n_local, n_remote)
+    } else {
+        format!(" Themes  L:{}  R:{} [Filter: {}] ", n_local, n_remote, app.filter)
+    };
+
+    let list = List::new(items)
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Black)),
+                .border_style(Style::default().fg(C_ACCENT))
+                .title(title),
+        )
+        .highlight_style(
+            Style::default()
+                .bg(Color::DarkGray)
+                .fg(C_WHITE)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(" ▶ ");
+
+    f.render_stateful_widget(list, left[1], &mut app.list_state);
+
+    // Right column: legend + preview
+    let right = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(cols[1]);
+
+    // Badge legend
+    let legend = Line::from(vec![
+        Span::raw("  "),
+        Span::styled(" L ", Style::default().fg(C_BLACK).bg(C_LOCAL).add_modifier(Modifier::BOLD)),
+        Span::styled(" Local  ", Style::default().fg(C_DIM)),
+        Span::styled(" R ", Style::default().fg(C_BLACK).bg(C_REMOTE).add_modifier(Modifier::BOLD)),
+        Span::styled(" Remote — Enter to download & apply  ", Style::default().fg(C_DIM)),
+        Span::styled("Enter", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        Span::styled(" = Apply", Style::default().fg(C_DIM)),
+    ]);
+    f.render_widget(
+        Paragraph::new(legend)
+            .block(Block::default().borders(Borders::ALL).border_style(Style::default().fg(C_DIM))),
+        right[0],
+    );
+
+    // Preview pane
+    if app.theme_preview.is_empty() {
+        f.render_widget(
+            Paragraph::new("\n  Loading preview...")
+                .style(Style::default().fg(C_DIM))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(C_ACCENT))
+                        .title(" Preview "),
+                ),
+            right[1],
         );
-    f.render_widget(footer, area);
+    } else {
+        let preview_text = app.theme_preview.as_str().into_text().unwrap_or_default();
+        f.render_widget(
+            Paragraph::new(preview_text)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(C_ACCENT))
+                        .title(" Preview "),
+                )
+                .wrap(Wrap { trim: false }),
+            right[1],
+        );
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  FONTS VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+        .split(area);
+
+    // Left: search + list
+    let left = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(cols[0]);
+
+    render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
+
+    let fonts = app.filtered_fonts();
+    let items: Vec<ListItem> = fonts.iter().map(|font| {
+        ListItem::new(format!("   {}", font.name))
+            .style(Style::default().fg(C_WHITE))
+    }).collect();
+
+    let title = if app.fonts_filter.is_empty() {
+        format!(" Nerd Fonts ({}) ", fonts.len())
+    } else {
+        format!(" Nerd Fonts ({}) [Filter: {}] ", fonts.len(), app.fonts_filter)
+    };
+
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_ACCENT))
+                .title(title),
+        )
+        .highlight_style(
+            Style::default()
+                .bg(Color::DarkGray)
+                .fg(C_WHITE)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(" ▶ ");
+
+    f.render_stateful_widget(list, left[1], &mut app.fonts_list_state);
+
+    // Right: detail panel
+    let selected = app.fonts_list_state.selected().and_then(|i| fonts.get(i));
+
+    let detail: Vec<Line> = if let Some(font) = selected {
+        vec![
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                format!("  {}", font.name),
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  Type    ", Style::default().fg(C_DIM)),
+                Span::raw("Nerd Font (icon-patched)"),
+            ]),
+            Line::from(vec![
+                Span::styled("  Source  ", Style::default().fg(C_DIM)),
+                Span::styled("nerdfonts.com", Style::default().fg(C_ACCENT)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  Press ", Style::default().fg(C_DIM)),
+                Span::styled("Enter", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+                Span::styled(" to install via oh-my-posh font install", Style::default().fg(C_DIM)),
+            ]),
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                "  After installing, restart your terminal.",
+                Style::default().fg(C_DIM),
+            )]),
+        ]
+    } else {
+        vec![
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                "  Select a font to see details.",
+                Style::default().fg(C_DIM),
+            )]),
+        ]
+    };
+
+    f.render_widget(
+        Paragraph::new(detail)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(C_DIM))
+                    .title(" Font Detail "),
+            ),
+        cols[1],
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SEGMENTS VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
+        .split(area);
+
+    // Left: search + list
+    let left = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(cols[0]);
+
+    render_search_bar(f, left[0], &app.segments_filter, "Segments");
+
+    let segments = app.filtered_segments();
+
+    let items: Vec<ListItem> = segments.iter().map(|s| {
+        let active   = app.is_segment_active(s);
+        let dot      = if active { "●" } else { "○" };
+        let cat_col  = match s.category.as_str() {
+            "Development" => Color::Blue,
+            "Cloud"       => C_ACCENT,
+            _             => C_DIM,
+        };
+        let name_style = if active {
+            Style::default().fg(C_ACTIVE)
+        } else {
+            Style::default().fg(C_WHITE)
+        };
+        ListItem::new(Line::from(vec![
+            Span::raw(format!("  {} ", dot)),
+            Span::styled(format!("[{}] ", &s.category[..3.min(s.category.len())]), Style::default().fg(cat_col)),
+            Span::styled(s.name.clone(), name_style),
+        ]))
+    }).collect();
+
+    let title = if app.segments_filter.is_empty() {
+        format!(" Segments ({}) ", segments.len())
+    } else {
+        format!(" Segments ({}) [Filter: {}] ", segments.len(), app.segments_filter)
+    };
+
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_ACCENT))
+                .title(title),
+        )
+        .highlight_style(
+            Style::default()
+                .bg(Color::DarkGray)
+                .fg(C_WHITE)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol("  ");
+
+    f.render_stateful_widget(list, left[1], &mut app.plugins_list_state);
+
+    // Right: detail + action
+    let selected = app.plugins_list_state.selected().and_then(|i| segments.get(i));
+
+    if let Some(seg) = selected {
+        let right = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(0), Constraint::Length(5)])
+            .split(cols[1]);
+
+        let active = app.is_segment_active(seg);
+        let status_style = if active {
+            Style::default().fg(C_ACTIVE)
+        } else {
+            Style::default().fg(C_DIM)
+        };
+
+        let detail = vec![
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                format!("  {}", seg.name),
+                Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+            )]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  Status     ", Style::default().fg(C_DIM)),
+                Span::styled(
+                    if active { "● ACTIVE" } else { "○ INACTIVE" },
+                    status_style,
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("  Type       ", Style::default().fg(C_DIM)),
+                Span::styled(seg.segment_type.clone(), Style::default().fg(C_ACCENT)),
+            ]),
+            Line::from(vec![
+                Span::styled("  Category   ", Style::default().fg(C_DIM)),
+                Span::raw(seg.category.clone()),
+            ]),
+            Line::from(""),
+            Line::from(vec![Span::styled("  Description", Style::default().fg(C_DIM))]),
+            Line::from(format!("  {}", seg.description)),
+            Line::from(""),
+            Line::from(vec![Span::styled("  Notes", Style::default().fg(C_DIM))]),
+            Line::from(format!("  {}", seg.documentation)),
+        ];
+
+        f.render_widget(
+            Paragraph::new(detail)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(C_ACCENT))
+                        .title(" Segment Detail "),
+                )
+                .wrap(Wrap { trim: true }),
+            right[0],
+        );
+
+        // Action hint
+        let (action_label, action_color, verb) = if active {
+            ("Enter", C_ERROR, "REMOVE from theme")
+        } else {
+            ("Enter", C_LOCAL, "ADD to theme")
+        };
+
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::raw("\n  Press "),
+                Span::styled(action_label, Style::default().fg(action_color).add_modifier(Modifier::BOLD)),
+                Span::styled(format!(" to {} · Ctrl+R to undo last change", verb), Style::default().fg(C_DIM)),
+            ]))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(C_DIM))
+                    .title(" Action "),
+            ),
+            right[1],
+        );
+    } else {
+        f.render_widget(
+            Paragraph::new("\n  Select a segment to see details and toggle it in your theme.")
+                .style(Style::default().fg(C_DIM))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(C_DIM))
+                        .title(" Segment Detail "),
+                ),
+            cols[1],
+        );
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  WELCOME SCREEN
+// ═══════════════════════════════════════════════════════════════════════════════
+
+fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
+    let root = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // title
+            Constraint::Min(0),    // content
+            Constraint::Length(1), // footer
+        ])
+        .split(area);
+
+    // Title
+    f.render_widget(
+        Paragraph::new(format!(
+            "  PoshBuddy v{} — Terminal Management Engine",
+            app.version
+        ))
+        .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        root[0],
+    );
+
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
+        .split(root[1]);
+
+    // ── Left: Quick Actions ─────────────────────────────────────────────────
+    let action_defs: &[(&str, &str, usize)] = &[
+        ("1", "Random Theme",          0),
+        ("2", "Install Nerd Font",     1),
+        ("3", "Toggle Terminal-Icons", 2),
+        ("4", "Run Diagnostics",       3),
+        ("5", "View Backups",          4),
+        ("T", "Go to Themes",          5),
+        ("F", "Go to Fonts",           6),
+        ("S", "Go to Segments",        7),
+    ];
+
+    let mut items: Vec<ListItem> = Vec::new();
+    for (display_i, (key, label, action_idx)) in action_defs.iter().enumerate() {
+        if display_i == 5 {
+            items.push(ListItem::new(Line::from(vec![
+                Span::styled("  ─────────────────────── ", Style::default().fg(C_DIM)),
+            ])));
+        }
+        let is_selected = *action_idx == app.welcome_selected_action;
+        let key_style = if is_selected {
+            Style::default().fg(C_BLACK).bg(C_ACCENT).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)
+        };
+        let label_style = if is_selected {
+            Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::Gray)
+        };
+        items.push(ListItem::new(Line::from(vec![
+            Span::raw("  "),
+            Span::styled(format!(" {} ", key), key_style),
+            Span::raw("  "),
+            Span::styled(label.to_string(), label_style),
+        ])));
+    }
+
+    f.render_widget(
+        List::new(items).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_ACCENT))
+                .title(" Quick Actions "),
+        ),
+        cols[0],
+    );
+
+    // ── Right: System status + Resources ───────────────────────────────────
+    let right = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
+        .split(cols[1]);
+
+    // System status panel
+    let sys_lines = if let Some(s) = &app.system_specs {
+        vec![
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  Nerd Font    ", Style::default().fg(C_DIM)),
+                if s.has_nerd_font {
+                    Span::styled("● Detected", Style::default().fg(C_LOCAL))
+                } else {
+                    Span::styled("○ Not found  (icons may be broken)", Style::default().fg(C_ERROR))
+                },
+            ]),
+            Line::from(vec![
+                Span::styled("  PowerShell   ", Style::default().fg(C_DIM)),
+                if s.is_pwsh_7 {
+                    Span::styled("● v7 (pwsh)", Style::default().fg(C_LOCAL))
+                } else {
+                    Span::styled("○ v5.1  (PowerShell 7 recommended)", Style::default().fg(C_ACTIVE))
+                },
+            ]),
+            Line::from(vec![
+                Span::styled("  Terminal     ", Style::default().fg(C_DIM)),
+                if s.is_windows_terminal {
+                    Span::styled("● Windows Terminal", Style::default().fg(C_LOCAL))
+                } else {
+                    Span::styled("○ Classic Console  (upgrade recommended)", Style::default().fg(C_ACTIVE))
+                },
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  Backups      ", Style::default().fg(C_DIM)),
+                Span::styled(
+                    format!("{} available", app.total_backups),
+                    Style::default().fg(C_WHITE),
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("  Profiles     ", Style::default().fg(C_DIM)),
+                Span::styled(
+                    format!("{} detected", app.detected_profiles.len()),
+                    Style::default().fg(C_WHITE),
+                ),
+            ]),
+        ]
+    } else {
+        vec![
+            Line::from(""),
+            Line::from(vec![Span::styled("  Scanning system...", Style::default().fg(C_DIM))]),
+        ]
+    };
+
+    f.render_widget(
+        Paragraph::new(sys_lines).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_DIM))
+                .title(" System Status "),
+        ),
+        right[0],
+    );
+
+    // Resources panel
+    let res_lines = vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("  Oh My Posh  ", Style::default().fg(C_DIM)),
+            Span::styled("ohmyposh.dev", Style::default().fg(C_ACCENT)),
+        ]),
+        Line::from(vec![
+            Span::styled("  Nerd Fonts  ", Style::default().fg(C_DIM)),
+            Span::styled("nerdfonts.com", Style::default().fg(C_ACCENT)),
+        ]),
+        Line::from(vec![
+            Span::styled("  PoshBuddy   ", Style::default().fg(C_DIM)),
+            Span::styled("github.com/julesklord/poshbuddy", Style::default().fg(C_ACCENT)),
+        ]),
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "  Profiles are backed up before every change.",
+            Style::default().fg(C_DIM),
+        )]),
+    ];
+
+    f.render_widget(
+        Paragraph::new(res_lines).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_DIM))
+                .title(" Resources "),
+        ),
+        right[1],
+    );
+
+    // Footer
+    f.render_widget(
+        Paragraph::new(
+            "  ↑↓ Navigate  │  Enter Execute  │  1-5 Quick Action  │  T/F/S Jump to View  │  Q Quit",
+        )
+        .style(Style::default().fg(C_DIM)),
+        root[2],
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ONBOARDING / LOADING / DEPENDENCY MISSING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+fn render_onboarding(f: &mut Frame, area: Rect, specs: &crate::app::SystemSpecs) {
+    let center = centered_rect(58, 52, area);
+    f.render_widget(Clear, center);
+
+    let rows: Vec<Line> = vec![
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "  System Diagnostics",
+            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+        )]),
+        Line::from(""),
+        status_line("  Nerd Font   ", specs.has_nerd_font, "Detected", "Not found — icons may break"),
+        status_line("  PowerShell  ", specs.is_pwsh_7, "v7 (pwsh)", "v5.1 — PowerShell 7 recommended"),
+        status_line("  Terminal    ", specs.is_windows_terminal, "Windows Terminal", "Classic Console — upgrade recommended"),
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "  Press Enter to continue  ·  Q to quit",
+            Style::default().fg(C_DIM),
+        )]),
+    ];
+
+    f.render_widget(
+        Paragraph::new(rows).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_ACCENT))
+                .title(" Welcome to PoshBuddy "),
+        ),
+        center,
+    );
+}
+
+fn render_loading(f: &mut Frame, area: Rect, app: &App) {
+    let spin = SPINNER[app.spinner_tick % SPINNER.len()];
+    let center = centered_rect(50, 30, area);
+    f.render_widget(Clear, center);
+    f.render_widget(
+        Paragraph::new(vec![
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                format!("  {} Loading PoshBuddy...", spin),
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )]),
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                "  Scanning themes, fonts, and shell profiles.",
+                Style::default().fg(C_DIM),
+            )]),
+        ])
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_ACCENT)),
+        ),
+        center,
+    );
+}
+
+fn render_dep_missing(f: &mut Frame, area: Rect) {
+    let center = centered_rect(62, 44, area);
+    f.render_widget(Clear, center);
+    f.render_widget(
+        Paragraph::new(vec![
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                "  Oh My Posh not found",
+                Style::default().fg(C_ERROR).add_modifier(Modifier::BOLD),
+            )]),
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                "  PoshBuddy requires Oh My Posh to work.",
+                Style::default().fg(C_DIM),
+            )]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  Enter  ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+                Span::styled("Auto-install via WinGet", Style::default().fg(C_WHITE)),
+            ]),
+            Line::from(vec![
+                Span::styled("  Q      ", Style::default().fg(C_DIM)),
+                Span::styled("Quit and install manually", Style::default().fg(C_DIM)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  Manual: ", Style::default().fg(C_DIM)),
+                Span::styled(
+                    "winget install JanDeDobbeleer.OhMyPosh",
+                    Style::default().fg(C_ACTIVE),
+                ),
+            ]),
+        ])
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_ERROR))
+                .title(" Missing Dependency "),
+        )
+        .wrap(Wrap { trim: true }),
+        center,
+    );
+}
+
+fn render_installing_dep(f: &mut Frame, area: Rect, log: &[String], current: &str) {
+    let root = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(area);
+
+    f.render_widget(
+        Paragraph::new(format!("  {}", current))
+            .style(Style::default().fg(C_ACTIVE))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Installing Oh My Posh "),
+            ),
+        root[0],
+    );
+
+    let log_lines: Vec<Line> = log.iter().map(|l| Line::from(format!("  {}", l))).collect();
+    f.render_widget(
+        Paragraph::new(log_lines).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_DIM))
+                .title(" Installation Log "),
+        ),
+        root[1],
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SHARED HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Renders a search bar with visible cursor when filter is active
+fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context: &str) {
+    let (text, style) = if filter.is_empty() {
+        (
+            format!("  Search {}...", context.to_lowercase()),
+            Style::default().fg(C_DIM),
+        )
+    } else {
+        (
+            format!("  {}_", filter),
+            Style::default().fg(C_WHITE),
+        )
+    };
+    f.render_widget(
+        Paragraph::new(text).style(style).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(if filter.is_empty() {
+                    Style::default().fg(C_DIM)
+                } else {
+                    Style::default().fg(C_ACCENT)
+                })
+                .title(" / Search "),
+        ),
+        area,
+    );
+}
+
+/// Returns a status line with ●/○ indicator and color coding
+fn status_line<'a>(label: &'a str, ok: bool, ok_msg: &'a str, warn_msg: &'a str) -> Line<'a> {
+    Line::from(vec![
+        Span::styled(label, Style::default().fg(C_DIM)),
+        if ok {
+            Span::styled(format!("● {}", ok_msg), Style::default().fg(C_LOCAL))
+        } else {
+            Span::styled(format!("○ {}", warn_msg), Style::default().fg(C_ACTIVE))
+        },
+    ])
+}
+
+/// Centers a rect of given percentage within parent
+fn centered_rect(pct_x: u16, pct_y: u16, area: Rect) -> Rect {
+    let vert = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - pct_y) / 2),
+            Constraint::Percentage(pct_y),
+            Constraint::Percentage((100 - pct_y) / 2),
+        ])
+        .split(area);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - pct_x) / 2),
+            Constraint::Percentage(pct_x),
+            Constraint::Percentage((100 - pct_x) / 2),
+        ])
+        .split(vert[1])[1]
 }

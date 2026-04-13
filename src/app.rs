@@ -1198,8 +1198,25 @@ impl App {
                     }
                 }
                 KeyCode::Char('1') => {
-                    // Accion 1: Tema Aleatorio (Se requiere seleccion en Enter)
-                    self.welcome_selected_action = 0;
+                    // Accion 1: Tema Aleatorio — ejecutar directamente
+                    if !self.themes.is_empty() {
+                        use std::time::{SystemTime, UNIX_EPOCH};
+                        let seed = SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs() as usize;
+                        let idx = seed % self.themes.len();
+                        if let Some(t) = self.themes.get(idx) {
+                            let name = t.name.clone();
+                            if let Err(e) = self.apply_theme(&name) {
+                                self.state = AppState::Error(format!("Failed to apply theme: {}", e));
+                            } else {
+                                self.state = AppState::Success(format!("Theme '{}' applied!", name));
+                            }
+                        }
+                    } else {
+                        self.state = AppState::Error("No themes loaded yet".to_string());
+                    }
                 }
                 KeyCode::Char('2') | KeyCode::Char('f') => {
                     // Accion 2: Instalar Nerd Font
@@ -1242,11 +1259,11 @@ impl App {
                     self.state = AppState::Main;
                     self.active_view = ActiveView::Themes;
                 }
-                KeyCode::Char('7') | KeyCode::Char('F') => {
+                KeyCode::Char('7') | KeyCode::Char('f') => {
                     self.state = AppState::Main;
                     self.active_view = ActiveView::Fonts;
                 }
-                KeyCode::Char('8') | KeyCode::Char('p') | KeyCode::Char('s') => {
+                KeyCode::Char('8') | KeyCode::Char('s') => {
                     self.state = AppState::Main;
                     self.active_view = ActiveView::Segments;
                 }
