@@ -95,7 +95,7 @@ impl PluginInstaller {
         // 3. Verificar permisos de ejecución de scripts
         match Self::check_execution_policy() {
             Ok(policy) => {
-                if policy.to_lowercase().contains("restricted") {
+                if crate::app::contains_ignore_ascii_case(&policy, "restricted") {
                     result.errors.push(
                         "La política de ejecución de PowerShell está restringida. \
                          Ejecuta: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser"

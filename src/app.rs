@@ -8,6 +8,18 @@ use tokio::sync::mpsc;
 const OMP_BINARY: &str = "oh-my-posh";
 const WHERE_CMD: &str = "where";
 
+/// Helper function for zero-allocation case-insensitive ASCII substring matching
+pub fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    let needle_bytes = needle.as_bytes();
+    if needle_bytes.is_empty() {
+        return true;
+    }
+    haystack
+        .as_bytes()
+        .windows(needle_bytes.len())
+        .any(|w| w.eq_ignore_ascii_case(needle_bytes))
+}
+
 /// Metadata for a PowerShell module/extension (Legacy Plugins)
 #[derive(Clone, Debug)]
 pub struct PluginAsset {
@@ -396,15 +408,15 @@ impl App {
             .output();
 
         if let Ok(out) = output {
-            let name = String::from_utf8_lossy(&out.stdout).to_lowercase();
+            let name = String::from_utf8_lossy(&out.stdout);
             if name.trim().is_empty() {
                 return true;
             }
-            name.contains("nf")
-                || name.contains("nerd")
-                || name.contains("retina")
-                || name.contains("code")
-                || name.contains("meslo")
+            contains_ignore_ascii_case(&name, "nf")
+                || contains_ignore_ascii_case(&name, "nerd")
+                || contains_ignore_ascii_case(&name, "retina")
+                || contains_ignore_ascii_case(&name, "code")
+                || contains_ignore_ascii_case(&name, "meslo")
         } else {
             true
         }
@@ -412,19 +424,19 @@ impl App {
 
     /// Returns a unified list of filtered themes (Local + Unique Remote)
     pub fn filtered_themes(&self) -> Vec<ThemeAsset> {
-        let filter_lower = self.filter.to_lowercase();
+        let filter = &self.filter;
         let mut unified = Vec::new();
 
         // Add Local
         for t in &self.themes {
-            if t.name.to_lowercase().contains(&filter_lower) {
+            if contains_ignore_ascii_case(&t.name, filter) {
                 unified.push(t.clone());
             }
         }
 
         // Add Remote (only if not local)
         for rt in &self.remote_themes {
-            if rt.name.to_lowercase().contains(&filter_lower)
+            if contains_ignore_ascii_case(&rt.name, filter)
                 && !self.themes.iter().any(|t| t.name == rt.name) {
                     unified.push(ThemeAsset {
                         name: rt.name.clone(),
@@ -496,23 +508,21 @@ impl App {
 
     /// Returns a filtered list of fonts based on search criteria
     pub fn filtered_fonts(&self) -> Vec<FontAsset> {
-        let filter_lower = self.fonts_filter.to_lowercase();
         self.fonts
             .iter()
-            .filter(|f| f.name.to_lowercase().contains(&filter_lower))
+            .filter(|f| contains_ignore_ascii_case(&f.name, &self.fonts_filter))
             .cloned()
             .collect()
     }
 
     /// Returns a filtered list of segments based on search criteria
     pub fn filtered_segments(&self) -> Vec<SegmentAsset> {
-        let filter_lower = self.segments_filter.to_lowercase();
         self.segments
             .iter()
             .filter(|p| {
-                p.name.to_lowercase().contains(&filter_lower)
-                    || p.description.to_lowercase().contains(&filter_lower)
-                    || p.category.to_lowercase().contains(&filter_lower)
+                contains_ignore_ascii_case(&p.name, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.description, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.category, &self.segments_filter)
             })
             .cloned()
             .collect()
@@ -520,10 +530,9 @@ impl App {
 
     /// Returns a filtered list of legacy plugins based on search criteria
     pub fn filtered_plugins(&self) -> Vec<PluginAsset> {
-        let filter_lower = self.plugins_filter.to_lowercase();
         self.plugins
             .iter()
-            .filter(|p| p.name.to_lowercase().contains(&filter_lower))
+            .filter(|p| contains_ignore_ascii_case(&p.name, &self.plugins_filter))
             .cloned()
             .collect()
     }
