@@ -4,7 +4,7 @@
 
 # PoshBuddy
 
-![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.3.1--rust-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.3.3--rust-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 PoshBuddy is a professional management tool for Oh My Posh configurations. It provides a high-density terminal user interface (TUI) designed to streamline theme customization, font management, and shell segment manipulation with surgical precision.
 
@@ -27,6 +27,7 @@ Environment stability is critical. PoshBuddy manages your PowerShell profile usi
 
 Customizing a PowerShell prompt should not be a repetitive or manual task. PoshBuddy eliminates the friction of editing profiles and configuration files, bringing a modern interface to your developer workflow.
 
+- **Unstuck Guarantee**: Integrated network timeouts and OMP binary guard to prevent TUI hangs in any condition.
 - **Zero-Config Profile Sync**: Automatically detects and updates both PowerShell 5.1 and 7 profiles.
 - **Accurate Previews**: Environment isolation ensures that theme previews are unaffected by your current shell state.
 - **Diagnostic Intelligence**: Automated checks for Nerd Fonts, shell versions, and terminal compatibility (Windows Terminal recommended).

@@ -1,54 +1,63 @@
-# PoshBuddy Wiki: Troubleshooting
+# PoshBuddy Wiki: Troubleshooting Procedures
 
-> **Metadata**  
-> **Updated**: 2026-04-10  
+> **Updated**: 2026-04-13  
+> **Version**: v0.3.3-rust  
 > **Read Time**: 5 min  
-> **Difficulty**: Intermediate  
 
-Issues organized by symptom.
+PoshBuddy categorizes issues into deterministic symptoms. If your issue persists after following these directives, consult the system logs.
+
+## Error Lifecycle Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> Action
+    Action --> ConnectivityCheck: Start
+    ConnectivityCheck --> Error: Offline
+    ConnectivityCheck --> Download: Online
+    Download --> Timeout: >10s
+    Download --> Verify: Success
+    Verify --> InvalidJSON: Corruption
+    Verify --> Apply: Integrity OK
+    Apply --> Success
+    Error --> [*]: [ESC] to Dashboard
+    Timeout --> [*]: [ESC] to Dashboard
+    InvalidJSON --> [*]: [ESC] to Dashboard
+```
 
 ## Symptom: Broken icons (Squares/Question marks)
 
-**Cause**: You are not using a Nerd Font, or it is incorrectly configured.
+**Cause**: System lacks a properly configured Nerd Font.
 
-- **Fix 1**: Ensure you have installed a font from the **Fonts [2]** tab.
-- **Fix 2**: In Windows Terminal, go to **Settings > PowerShell > Appearance > Font face** and select the font ending in "Nerd Font" or "NF".
-- **Fix 3**: If use VS Code, update `"terminal.integrated.fontFamily": "'MesloLGS NF'"`.
+- **Fix 1**: Install a font directly from the **Fonts [2]** tab.
+- **Fix 2**: In Windows Terminal settings (PowerShell > Appearance), set **Font face** to any font suffix ending in "Nerd Font" or "NF".
+- **Fix 3**: In VS Code settings, set `"terminal.integrated.fontFamily": "'MesloLGS NF'"` or your specific font name.
 
-## Symptom: Themes not applying after "Success" message
+## Symptom: Themes not applying after "Success" notification
 
-**Cause**: The current shell session needs to be refreshed.
+**Cause**: Current shell session requires environment refresh.
 
-- **Fix 1**: Close and reopen your terminal.
-- **Fix 2**: Run `. $PROFILE` to reload the config in the current window.
-- **Fix 3**: Verify if you have multiple profiles. PoshBuddy tries to find all of them, but if yours is in a non-standard location, check the **Diagnostic** screen for detected paths.
+- **Fix 1**: Close and restart the terminal session.
+- **Fix 2**: Execute `. $PROFILE` to force-reload configuration in the active window.
+- **Fix 3**: Validate profile paths. PoshBuddy detects standard paths for PS 5.1 and 7. Check the **Diagnostic** screen to ensure your profile path is listed under "Detected Profiles".
 
-## Symptom: Terminal is slow after installing many plugins
+## Symptom: Terminal latency / Slow startup
 
-**Cause**: Large PowerShell profiles.
+**Cause**: Excessive module imports in the PowerShell profile.
 
-- **Fix**: Open your `$PROFILE` and remove unused `Import-Module` calls. PoshBuddy aims to keep the initialization line simple: `oh-my-posh init pwsh ...`.
+- **Fix**: Open your `$PROFILE` and remove redundant `Import-Module` calls. PoshBuddy ensures the initialization line is optimized: `oh-my-posh init pwsh ...`.
 
-## Symptom: "Error: Installation failed via Winget"
+## Symptom: "Error: No internet connection detected"
 
-**Cause**: Usually a network timeout or lack of administrator permissions.
+**Cause**: System failed the PoshBuddy pre-flight connectivity check.
 
-- **Fix 1**: Try running PoshBuddy as **Administrator**.
-- **Fix 2**: Run `winget install JanDeDobbeleer.OhMyPosh` manually in a terminal to see the specific error code from Winget.
+- **Fix**: Restore network access. PoshBuddy prevents remote operations during offline states to guarantee UI responsiveness.
 
-## FAQ
+## Symptom: "Timeout generating preview"
 
-### Does PoshBuddy support WSL?
+**Cause**: External `oh-my-posh` binary exceeded the 2-second render guard.
 
-PoshBuddy is currently focused on native Windows environments (PowerShell 5.1 and 7). While it might run in WSL, profile detection and font installation are optimized for Windows.
-
-### Can I use my own custom themes?
-
-PoshBuddy currently fetches themes from the official Oh My Posh repository. Support for local theme folders is in the roadmap.
-
-### Is it safe?
-
-PoshBuddy only modifies your `$PROFILE` by adding or updating a single `oh-my-posh init` line. It creates a backup logic if it finds complex configurations.
+- **Fix 1**: Verify the selected theme file integrity.
+- **Fix 2**: Reduce system CPU load; the security guard triggers if the render cannot complete within the 2s safety window.
 
 ---
-**Return to**: [Home](index)
+**Return to**: [Wiki Dashboard](./index.md)
