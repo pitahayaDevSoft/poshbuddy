@@ -1,119 +1,94 @@
-<!-- markdownlint-disable MD033 -->
 <div align="center">
   <img src="docs/logo.png" alt="PoshBuddy Logo" width="180" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
-
-  # PoshBuddy
-  
-  **The definitive TUI manager for Oh My Posh on Windows & PowerShell**
-  
-  *Sleek, fast, and unified theme management for your terminal.*
-
-  <p align="center">
-    <a href="https://www.rust-lang.org">
-      <img src="https://img.shields.io/badge/Rust-1.94+-orange.svg?style=flat-square&logo=rust" alt="Rust"/>
-    </a>
-    <a href="LICENSE">
-      <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License"/>
-    </a>
-    <img src="https://img.shields.io/badge/Platform-Windows-blue?style=flat-square&logo=windows" alt="Platform"/>
-    <img src="https://img.shields.io/badge/State-Beta-green?style=flat-square" alt="State"/>
-  </p>
 </div>
 
----
+# PoshBuddy
 
-## ⚡ Why PoshBuddy?
+![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.3.4--rust-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
-Customizing a PowerShell prompt shouldn't feel like a chore. PoshBuddy eliminates the manual labor of editing profiles and configuration files, bringing a **modern TUI experience** to your developer workflow. Whether you're a seasoned terminal user or just starting your customization journey, PoshBuddy provides a safe, guided path to a beautiful prompt.
+PoshBuddy is a professional management tool for Oh My Posh configurations. It provides a high-density terminal user interface (TUI) designed to streamline theme customization, font management, and shell segment manipulation with surgical precision.
 
-- **Zero-Config Profile Sync**: Automatically detects and updates both PowerShell 5.1 and 7 profiles simultaneously.
-- **Accurate Previews**: See exactly how a theme looks before applying it, with full ANSI color support and environment isolation.
-- **Dependency Guardian**: Built-in, transparent installer for Oh My Posh and Nerd Fonts.
+![PoshBuddy Demo](demo.gif)
 
----
+Developed in Rust, PoshBuddy prioritizes safety and performance, ensuring that your PowerShell environment remains stable and your configuration files remain auditable at all times.
 
-## ✨ Deep Dive into Features
+## Core Pillars
 
-### 🎨 Real-Time Visual Previews
-Under the hood, PoshBuddy uses a custom execution engine that runs Oh My Posh in an isolated environment (`env_clear`). This means the preview you see in the TUI is exactly what you get, unaffected by your current desktop environment or existing shell configurations.
+### Unified Theme Management
 
-### ⚕️ Onboarding & Diagnostics
-Not sure why symbols are broken? PoshBuddy runs a comprehensive diagnostic at startup:
-*   **Font Check**: Verifies the presence of Nerd Fonts.
-*   **Shell Check**: Detects if you're on the slower PowerShell 5.1 or the high-performance PowerShell 7.
-*   **Terminal Check**: Alerts you if you're using the legacy `conhost.exe` and recommends the modern **Windows Terminal**.
+PoshBuddy bridges the gap between your local setup and the extensive Oh My Posh ecosystem. Our ThemeAsset engine unifies local files and remote GitHub repositories, allowing you to discover, preview, and install the entire official theme collection with a single action.
 
-### 🚀 Smart Dependency Management
-If Oh My Posh isn't found in your `$PATH`, PoshBuddy won't just fail. It offers to install it for you using `winget`, providing a live, scrollable terminal log so you can monitor the installation process with total transparency.
+### Surgical Segment Manipulation
 
----
+Unlike traditional theme managers that overwrite your entire configuration, PoshBuddy performs precise edits. You can toggle specific segments—such as Git status, battery indicators, or execution time—directly into your active theme without disturbing your custom styles or layout.
 
-## 🛠️ Technical Stack
+### Non-Destructive Profile Injection
 
-PoshBuddy is built for performance and reliability:
-- **Rust**: The core language, ensuring safety and speed.
-- **Tokio**: Powering the asynchronous background tasks (theme fetching, installers).
-- **Ratatui**: The state-of-the-art framework for the TUI render loop.
-- **ansi-to-tui**: Translating complex Oh My Posh ANSI sequences into TUI-compatible text.
+Environment stability is critical. PoshBuddy manages your PowerShell profile using an injection system based on secure markers. This ensures that any change made by the tool is fully reversible and localized, preventing corruption of your existing scripts.
 
----
+## Why PoshBuddy?
 
-## 📦 Getting Started
+Customizing a PowerShell prompt should not be a repetitive or manual task. PoshBuddy eliminates the friction of editing profiles and configuration files, bringing a modern interface to your developer workflow.
 
-Ensure you have [Rust](https://rustup.rs/) installed.
+- **Unstuck Guarantee**: Integrated network timeouts and OMP binary guard to prevent TUI hangs in any condition.
+- **Zero-Config Profile Sync**: Automatically detects and updates both PowerShell 5.1 and 7 profiles.
+- **Accurate Previews**: Environment isolation and corrected extension handling ensure that theme previews are unaffected by your current shell state.
+- **Diagnostic Intelligence**: Automated checks for Nerd Fonts, shell versions, and terminal compatibility (Windows Terminal recommended).
+
+## Technical Architecture
+
+PoshBuddy is built for performance and reliability using modern systems programming patterns:
+
+- **Rust**: Core language for memory safety and execution speed.
+- **Tokio**: Asynchronous runtime for non-blocking network operations, installers, and file I/O.
+- **Ratatui**: State-of-the-art framework for the TUI rendering loop.
+- **Serde**: High-performance serialization for JSON configuration manipulation.
+
+## Installation
+
+Ensure you have the [Rust toolchain](https://rustup.rs/) installed.
 
 ```powershell
-# Get the source
 git clone https://github.com/julesklord/poshbuddy.git
 cd poshbuddy
-
-# Compile and Launch
-cargo run --release
+cargo install --path .
 ```
 
-### 🎮 Controls & Navigation
+_Note: This tool requires the Oh My Posh binary to be present in your system PATH._
 
-| Key | Action |
-| :--- | :--- |
-| `[1]` | **Themes Explorer** — Browse and filter styles. |
-| `[2]` | **Font Manager** — Get the glyphs you need. |
-| `[3]` | **Plugins** (Upcoming) — Extend your prompt functionality. |
-| `[TAB]` | Cycle focus between the List and the Info panel. |
-| `[ENTER]` | Apply theme or start installation. |
-| `[ANY CHAR]` | Instantly filter the active list. |
-| `[Q] / [ESC]` | Clean exit. |
+## Controls and Navigation
 
----
+| Key         | Action                                                         |
+| :---------- | :------------------------------------------------------------- |
+| **1**       | **Themes Explorer** — Browse local and official remote themes. |
+| **2**       | **Font Manager** — Install and manage Nerd Fonts.              |
+| **3**       | **Segment Manager** — Toggle theme components in real-time.    |
+| **Esc / H** | **Dashboard** — Return to the main welcome screen.             |
+| **Enter**   | Apply theme, toggle segment, or start installation.            |
+| **Q**       | Exit the application.                                          |
 
-## ❓ Frequently Asked Questions
+### Dashboard Quick Actions
 
-**Q: Does it modify my $PROFILE permanently?**  
-A: Yes, it adds or updates a single `oh-my-posh init` line. It is non-destructive to other configurations.
+| Key   | Action                                |
+| :---- | :------------------------------------ |
+| **R** | Apply a **Random Theme** immediately. |
+| **N** | Install **All Nerd Fonts**.           |
+| **I** | Toggle **Terminal Icons**.            |
+| **D** | Run System **Diagnostics**.           |
+| **V** | View and restore **Backups**.         |
+| **B** | Create **Manual Backup** of profiles. |
 
-**Q: Can I use it on Linux/macOS?**  
-A: While built in Rust, current profile sync is optimized for Windows PowerShell. Native Linux/macOS support is in the V0.4.0 roadmap.
+## Community and Support
 
-**Q: Where are the themes stored?**  
-A: Themes are cached in `~/.poshthemes/` and synced from the official Oh My Posh repository.
+Contributions to PoshBuddy are welcome. For technical details, troubleshooting, or feature requests, please refer to the following resources:
 
----
-
-## 🗺️ Roadmap: The Future of PoshBuddy
-
-- [ ] **🔌 Plugin Architecture**: One-click install for modules like Z-Location, posh-git, and PSReadLine.
-- [ ] **🌐 Native Globalization**: Full multi-language support (starting with English and Spanish).
-- [ ] **📦 Universal Binaries**: Official distribution via Scoop, Winget, and Chocolatey.
-- [ ] **💾 Cloud Backup**: Sync your terminal aesthetic across all your dev machines.
+- [Wiki](docs/wiki/index.md) - Technical deep dive and architectural overview.
+- [GitHub repository](https://github.com/julesklord/poshbuddy) - Source code and issue tracker.
+- [Changelog](CHANGELOG.md) - Detailed version history.
 
 ---
 
-## 🤝 Community & Support
+Developed for terminal perfectionists.
+**Your prompt. Your rules. Zero friction.**
 
-**Contributions are highly welcome!** 
-- Read our [Wiki](docs/wiki/index.md) for a technical deep dive.
-- Check the [Troubleshooting Guide](docs/wiki/troubleshooting.md) if symbols don't show correctly.
-- Post issues or feature requests on our GitHub tracker.
-
-*Built with ❤️ for the developer community on Windows.*
-
-<!-- markdownlint-enable MD033 -->
+[GitHub](https://github.com/julesklord/poshbuddy) · [Documentation](./docs) · [Changelog](./CHANGELOG.md)

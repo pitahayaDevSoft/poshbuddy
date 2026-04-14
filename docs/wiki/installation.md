@@ -1,28 +1,26 @@
-# PoshBuddy Wiki: Installation & Prerequisites
+# PoshBuddy Wiki: Prerequisites & Setup
 
-> **Metadata**  
-> **Updated**: 2026-04-10  
+> **Updated**: 2026-04-13  
+> **Version**: v0.3.3-rust  
 > **Read Time**: 4 min  
-> **Difficulty**: Beginner  
 
-PoshBuddy is a standalone binary once compiled, but it relies on external tools to provide the "Golden Standard" terminal experience.
+PoshBuddy exists as a standalone binary but requires specific external dependencies to reach the "Golden Standard" terminal experience.
 
-## Prerequisites
-
-### 1. Developer Environment
+## Developer Environment
 
 - **Rust Toolchain**: 1.76 or higher.
-- **Git**: For cloning and updating the source.
+- **Git**: Required for cloning and updating the source repository.
 
-### 2. Runtime Dependencies
+## Runtime Dependencies
 
-PoshBuddy validates these at startup:
-- **Oh My Posh**: The core engine. If missing, PoshBuddy offers a 1-click install via `winget`.
-- **Nerd Fonts**: Required to prevent "broken box" characters in your prompt.
+PoshBuddy executes validation checks for these at startup:
+- **Connectivity**: A pre-flight internet check guaranteed to prevent UI hangs during remote operations.
+- **Oh My Posh**: The core engine. If missing, PoshBuddy initiates a 1-click install via `winget` with transparent log streaming.
+- **Nerd Fonts**: Essential for icon rendering and prompt integrity.
 
 ## Setup Verification
 
-When you run `poshbuddy`, the first screen is the **System Diagnostic**:
+The **System Diagnostic** screen validates your environment upon execution:
 
 ```text
   🔍 SYSTEM DIAGNOSTICS
@@ -32,24 +30,11 @@ When you run `poshbuddy`, the first screen is the **System Diagnostic**:
   [ ! ] Classic Console (Windows Terminal recommended)
 ```
 
-### Troubleshooting Diagnostics
+### Remediation Steps
 
-- **Nerd Font [ ! ]**: Go to the **Fonts [2]** tab in PoshBuddy, choose a font (e.g., MesloLGS NF), and install it. You must then manually set this font in your terminal settings.
-- **PowerShell 7 [ ! ]**: PoshBuddy works with Windows PowerShell 5.1, but it is significantly slower. We recommend installing [PowerShell 7](https://aka.ms/pscore6).
-- **Classic Console [ ! ]**: If you see this, you are using `conhost.exe`. Icons and colors will be degraded. Download **Windows Terminal** from the Microsoft Store.
-
-## Manual Dependency Install
-
-If the automatic installation fails, you can run these commands manually:
-
-```powershell
-# Install Oh My Posh
-PS> winget install JanDeDobbeleer.OhMyPosh
-
-# Verify installation
-PS> oh-my-posh --version
-29.9.2
-```
+- **Nerd Font [ ! ]**: Access the **Fonts [2]** tab, select a font (e.g., MesloLGS NF), and execute the installer. You must then manually select this font in your terminal settings.
+- **PowerShell 7 [ ! ]**: PoshBuddy is compatible with Windows PowerShell 5.1, but performance is optimized for [PowerShell 7](https://aka.ms/pscore6).
+- **Classic Console [ ! ]**: If the diagnostic detects `conhost.exe`, icon quality and color depth are degraded. Install **Windows Terminal** from the Microsoft Store.
 
 ---
-**Next Step**: [Command Reference](commands)
+**Return to**: [Wiki Dashboard](./index.md)

@@ -1,0 +1,20 @@
+{
+    "organisation": "",
+    "contact": "",
+    "gitConfig": {
+        "owner": "julesklord",
+        "repo": "poshbuddy",
+        "branch": "master",
+        "publishUrl": "https://julesklord.github.io/poshbuddy/"
+    },
+    "repoConfig": {
+        "assetFolderName": "δ steps",
+        "variableFolderName": "Ω variables",
+        "publishFolderName": "pub",
+        "docsFolderName": "docs",
+        "mapsFolderName": "tsmaps"
+    },
+    "devConfig": {
+        "forceJsDelivr": false
+    }
+}

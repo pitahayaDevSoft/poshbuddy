@@ -1,18 +1,21 @@
 [package]
 name = "poshbuddy"
-version = "0.2.1-rust"
+version = "0.3.4"
 edition = "2021"
 
 [dependencies]
 ratatui = "0.26"
 crossterm = { version = "0.27", features = ["event-stream"] }
-reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 dirs = "5.0"
 futures = "0.3.32"
 ansi-to-tui = "4.0.1"
+tempfile = "3.27.0"
+chrono = "0.4"
+whoami = "1.5"
+reqwest = { version = "0.11", features = ["json"] }
 
 [dev-dependencies]
 mockito = "1.7.2"

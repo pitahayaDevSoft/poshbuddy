@@ -1,0 +1,26 @@
+{
+  "name": "poshbuddy",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">\r   <img src=\"docs/logo.png\" alt=\"PoshBuddy Logo\" width=\"180\" onerror=\"this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'\"/>\r </div>",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/julesklord/poshbuddy.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/julesklord/poshbuddy/issues"
+  },
+  "homepage": "https://github.com/julesklord/poshbuddy#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0"
+  }
+}
