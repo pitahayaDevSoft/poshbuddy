@@ -171,6 +171,21 @@ pub struct App {
     pub active_segments: HashSet<String>, // Cache of active segments to avoid repetitive I/O
 }
 
+/// Helper for zero-allocation case-insensitive ASCII substring matching
+fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    let needle_bytes = needle.as_bytes();
+    if haystack.len() < needle_bytes.len() {
+        return false;
+    }
+    haystack
+        .as_bytes()
+        .windows(needle_bytes.len())
+        .any(|w| w.eq_ignore_ascii_case(needle_bytes))
+}
+
 impl App {
     /// Initializes a new application instance with dynamic system detection
     pub fn new() -> Self {
@@ -538,19 +553,18 @@ impl App {
 
     /// Returns a unified list of filtered themes (Local + Unique Remote)
     pub fn filtered_themes(&self) -> Vec<ThemeAsset> {
-        let filter_lower = self.filter.to_lowercase();
         let mut unified = Vec::new();
 
         // Add Local
         for t in &self.themes {
-            if t.name.to_lowercase().contains(&filter_lower) {
+            if contains_ignore_ascii_case(&t.name, &self.filter) {
                 unified.push(t.clone());
             }
         }
 
         // Add Remote (only if not local)
         for rt in &self.remote_themes {
-            if rt.name.to_lowercase().contains(&filter_lower)
+            if contains_ignore_ascii_case(&rt.name, &self.filter)
                 && !self.themes.iter().any(|t| t.name == rt.name)
             {
                 unified.push(ThemeAsset {
@@ -574,23 +588,21 @@ impl App {
 
     /// Returns a filtered list of fonts based on search criteria
     pub fn filtered_fonts(&self) -> Vec<FontAsset> {
-        let filter_lower = self.fonts_filter.to_lowercase();
         self.fonts
             .iter()
-            .filter(|f| f.name.to_lowercase().contains(&filter_lower))
+            .filter(|f| contains_ignore_ascii_case(&f.name, &self.fonts_filter))
             .cloned()
             .collect()
     }
 
     /// Returns a filtered list of segments based on search criteria
     pub fn filtered_segments(&self) -> Vec<SegmentAsset> {
-        let filter_lower = self.segments_filter.to_lowercase();
         self.segments
             .iter()
             .filter(|p| {
-                p.name.to_lowercase().contains(&filter_lower)
-                    || p.description.to_lowercase().contains(&filter_lower)
-                    || p.category.to_lowercase().contains(&filter_lower)
+                contains_ignore_ascii_case(&p.name, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.description, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.category, &self.segments_filter)
             })
             .cloned()
             .collect()
