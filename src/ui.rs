@@ -249,7 +249,7 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
     let n_local  = app.themes.len();
     let n_remote = app.remote_themes.len();
 
-    let items: Vec<ListItem> = themes.iter().map(|t| {
+    let mut items: Vec<ListItem> = themes.iter().map(|t| {
         if t.is_local {
             ListItem::new(format!("  L  {}", t.name))
                 .style(Style::default().fg(C_LOCAL))
@@ -258,6 +258,15 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
                 .style(Style::default().fg(C_REMOTE))
         }
     }).collect();
+
+    if items.is_empty() {
+        let msg = if app.filter.is_empty() {
+            "  No themes available.".to_string()
+        } else {
+            format!("  No themes matching '{}'", app.filter)
+        };
+        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)));
+    }
 
     let title = if app.filter.is_empty() {
         format!(" Themes  L:{}  R:{} ", n_local, n_remote)
@@ -352,10 +361,19 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
 
     let fonts = app.filtered_fonts();
-    let items: Vec<ListItem> = fonts.iter().map(|font| {
+    let mut items: Vec<ListItem> = fonts.iter().map(|font| {
         ListItem::new(format!("   {}", font.name))
             .style(Style::default().fg(C_WHITE))
     }).collect();
+
+    if items.is_empty() {
+        let msg = if app.fonts_filter.is_empty() {
+            "  No fonts available.".to_string()
+        } else {
+            format!("  No fonts matching '{}'", app.fonts_filter)
+        };
+        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)));
+    }
 
     let title = if app.fonts_filter.is_empty() {
         format!(" Nerd Fonts ({}) ", fonts.len())
@@ -453,7 +471,7 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
 
     let segments = app.filtered_segments();
 
-    let items: Vec<ListItem> = segments.iter().map(|s| {
+    let mut items: Vec<ListItem> = segments.iter().map(|s| {
         let active   = app.is_segment_active(s);
         let dot      = if active { "●" } else { "○" };
         let cat_col  = match s.category.as_str() {
@@ -472,6 +490,15 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             Span::styled(s.name.clone(), name_style),
         ]))
     }).collect();
+
+    if items.is_empty() {
+        let msg = if app.segments_filter.is_empty() {
+            "  No segments available.".to_string()
+        } else {
+            format!("  No segments matching '{}'", app.segments_filter)
+        };
+        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)));
+    }
 
     let title = if app.segments_filter.is_empty() {
         format!(" Segments ({}) ", segments.len())
