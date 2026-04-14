@@ -8,7 +8,11 @@ use tokio::sync::mpsc;
 const OMP_BINARY: &str = "oh-my-posh";
 const WHERE_CMD: &str = "where";
 
-/// Helper function for zero-allocation case-insensitive ASCII substring matching
+/// Helper function for zero-allocation case-insensitive ASCII substring matching.
+///
+/// NOTE: This only performs ASCII-level case folding. Non-ASCII characters are
+/// compared byte-for-byte in their UTF-8 representation.
+pub fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
 pub fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
     let needle_bytes = needle.as_bytes();
     if needle_bytes.is_empty() {
