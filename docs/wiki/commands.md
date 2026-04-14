@@ -1,7 +1,7 @@
 # PoshBuddy Wiki: Interface Shortcuts
 
-> **Updated**: 2026-04-13  
-> **Version**: v0.3.3-rust  
+> **Updated**: 2026-04-13
+> **Version**: v0.3.3-rust
 > **Read Time**: 2 min  
 
 PoshBuddy utilizes a keyboard-centric interface. Access all operations via global hotkeys to ensure high-velocity environment management.

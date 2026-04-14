@@ -1,7 +1,7 @@
 # PoshBuddy Wiki: Prerequisites & Setup
 
-> **Updated**: 2026-04-13  
-> **Version**: v0.3.3-rust  
+> **Updated**: 2026-04-13
+> **Version**: v0.3.3-rust
 > **Read Time**: 4 min  
 
 PoshBuddy exists as a standalone binary but requires specific external dependencies to reach the "Golden Standard" terminal experience.

@@ -1,8 +1,8 @@
 # PoshBuddy Wiki: Dashboard
 
-> **Updated**: 2026-04-13  
-> **Version**: v0.3.3-rust  
-> **Read Time**: 5 min  
+> **Updated**: 2026-04-13
+> **Version**: v0.3.3-rust
+> **Read Time**: 5 min
 
 PoshBuddy is a cross-platform TUI (Terminal User Interface) written in Rust, specifically designed to eliminate the friction of managing **Oh My Posh** themes and Nerd Fonts on Windows and PowerShell environments.
 
@@ -34,7 +34,7 @@ stateDiagram-v2
     [*] --> Welcome
     Welcome --> Main
     Main --> ActiveView
-    
+
     state "Robust Transaction" as RT {
         [*] --> ConnectivityCheck
         ConnectivityCheck --> Downloading: Online
@@ -46,7 +46,7 @@ stateDiagram-v2
         BackingUp --> Applying
         Applying --> Success
     }
-    
+
     ActiveView --> RT: Execute Action
     RT --> Main: [Esc] / Finish
     Error --> Main: [Esc]
