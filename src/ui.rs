@@ -1075,3 +1075,153 @@ fn centered_rect(pct_x: u16, pct_y: u16, area: Rect) -> Rect {
         ])
         .split(vert[1])[1]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::{ActiveView, App, AppState};
+    use ratatui::{backend::TestBackend, Terminal};
+    use std::path::PathBuf;
+
+    fn mock_app() -> App {
+        let mut app = App {
+            state: AppState::Loading,
+            active_view: ActiveView::Themes,
+            themes: vec!["theme1.omp.json".to_string()],
+            fonts: vec![],
+            plugins: vec![],
+            filter: String::new(),
+            fonts_filter: String::new(),
+            plugins_filter: String::new(),
+            themes_dir: PathBuf::from("/tmp"),
+            version: "test".to_string(),
+            list_state: ratatui::widgets::ListState::default(),
+            fonts_list_state: ratatui::widgets::ListState::default(),
+            plugins_list_state: ratatui::widgets::ListState::default(),
+            spinner_tick: 0,
+            has_nerd_font: true,
+            theme_preview: String::new(),
+            detected_profiles: Vec::new(),
+        };
+        app.list_state.select(Some(0));
+        app
+    }
+
+    #[test]
+    fn test_ui_render_loading() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::Loading;
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_main_themes() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::Main;
+        app.active_view = ActiveView::Themes;
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_main_fonts() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::Main;
+        app.active_view = ActiveView::Fonts;
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_main_plugins() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::Main;
+        app.active_view = ActiveView::Plugins;
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_error() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::Error("Something failed".to_string());
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_onboarding() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::Onboarding(crate::app::SystemSpecs {
+            is_pwsh_7: true,
+            has_nerd_font: true,
+            is_windows_terminal: true,
+        });
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_dependency_missing() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::DependencyMissing;
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_installing_dependency() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::InstallingDependency {
+            current_action: "Downloading...".to_string(),
+            log: vec!["Step 1: ok".to_string(), "Step 2: ok".to_string()],
+        };
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_installing() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::Installing("FiraCode".to_string());
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_success() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::Success("theme1.omp.json".to_string());
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_font_success() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::FontSuccess("FiraCode".to_string());
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn test_ui_render_plugin_success() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut app = mock_app();
+        app.state = AppState::PluginSuccess("Terminal-Icons".to_string());
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+    }
+}
