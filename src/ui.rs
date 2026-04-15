@@ -63,7 +63,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
     // Floating modals — rendered on top of everything
     match &app.state {
         AppState::Success(msg) => {
-            render_modal(f, area, " ✓ Applied ", &msg, C_ACTIVE, "any key");
+            render_modal(f, area, " ✓ Applied ", msg, C_ACTIVE, "any key");
         }
         AppState::FontSuccess(name) => {
             render_modal(f, area, " ✓ Font Installed ", &format!("'{}' installed successfully.", name), C_LOCAL, "any key to continue");
@@ -75,7 +75,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
             render_modal(f, area, " ⏳ Working ", &format!("Processing: {}\n\nThis may take a moment...", name), C_ACCENT, "please wait");
         }
         AppState::Error(msg) => {
-            render_modal(f, area, " ✗ Error ", &msg, C_ERROR, "any key");
+            render_modal(f, area, " ✗ Error ", msg, C_ERROR, "any key");
         }
         AppState::ApplyingProgress { name, stage, progress } => {
             let title = match stage {

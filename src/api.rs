@@ -119,7 +119,7 @@ pub async fn setup_app_task_with_urls(
                 .collect();
 
             // Sending the remote themes metadata back to the main UI loop
-            let _ = tx.send(AppMessage::RemoteThemesLoaded(themes)).await;
+            if tx.send(AppMessage::RemoteThemesLoaded(themes)).await.is_err() { return; }
         }
     }
 
@@ -146,7 +146,7 @@ pub async fn setup_app_task_with_urls(
                 .collect();
 
             // Sending the font metadata back to the main UI loop
-            let _ = tx.send(AppMessage::FontsLoaded(fonts)).await;
+            if tx.send(AppMessage::FontsLoaded(fonts)).await.is_err() {}
         }
     }
 }
