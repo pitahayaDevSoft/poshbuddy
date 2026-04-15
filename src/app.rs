@@ -1467,16 +1467,49 @@ impl App {
             }
         }
 
-        // Back to Welcome / Help
-        if (key.code == KeyCode::Esc
-            || (key.code == KeyCode::Char('h') && !matches!(self.state, AppState::Main)))
-            && self.state != AppState::Welcome {
+        // Back to Welcome / Help or Clear Filter
+        if key.code == KeyCode::Esc {
+            if self.state == AppState::Main {
+                let current_filter = match self.active_view {
+                    ActiveView::Themes => &mut self.filter,
+                    ActiveView::Fonts => &mut self.fonts_filter,
+                    ActiveView::Segments => &mut self.segments_filter,
+                };
+                if !current_filter.is_empty() {
+                    current_filter.clear();
+
+                    // Reset selection to top after clearing filter
+                    match self.active_view {
+                        ActiveView::Themes => {
+                            self.list_state.select(Some(0));
+                            if let Some(t) = self.filtered_themes().first() {
+                                self.theme_preview = " Loading preview...".to_string();
+                                self.load_theme_preview(t.clone(), tx.clone());
+                            } else {
+                                self.theme_preview.clear();
+                            }
+                        },
+                        ActiveView::Fonts => self.fonts_list_state.select(Some(0)),
+                        ActiveView::Segments => self.plugins_list_state.select(Some(0)),
+                    }
+                    return Ok(false);
+                }
+            }
+            if self.state != AppState::Welcome {
                 self.state = AppState::Welcome;
                 self.filter.clear();
                 self.fonts_filter.clear();
                 self.segments_filter.clear();
                 return Ok(false);
             }
+        }
+        if key.code == KeyCode::Char('h') && !matches!(self.state, AppState::Main) && self.state != AppState::Welcome {
+            self.state = AppState::Welcome;
+            self.filter.clear();
+            self.fonts_filter.clear();
+            self.segments_filter.clear();
+            return Ok(false);
+        }
 
         // --- 2. STATE-SPECIFIC LOGIC ---
 

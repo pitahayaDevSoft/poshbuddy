@@ -1028,6 +1028,13 @@ fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context: &str) {
             Style::default().fg(C_WHITE),
         )
     };
+
+    let title = if filter.is_empty() {
+        " / Search ".to_string()
+    } else {
+        " / Search (Esc to clear) ".to_string()
+    };
+
     f.render_widget(
         Paragraph::new(text).style(style).block(
             Block::default()
@@ -1037,7 +1044,7 @@ fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context: &str) {
                 } else {
                     Style::default().fg(C_ACCENT)
                 })
-                .title(" / Search "),
+                .title(title),
         ),
         area,
     );
