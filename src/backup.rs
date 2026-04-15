@@ -374,6 +374,9 @@ mod tests {
         let backup_path = manager.backup_profile(&profile, "Test backup").unwrap();
         assert!(backup_path.exists());
 
+        // Wait a tiny bit so the prerestore backup gets a strictly greater timestamp than the actual backup
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
         // Modificar el archivo original
         fs::write(&profile, "contenido modificado").unwrap();
 
