@@ -649,7 +649,7 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     // ── Left: Quick Actions ─────────────────────────────────────────────────
     let action_defs: &[(&str, &str, usize)] = &[
         ("R", "Random Theme",             0),
-        ("N", "Install Nerd Fonts",       1), 
+        ("N", "Install Nerd Fonts",       1),
         ("I", "Toggle Terminal-Icons",    2),
         ("D", "Diagnostics (Soon)",       3),
         ("V", "View Backups Info",        4),
@@ -808,7 +808,7 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     );
 
     // ── Overlays ───────────────────────────────────────────────────────────
-    
+
     // 1. Confirm Mass Font Installation
     if app.state == AppState::ConfirmMassFontInstallation {
         let area = centered_rect(60, 25, f.size());
@@ -817,7 +817,7 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
             .title(" Confirm Mass Installation ")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(C_ACCENT));
-        
+
         let text = vec![
             Line::from(""),
             Line::from("  You are about to install ALL Nerd Fonts available."),
@@ -832,7 +832,7 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         ];
         f.render_widget(Paragraph::new(text).block(block), area);
     }
-    
+
     // 2. Installation Progress Gauge
     if let AppState::InstallingAllFonts { progress, current_font, index, total } = &app.state {
         let area = centered_rect(70, 20, f.size());

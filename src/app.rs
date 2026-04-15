@@ -183,21 +183,6 @@ pub struct App {
     pub active_segments: HashSet<String>, // Cache of active segments to avoid repetitive I/O
 }
 
-/// Helper for zero-allocation case-insensitive ASCII substring matching
-fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
-    if needle.is_empty() {
-        return true;
-    }
-    let needle_bytes = needle.as_bytes();
-    if haystack.len() < needle_bytes.len() {
-        return false;
-    }
-    haystack
-        .as_bytes()
-        .windows(needle_bytes.len())
-        .any(|w| w.eq_ignore_ascii_case(needle_bytes))
-}
-
 impl App {
     /// Initializes a new application instance with dynamic system detection
     pub fn new() -> Self {
@@ -883,7 +868,7 @@ impl App {
             };
 
             let mut cmd_obj = tokio::process::Command::new(cmd);
-            
+
             // Get current working directory for a more realistic preview
             let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
 
@@ -1639,20 +1624,20 @@ impl App {
                         }
                     }
                     // --- Standardized Global View Shortcuts ---
-                    KeyCode::Char('1') => { 
-                        self.state = AppState::Main; 
-                        self.active_view = ActiveView::Themes; 
+                    KeyCode::Char('1') => {
+                        self.state = AppState::Main;
+                        self.active_view = ActiveView::Themes;
                         if let Some(t) = self.filtered_themes().first() {
                             self.load_theme_preview(t.clone(), tx.clone());
                         }
                     },
                     KeyCode::Char('2') => { self.state = AppState::Main; self.active_view = ActiveView::Fonts; },
                     KeyCode::Char('3') => { self.state = AppState::Main; self.active_view = ActiveView::Segments; },
-                    
+
                     // --- Mnemonic Quick Action Shortcuts ---
-                    KeyCode::Char('r') | KeyCode::Char('R') => { 
-                        self.welcome_selected_action = 0; 
-                        let _ = self.handle_input(crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), tx); 
+                    KeyCode::Char('r') | KeyCode::Char('R') => {
+                        self.welcome_selected_action = 0;
+                        let _ = self.handle_input(crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), tx);
                     },
                     KeyCode::Char('n') | KeyCode::Char('N') => self.state = AppState::ConfirmMassFontInstallation,
                     KeyCode::Char('i') | KeyCode::Char('I') => {
@@ -1668,7 +1653,7 @@ impl App {
                         self.welcome_selected_action = 8;
                         let _ = self.handle_input(crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), tx);
                     },
-                    
+
                     KeyCode::Char('q') => return Ok(true),
                     _ => {}
                 }
