@@ -4,30 +4,33 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap, Padding},
+    widgets::{Block, Borders, Clear, List, ListItem, Padding, Paragraph, Wrap},
     Frame,
 };
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const C_ACCENT:  Color = Color::Cyan;
-const C_LOCAL:   Color = Color::Green;
-const C_REMOTE:  Color = Color::Blue;
-const C_ACTIVE:  Color = Color::Yellow;
-const C_ERROR:   Color = Color::Red;
-const C_DIM:     Color = Color::DarkGray;
-const C_WHITE:   Color = Color::White;
-const C_BLACK:   Color = Color::Black;
+const C_ACCENT: Color = Color::Cyan;
+const C_LOCAL: Color = Color::Green;
+const C_REMOTE: Color = Color::Blue;
+const C_ACTIVE: Color = Color::Yellow;
+const C_ERROR: Color = Color::Red;
+const C_DIM: Color = Color::DarkGray;
+const C_WHITE: Color = Color::White;
+const C_BLACK: Color = Color::Black;
 
-const SPINNER: &[&str] = &["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
+const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 // ── Root dispatcher ────────────────────────────────────────────────────────────
 pub fn ui(f: &mut Frame, app: &mut App) {
     match app.state.clone() {
-        AppState::Welcome                                  => render_welcome(f, f.size(), app),
-        AppState::Onboarding(specs)                        => render_onboarding(f, f.size(), &specs),
-        AppState::DependencyMissing                        => render_dep_missing(f, f.size()),
-        AppState::Loading                                  => render_loading(f, f.size(), app),
-        AppState::InstallingDependency { log, current_action } => {
+        AppState::Welcome => render_welcome(f, f.size(), app),
+        AppState::Onboarding(specs) => render_onboarding(f, f.size(), &specs),
+        AppState::DependencyMissing => render_dep_missing(f, f.size()),
+        AppState::Loading => render_loading(f, f.size(), app),
+        AppState::InstallingDependency {
+            log,
+            current_action,
+        } => {
             render_installing_dep(f, f.size(), &log, &current_action);
         }
         _ => render_main(f, f.size(), app),
@@ -53,8 +56,8 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
     render_tab_bar(f, root[1], app);
 
     match app.active_view {
-        ActiveView::Themes   => render_themes(f, root[2], app),
-        ActiveView::Fonts    => render_fonts(f, root[2], app),
+        ActiveView::Themes => render_themes(f, root[2], app),
+        ActiveView::Fonts => render_fonts(f, root[2], app),
         ActiveView::Segments => render_segments(f, root[2], app),
     }
 
@@ -66,18 +69,43 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
             render_modal(f, area, " ✓ Applied ", msg, C_ACTIVE, "any key");
         }
         AppState::FontSuccess(name) => {
-            render_modal(f, area, " ✓ Font Installed ", &format!("'{}' installed successfully.", name), C_LOCAL, "any key to continue");
+            render_modal(
+                f,
+                area,
+                " ✓ Font Installed ",
+                &format!("'{}' installed successfully.", name),
+                C_LOCAL,
+                "any key to continue",
+            );
         }
         AppState::PluginSuccess(name) => {
-            render_modal(f, area, " ✓ Segment Toggled ", &format!("'{}' toggled in your active theme.", name), C_LOCAL, "any key to continue");
+            render_modal(
+                f,
+                area,
+                " ✓ Segment Toggled ",
+                &format!("'{}' toggled in your active theme.", name),
+                C_LOCAL,
+                "any key to continue",
+            );
         }
         AppState::Installing(name) => {
-            render_modal(f, area, " ⏳ Working ", &format!("Processing: {}\n\nThis may take a moment...", name), C_ACCENT, "please wait");
+            render_modal(
+                f,
+                area,
+                " ⏳ Working ",
+                &format!("Processing: {}\n\nThis may take a moment...", name),
+                C_ACCENT,
+                "please wait",
+            );
         }
         AppState::Error(msg) => {
             render_modal(f, area, " ✗ Error ", msg, C_ERROR, "any key");
         }
-        AppState::ApplyingProgress { name, stage, progress } => {
+        AppState::ApplyingProgress {
+            name,
+            stage,
+            progress,
+        } => {
             let title = match stage {
                 0 => " ⬇ Downloading ",
                 1 => " 🔍 Verifying ",
@@ -155,17 +183,27 @@ fn render_tab_bar(f: &mut Frame, area: Rect, app: &App) {
     for (i, (label, view)) in tabs.iter().enumerate() {
         let is_active = app.active_view == *view;
         let count = match view {
-            ActiveView::Themes   => app.filtered_themes().len(),
-            ActiveView::Fonts    => app.filtered_fonts().len(),
+            ActiveView::Themes => app.filtered_themes().len(),
+            ActiveView::Fonts => app.filtered_fonts().len(),
             ActiveView::Segments => app.filtered_segments().len(),
         };
 
         // Text composition
         let count_text = format!("({}) ", count);
         let text = Line::from(vec![
-            Span::styled(label.to_string(), Style::default().add_modifier(if is_active { Modifier::BOLD } else { Modifier::empty() })),
+            Span::styled(
+                label.to_string(),
+                Style::default().add_modifier(if is_active {
+                    Modifier::BOLD
+                } else {
+                    Modifier::empty()
+                }),
+            ),
             Span::raw(" "),
-            Span::styled(count_text, Style::default().fg(if is_active { C_BLACK } else { C_DIM })),
+            Span::styled(
+                count_text,
+                Style::default().fg(if is_active { C_BLACK } else { C_DIM }),
+            ),
         ]);
 
         let (fg, bg, border_fg) = if is_active {
@@ -198,10 +236,7 @@ fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
         ActiveView::Segments =>
             "  ↑↓ Navigate  │  Enter Toggle  │  Type Search  │  Esc/H Dashboard  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit",
     };
-    f.render_widget(
-        Paragraph::new(hint).style(Style::default().fg(C_DIM)),
-        area,
-    );
+    f.render_widget(Paragraph::new(hint).style(Style::default().fg(C_DIM)), area);
 }
 
 // ── Floating modal ────────────────────────────────────────────────────────────
@@ -246,18 +281,19 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.filter, "Themes");
 
     let themes = app.filtered_themes();
-    let n_local  = app.themes.len();
+    let n_local = app.themes.len();
     let n_remote = app.remote_themes.len();
 
-    let mut items: Vec<ListItem> = themes.iter().map(|t| {
-        if t.is_local {
-            ListItem::new(format!("  L  {}", t.name))
-                .style(Style::default().fg(C_LOCAL))
-        } else {
-            ListItem::new(format!("  R  {}", t.name))
-                .style(Style::default().fg(C_REMOTE))
-        }
-    }).collect();
+    let mut items: Vec<ListItem> = themes
+        .iter()
+        .map(|t| {
+            if t.is_local {
+                ListItem::new(format!("  L  {}", t.name)).style(Style::default().fg(C_LOCAL))
+            } else {
+                ListItem::new(format!("  R  {}", t.name)).style(Style::default().fg(C_REMOTE))
+            }
+        })
+        .collect();
 
     if items.is_empty() {
         let msg = if app.filter.is_empty() {
@@ -265,13 +301,18 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         } else {
             format!("  No themes matching '{}'", app.filter)
         };
-        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)));
+        items.push(
+            ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)),
+        );
     }
 
     let title = if app.filter.is_empty() {
         format!(" Themes  L:{}  R:{} ", n_local, n_remote)
     } else {
-        format!(" Themes  L:{}  R:{} [Filter: {}] ", n_local, n_remote, app.filter)
+        format!(
+            " Themes  L:{}  R:{} [Filter: {}] ",
+            n_local, n_remote, app.filter
+        )
     };
 
     let list = List::new(items)
@@ -300,16 +341,37 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
     // Badge legend
     let legend = Line::from(vec![
         Span::raw("  "),
-        Span::styled(" L ", Style::default().fg(C_BLACK).bg(C_LOCAL).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            " L ",
+            Style::default()
+                .fg(C_BLACK)
+                .bg(C_LOCAL)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" Local  ", Style::default().fg(C_DIM)),
-        Span::styled(" R ", Style::default().fg(C_BLACK).bg(C_REMOTE).add_modifier(Modifier::BOLD)),
-        Span::styled(" Remote — Enter to download & apply  ", Style::default().fg(C_DIM)),
-        Span::styled("Enter", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            " R ",
+            Style::default()
+                .fg(C_BLACK)
+                .bg(C_REMOTE)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            " Remote — Enter to download & apply  ",
+            Style::default().fg(C_DIM),
+        ),
+        Span::styled(
+            "Enter",
+            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" = Apply", Style::default().fg(C_DIM)),
     ]);
     f.render_widget(
-        Paragraph::new(legend)
-            .block(Block::default().borders(Borders::ALL).border_style(Style::default().fg(C_DIM))),
+        Paragraph::new(legend).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_DIM)),
+        ),
         right[0],
     );
 
@@ -361,10 +423,10 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
 
     let fonts = app.filtered_fonts();
-    let mut items: Vec<ListItem> = fonts.iter().map(|font| {
-        ListItem::new(format!("   {}", font.name))
-            .style(Style::default().fg(C_WHITE))
-    }).collect();
+    let mut items: Vec<ListItem> = fonts
+        .iter()
+        .map(|font| ListItem::new(format!("   {}", font.name)).style(Style::default().fg(C_WHITE)))
+        .collect();
 
     if items.is_empty() {
         let msg = if app.fonts_filter.is_empty() {
@@ -372,13 +434,19 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         } else {
             format!("  No fonts matching '{}'", app.fonts_filter)
         };
-        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)));
+        items.push(
+            ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)),
+        );
     }
 
     let title = if app.fonts_filter.is_empty() {
         format!(" Nerd Fonts ({}) ", fonts.len())
     } else {
-        format!(" Nerd Fonts ({}) [Filter: {}] ", fonts.len(), app.fonts_filter)
+        format!(
+            " Nerd Fonts ({}) [Filter: {}] ",
+            fonts.len(),
+            app.fonts_filter
+        )
     };
 
     let list = List::new(items)
@@ -420,8 +488,14 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
             Line::from(""),
             Line::from(vec![
                 Span::styled("  Press ", Style::default().fg(C_DIM)),
-                Span::styled("Enter", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
-                Span::styled(" to install via oh-my-posh font install", Style::default().fg(C_DIM)),
+                Span::styled(
+                    "Enter",
+                    Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    " to install via oh-my-posh font install",
+                    Style::default().fg(C_DIM),
+                ),
             ]),
             Line::from(""),
             Line::from(vec![Span::styled(
@@ -440,13 +514,12 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
     };
 
     f.render_widget(
-        Paragraph::new(detail)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(C_DIM))
-                    .title(" Font Detail "),
-            ),
+        Paragraph::new(detail).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_DIM))
+                .title(" Font Detail "),
+        ),
         cols[1],
     );
 }
@@ -471,25 +544,31 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
 
     let segments = app.filtered_segments();
 
-    let mut items: Vec<ListItem> = segments.iter().map(|s| {
-        let active   = app.is_segment_active(s);
-        let dot      = if active { "●" } else { "○" };
-        let cat_col  = match s.category.as_str() {
-            "Development" => Color::Blue,
-            "Cloud"       => C_ACCENT,
-            _             => C_DIM,
-        };
-        let name_style = if active {
-            Style::default().fg(C_ACTIVE)
-        } else {
-            Style::default().fg(C_WHITE)
-        };
-        ListItem::new(Line::from(vec![
-            Span::raw(format!("  {} ", dot)),
-            Span::styled(format!("[{}] ", &s.category[..3.min(s.category.len())]), Style::default().fg(cat_col)),
-            Span::styled(s.name.clone(), name_style),
-        ]))
-    }).collect();
+    let mut items: Vec<ListItem> = segments
+        .iter()
+        .map(|s| {
+            let active = app.is_segment_active(s);
+            let dot = if active { "●" } else { "○" };
+            let cat_col = match s.category.as_str() {
+                "Development" => Color::Blue,
+                "Cloud" => C_ACCENT,
+                _ => C_DIM,
+            };
+            let name_style = if active {
+                Style::default().fg(C_ACTIVE)
+            } else {
+                Style::default().fg(C_WHITE)
+            };
+            ListItem::new(Line::from(vec![
+                Span::raw(format!("  {} ", dot)),
+                Span::styled(
+                    format!("[{}] ", &s.category[..3.min(s.category.len())]),
+                    Style::default().fg(cat_col),
+                ),
+                Span::styled(s.name.clone(), name_style),
+            ]))
+        })
+        .collect();
 
     if items.is_empty() {
         let msg = if app.segments_filter.is_empty() {
@@ -497,13 +576,19 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         } else {
             format!("  No segments matching '{}'", app.segments_filter)
         };
-        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)));
+        items.push(
+            ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)),
+        );
     }
 
     let title = if app.segments_filter.is_empty() {
         format!(" Segments ({}) ", segments.len())
     } else {
-        format!(" Segments ({}) [Filter: {}] ", segments.len(), app.segments_filter)
+        format!(
+            " Segments ({}) [Filter: {}] ",
+            segments.len(),
+            app.segments_filter
+        )
     };
 
     let list = List::new(items)
@@ -524,7 +609,10 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_stateful_widget(list, left[1], &mut app.plugins_list_state);
 
     // Right: detail + action
-    let selected = app.plugins_list_state.selected().and_then(|i| segments.get(i));
+    let selected = app
+        .plugins_list_state
+        .selected()
+        .and_then(|i| segments.get(i));
 
     if let Some(seg) = selected {
         let right = Layout::default()
@@ -548,10 +636,7 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             Line::from(""),
             Line::from(vec![
                 Span::styled("  Status     ", Style::default().fg(C_DIM)),
-                Span::styled(
-                    if active { "● ACTIVE" } else { "○ INACTIVE" },
-                    status_style,
-                ),
+                Span::styled(if active { "● ACTIVE" } else { "○ INACTIVE" }, status_style),
             ]),
             Line::from(vec![
                 Span::styled("  Type       ", Style::default().fg(C_DIM)),
@@ -562,7 +647,10 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
                 Span::raw(seg.category.clone()),
             ]),
             Line::from(""),
-            Line::from(vec![Span::styled("  Description", Style::default().fg(C_DIM))]),
+            Line::from(vec![Span::styled(
+                "  Description",
+                Style::default().fg(C_DIM),
+            )]),
             Line::from(format!("  {}", seg.description)),
             Line::from(""),
             Line::from(vec![Span::styled("  Notes", Style::default().fg(C_DIM))]),
@@ -591,8 +679,16 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::raw("\n  Press "),
-                Span::styled(action_label, Style::default().fg(action_color).add_modifier(Modifier::BOLD)),
-                Span::styled(format!(" to {} · Ctrl+R to undo last change", verb), Style::default().fg(C_DIM)),
+                Span::styled(
+                    action_label,
+                    Style::default()
+                        .fg(action_color)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    format!(" to {} · Ctrl+R to undo last change", verb),
+                    Style::default().fg(C_DIM),
+                ),
             ]))
             .block(
                 Block::default()
@@ -648,30 +744,34 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
     // ── Left: Quick Actions ─────────────────────────────────────────────────
     let action_defs: &[(&str, &str, usize)] = &[
-        ("R", "Random Theme",             0),
-        ("N", "Install Nerd Fonts",       1),
-        ("I", "Toggle Terminal-Icons",    2),
-        ("D", "Diagnostics (Soon)",       3),
-        ("V", "View Backups Info",        4),
-        ("B", "Create Manual Backup",     8),
-        ("1", "Go to Themes",             5),
-        ("2", "Go to Fonts",              6),
-        ("3", "Go to Segments",           7),
+        ("R", "Random Theme", 0),
+        ("N", "Install Nerd Fonts", 1),
+        ("I", "Toggle Terminal-Icons", 2),
+        ("D", "Diagnostics (Soon)", 3),
+        ("V", "View Backups Info", 4),
+        ("B", "Create Manual Backup", 8),
+        ("1", "Go to Themes", 5),
+        ("2", "Go to Fonts", 6),
+        ("3", "Go to Segments", 7),
     ];
 
     let mut items: Vec<ListItem> = Vec::new();
     for (display_i, (key, label, action_idx)) in action_defs.iter().enumerate() {
         if display_i == 6 {
-            items.push(ListItem::new(Line::from(vec![
-                Span::styled("  ─────────────────────── ", Style::default().fg(C_DIM)),
-            ])));
+            items.push(ListItem::new(Line::from(vec![Span::styled(
+                "  ─────────────────────── ",
+                Style::default().fg(C_DIM),
+            )])));
         }
         let is_selected = *action_idx == app.welcome_selected_action;
         let is_disabled = *action_idx == 3; // Diagnostics soon
         let key_style = if is_disabled {
             Style::default().fg(C_DIM)
         } else if is_selected {
-            Style::default().fg(C_BLACK).bg(C_ACCENT).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(C_BLACK)
+                .bg(C_ACCENT)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)
         };
@@ -715,7 +815,10 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
                 if s.has_nerd_font {
                     Span::styled("● Detected", Style::default().fg(C_LOCAL))
                 } else {
-                    Span::styled("○ Not found  (icons may be broken)", Style::default().fg(C_ERROR))
+                    Span::styled(
+                        "○ Not found  (icons may be broken)",
+                        Style::default().fg(C_ERROR),
+                    )
                 },
             ]),
             Line::from(vec![
@@ -723,7 +826,10 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
                 if s.is_pwsh_7 {
                     Span::styled("● v7 (pwsh)", Style::default().fg(C_LOCAL))
                 } else {
-                    Span::styled("○ v5.1  (PowerShell 7 recommended)", Style::default().fg(C_ACTIVE))
+                    Span::styled(
+                        "○ v5.1  (PowerShell 7 recommended)",
+                        Style::default().fg(C_ACTIVE),
+                    )
                 },
             ]),
             Line::from(vec![
@@ -731,7 +837,10 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
                 if s.is_windows_terminal {
                     Span::styled("● Windows Terminal", Style::default().fg(C_LOCAL))
                 } else {
-                    Span::styled("○ Classic Console  (upgrade recommended)", Style::default().fg(C_ACTIVE))
+                    Span::styled(
+                        "○ Classic Console  (upgrade recommended)",
+                        Style::default().fg(C_ACTIVE),
+                    )
                 },
             ]),
             Line::from(""),
@@ -753,7 +862,10 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     } else {
         vec![
             Line::from(""),
-            Line::from(vec![Span::styled("  Scanning system...", Style::default().fg(C_DIM))]),
+            Line::from(vec![Span::styled(
+                "  Scanning system...",
+                Style::default().fg(C_DIM),
+            )]),
         ]
     };
 
@@ -771,29 +883,47 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     let changelog_lines = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("  v0.3.3 ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "  v0.3.3 ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" - Mass Font Installer", Style::default().fg(C_WHITE)),
         ]),
         Line::from(vec![
             Span::styled("  ● ", Style::default().fg(C_ACCENT)),
-            Span::styled("Install all Nerd Fonts with one click.", Style::default().fg(Color::Gray)),
+            Span::styled(
+                "Install all Nerd Fonts with one click.",
+                Style::default().fg(Color::Gray),
+            ),
         ]),
         Line::from(vec![
             Span::styled("  ● ", Style::default().fg(C_ACCENT)),
-            Span::styled("Professional progress bar & safety checks.", Style::default().fg(Color::Gray)),
+            Span::styled(
+                "Professional progress bar & safety checks.",
+                Style::default().fg(Color::Gray),
+            ),
         ]),
         Line::from(vec![
             Span::styled("  ● ", Style::default().fg(C_ACCENT)),
-            Span::styled("New version dashboard panel.", Style::default().fg(Color::Gray)),
+            Span::styled(
+                "New version dashboard panel.",
+                Style::default().fg(Color::Gray),
+            ),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  v0.3.2 ", Style::default().fg(C_ACTIVE).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "  v0.3.2 ",
+                Style::default().fg(C_ACTIVE).add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" - Navigation & Localization", Style::default().fg(C_WHITE)),
         ]),
         Line::from(vec![
             Span::styled("  ● ", Style::default().fg(C_ACTIVE)),
-            Span::styled("100% English & Global Nav (Esc/H).", Style::default().fg(Color::Gray)),
+            Span::styled(
+                "100% English & Global Nav (Esc/H).",
+                Style::default().fg(Color::Gray),
+            ),
         ]),
     ];
 
@@ -825,16 +955,28 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
             Line::from(""),
             Line::from(vec![
                 Span::raw("  Do you want to proceed? "),
-                Span::styled("(y) Yes", Style::default().fg(C_LOCAL).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "(y) Yes",
+                    Style::default().fg(C_LOCAL).add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" / "),
-                Span::styled("(n) No", Style::default().fg(C_ERROR).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "(n) No",
+                    Style::default().fg(C_ERROR).add_modifier(Modifier::BOLD),
+                ),
             ]),
         ];
         f.render_widget(Paragraph::new(text).block(block), area);
     }
 
     // 2. Installation Progress Gauge
-    if let AppState::InstallingAllFonts { progress, current_font, index, total } = &app.state {
+    if let AppState::InstallingAllFonts {
+        progress,
+        current_font,
+        index,
+        total,
+    } = &app.state
+    {
         let area = centered_rect(70, 20, f.size());
         f.render_widget(Clear, area);
         let block = Block::default()
@@ -855,12 +997,13 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
         f.render_widget(block, area);
         f.render_widget(
-            Paragraph::new(vec![
-                Line::from(vec![
-                    Span::raw("  Current: "),
-                    Span::styled(current_font, Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)),
-                ]),
-            ]),
+            Paragraph::new(vec![Line::from(vec![
+                Span::raw("  Current: "),
+                Span::styled(
+                    current_font,
+                    Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+                ),
+            ])]),
             layout[0],
         );
         f.render_widget(gauge, layout[1]);
@@ -891,9 +1034,24 @@ fn render_onboarding(f: &mut Frame, area: Rect, specs: &crate::app::SystemSpecs)
             Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
-        status_line("  Nerd Font   ", specs.has_nerd_font, "Detected", "Not found — icons may break"),
-        status_line("  PowerShell  ", specs.is_pwsh_7, "v7 (pwsh)", "v5.1 — PowerShell 7 recommended"),
-        status_line("  Terminal    ", specs.is_windows_terminal, "Windows Terminal", "Classic Console — upgrade recommended"),
+        status_line(
+            "  Nerd Font   ",
+            specs.has_nerd_font,
+            "Detected",
+            "Not found — icons may break",
+        ),
+        status_line(
+            "  PowerShell  ",
+            specs.is_pwsh_7,
+            "v7 (pwsh)",
+            "v5.1 — PowerShell 7 recommended",
+        ),
+        status_line(
+            "  Terminal    ",
+            specs.is_windows_terminal,
+            "Windows Terminal",
+            "Classic Console — upgrade recommended",
+        ),
         Line::from(""),
         Line::from(vec![Span::styled(
             "  Press Enter to continue  ·  Q to quit",
@@ -955,7 +1113,10 @@ fn render_dep_missing(f: &mut Frame, area: Rect) {
             )]),
             Line::from(""),
             Line::from(vec![
-                Span::styled("  Enter  ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  Enter  ",
+                    Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+                ),
                 Span::styled("Auto-install via WinGet", Style::default().fg(C_WHITE)),
             ]),
             Line::from(vec![
@@ -1023,10 +1184,7 @@ fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context: &str) {
             Style::default().fg(C_DIM),
         )
     } else {
-        (
-            format!("  {}_", filter),
-            Style::default().fg(C_WHITE),
-        )
+        (format!("  {}_", filter), Style::default().fg(C_WHITE))
     };
 
     let title = if filter.is_empty() {

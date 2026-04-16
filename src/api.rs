@@ -36,7 +36,11 @@ pub fn check_internet_connectivity() -> bool {
 }
 
 /// Downloads a remote theme file to the local themes directory
-pub async fn download_theme_file(name: &str, url: &str, target_dir: &std::path::Path) -> Result<std::path::PathBuf, String> {
+pub async fn download_theme_file(
+    name: &str,
+    url: &str,
+    target_dir: &std::path::Path,
+) -> Result<std::path::PathBuf, String> {
     let client = get_client();
     let file_path = target_dir.join(format!("{}.omp.json", name));
 
@@ -81,7 +85,9 @@ pub async fn download_to_temp(name: &str, url: &str) -> Result<std::path::PathBu
     let temp_name = format!("poshbuddy_preview_{}.omp.json", name);
     let temp_path = temp_dir.join(temp_name);
 
-    tokio::fs::write(&temp_path, &bytes).await.map_err(|e| format!("Failed to write preview file: {}", e))?;
+    tokio::fs::write(&temp_path, &bytes)
+        .await
+        .map_err(|e| format!("Failed to write preview file: {}", e))?;
 
     Ok(temp_path)
 }
@@ -110,16 +116,28 @@ pub async fn setup_app_task_with_urls(
                 .iter()
                 .filter_map(|v| {
                     let name = v["name"].as_str()?.to_string();
-                    if !name.ends_with(".omp.json") { return None; }
+                    if !name.ends_with(".omp.json") {
+                        return None;
+                    }
                     let download_url = v["download_url"].as_str()?.to_string();
                     let sha = v["sha"].as_str()?.to_string();
                     let clean_name = name.replace(".omp.json", "");
-                    Some(RemoteTheme { name: clean_name, download_url, sha })
+                    Some(RemoteTheme {
+                        name: clean_name,
+                        download_url,
+                        sha,
+                    })
                 })
                 .collect();
 
             // Sending the remote themes metadata back to the main UI loop
-            if tx.send(AppMessage::RemoteThemesLoaded(themes)).await.is_err() { return; }
+            if tx
+                .send(AppMessage::RemoteThemesLoaded(themes))
+                .await
+                .is_err()
+            {
+                return;
+            }
         }
     }
 

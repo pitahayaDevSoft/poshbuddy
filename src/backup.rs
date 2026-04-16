@@ -189,7 +189,6 @@ impl BackupManager {
                     && (path.extension() == Some(std::ffi::OsStr::new("backup"))
                         || path.extension() == Some(std::ffi::OsStr::new("ps1")))
                 {
-
                     let metadata = fs::metadata(&path)?;
                     let size_bytes = metadata.len();
 

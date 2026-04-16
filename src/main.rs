@@ -11,6 +11,7 @@ use tokio::sync::mpsc;
 
 mod api;
 mod app;
+mod assets;
 mod backup;
 mod diagnostic;
 mod plugin_installer;
