@@ -10,6 +10,6 @@
 ## 2026-04-15 - Graceful Background Task Termination
 **Learning:** Background tokio tasks using `mpsc` channels for UI updates continue to consume resources (CPU/Memory) if the UI receiver drops during application shutdown and the sender's error is ignored.
 **Action:** When using `tokio::sync::mpsc` channels, explicitly handle `tx.send().await` errors (e.g., `if tx.send(...).await.is_err() { return; }`) to gracefully terminate the task when the channel is closed. Avoid this pattern with `try_send()`, as it errors on full channels (`TrySendError::Full`), which can unintentionally abort tasks during traffic spikes.
-## 2026-04-16 - Zero-allocation counts for TUI tabs
+## 2024-04-16 - Zero-allocation counts for TUI tabs
 **Learning:** Calling methods that construct and return filtered `Vec`s (like `.filtered_themes()`, which internally clones assets) just to get `.len()` for UI tabs causes significant performance degradation due to unnecessary memory allocations on every UI render cycle.
 **Action:** Always provide and use dedicated `*_count()` methods that utilize iterators and `.count()` directly on collections without cloning elements or allocating intermediate `Vec`s when only the size of a filtered subset is needed.
