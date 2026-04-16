@@ -551,24 +551,16 @@ impl App {
     /// Returns a unified list of filtered themes (Local + Unique Remote)
     pub fn filtered_themes_count(&self) -> usize {
         let filter = &self.filter;
-        let mut count = 0;
+        let local_count = self.themes.iter()
+            .filter(|t| contains_ignore_ascii_case(&t.name, filter))
+            .count();
 
-        // Count Local
-        for t in &self.themes {
-            if contains_ignore_ascii_case(&t.name, filter) {
-                count += 1;
-            }
-        }
+        let remote_count = self.remote_themes.iter()
+            .filter(|rt| contains_ignore_ascii_case(&rt.name, filter)
+                && !self.themes.iter().any(|t| t.name == rt.name))
+            .count();
 
-        // Count Remote (only if not local)
-        for rt in &self.remote_themes {
-            if contains_ignore_ascii_case(&rt.name, filter)
-                && !self.themes.iter().any(|t| t.name == rt.name) {
-                    count += 1;
-                }
-        }
-
-        count
+        local_count + remote_count
     }
 
     /// Returns a unified list of filtered themes (Local + Unique Remote)
