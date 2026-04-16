@@ -1599,6 +1599,9 @@ impl App {
                                     }
                                 }
                             }
+                            3 => {
+                                self.state = AppState::Success("Diagnostics coming soon!".to_string());
+                            }
                             5 => {
                                 self.state = AppState::Main;
                                 self.active_view = ActiveView::Themes;
