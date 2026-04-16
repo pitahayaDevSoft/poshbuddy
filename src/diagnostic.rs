@@ -438,4 +438,79 @@ mod tests {
         assert!(report.contains("Test warning"));
         assert!(report.contains("Test suggestion"));
     }
+
+    #[test]
+    fn test_check_profile_nonexistent() {
+        let diag = Diagnostic::new();
+        let path = Path::new("nonexistent_profile.ps1");
+        let result = diag.check_profile(path).unwrap();
+
+        assert!(result.is_valid());
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.contains("Profile does not exist")));
+    }
+
+    #[test]
+    fn test_check_profile_valid() {
+        use std::io::Write;
+        let diag = Diagnostic::new();
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(temp_file, "Write-Host 'Hello'").unwrap();
+
+        let result = diag.check_profile(temp_file.path()).unwrap();
+        assert!(result.is_valid());
+        assert!(result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_check_profile_invalid_syntax() {
+        use std::io::Write;
+        let diag = Diagnostic::new();
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(temp_file, "function test {").unwrap(); // Unbalanced braces
+
+        let result = diag.check_profile(temp_file.path()).unwrap();
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| e.contains("Unbalanced braces")));
+    }
+
+    #[test]
+    fn test_check_profile_utf8_bom() {
+        use std::io::Write;
+        let diag = Diagnostic::new();
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        // UTF-8 BOM
+        temp_file.write_all(&[0xEF, 0xBB, 0xBF]).unwrap();
+        temp_file.write_all(b"Write-Host 'BOM'").unwrap();
+
+        let result = diag.check_profile(temp_file.path()).unwrap();
+        assert!(result.is_valid());
+        assert!(result
+            .suggestions
+            .iter()
+            .any(|s| s.contains("Profile has UTF-8 BOM")));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_check_profile_no_execution_permissions() {
+        use std::io::Write;
+        use std::os::unix::fs::PermissionsExt;
+        let diag = Diagnostic::new();
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(temp_file, "Write-Host 'NoExec'").unwrap();
+
+        // Remove execution permissions
+        let mut perms = std::fs::metadata(temp_file.path()).unwrap().permissions();
+        perms.set_mode(0o644); // rw-r--r--
+        std::fs::set_permissions(temp_file.path(), perms).unwrap();
+
+        let result = diag.check_profile(temp_file.path()).unwrap();
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.contains("execution permissions")));
+    }
 }
