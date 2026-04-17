@@ -1,0 +1,9 @@
+--- src/app/mod.rs
++++ src/app/mod.rs
+@@ -524,6 +524,7 @@
+
+ #[cfg(test)]
+ mod filtering_tests {
++    use std::path::PathBuf;
+     use super::*;
+     use ratatui::widgets::ListState;

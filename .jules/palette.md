@@ -7,3 +7,6 @@
 ## 2024-05-18 - Intercepting Global Shortcuts to Clear Local State
 **Learning:** In terminal applications, users intuitively press `Esc` to clear local states like active search filters before they expect to be navigated away from the current view. If global shortcuts (like 'Back to Dashboard') supersede this, users experience frustrating, accidental context loss.
 **Action:** Always intercept cancellation keys (like `Esc` or `Backspace`) to clear local states (e.g. search filters, selections) first, before falling back to global navigation actions.
+## 2024-04-18 - Estilos de foco para elementos deshabilitados en TUIs
+**Learning:** En las aplicaciones de terminal (TUI), los elementos de menú que están deshabilitados pero pueden recibir el foco del teclado (como opciones futuras o funciones en desarrollo) deben indicar visualmente que están seleccionados. Si un elemento deshabilitado no cambia su estilo cuando el usuario navega hacia él, se pierde el rastro del cursor y la navegación por teclado se vuelve confusa.
+**Action:** Al diseñar estilos para listas o menús en Ratatui, siempre proporcionar una combinación de fondo tenue (e.g., `Color::DarkGray`) para el estado `is_disabled && is_selected`, asegurando así que el usuario sepa dónde está el cursor sin sugerir que la acción está disponible.

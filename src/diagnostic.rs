@@ -475,7 +475,7 @@ mod tests {
         use std::io::Write;
         let diag = Diagnostic::new();
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-        writeln!(temp_file, "function test {").unwrap(); // Unbalanced braces
+        writeln!(temp_file, "function test {{").unwrap(); // Unbalanced braces
 
         let result = diag.check_profile(temp_file.path()).unwrap();
         assert!(!result.is_valid());
