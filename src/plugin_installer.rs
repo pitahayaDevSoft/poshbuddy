@@ -69,7 +69,9 @@ impl PluginInstaller {
         // 1. Verify PowerShell is available
         result.has_powershell = Self::check_powershell_available();
         if !result.has_powershell {
-            result.errors.push("PowerShell is not available".to_string());
+            result
+                .errors
+                .push("PowerShell is not available".to_string());
             result.can_install = false;
             return result;
         }
@@ -87,10 +89,9 @@ impl PluginInstaller {
                 result.module_exists = false;
             }
             Err(e) => {
-                result.warnings.push(format!(
-                    "Could not verify if module exists: {}",
-                    e
-                ));
+                result
+                    .warnings
+                    .push(format!("Could not verify if module exists: {}", e));
             }
         }
 
@@ -109,18 +110,17 @@ impl PluginInstaller {
                 }
             }
             Err(e) => {
-                result.warnings.push(format!(
-                    "Could not verify execution policy: {}",
-                    e
-                ));
+                result
+                    .warnings
+                    .push(format!("Could not verify execution policy: {}", e));
             }
         }
 
         // 4. Verify connectivity to PSGallery (simplified)
         if !Self::check_internet_connectivity() {
-            result.warnings.push(
-                "No internet connection detected. Installation might fail.".to_string()
-            );
+            result
+                .warnings
+                .push("No internet connection detected. Installation might fail.".to_string());
         }
 
         result
@@ -147,19 +147,18 @@ impl PluginInstaller {
         // Step 1: Pre-checks
         let pre_check = self.pre_check(module_name);
         if !pre_check.is_ready() {
-            result.message = format!(
-                "Pre-checks failed: {}",
-                pre_check.errors.join("; ")
-            );
+            result.message = format!("Pre-checks failed: {}", pre_check.errors.join("; "));
             return Ok(result);
         }
 
         // Step 2: Backup profile before modifying
         let backup_result = if profile_path.exists() {
-            backup_manager.backup_profile(
-                profile_path,
-                &format!("Pre-installation of plugin: {}", name)
-            ).ok()
+            backup_manager
+                .backup_profile(
+                    profile_path,
+                    &format!("Pre-installation of plugin: {}", name),
+                )
+                .ok()
         } else {
             None
         };
@@ -211,9 +210,7 @@ impl PluginInstaller {
             .await?;
 
         if output.status.success() {
-            let version = String::from_utf8_lossy(&output.stdout)
-                .trim()
-                .to_string();
+            let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
             let version = if version.is_empty() {
                 None
             } else {
@@ -222,9 +219,7 @@ impl PluginInstaller {
             Ok(version)
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(io::Error::other(
-                format!("PowerShell error: {}", stderr),
-            ))
+            Err(io::Error::other(format!("PowerShell error: {}", stderr)))
         }
     }
 
@@ -262,9 +257,7 @@ impl PluginInstaller {
             let stdout = String::from_utf8_lossy(&output.stdout);
             Ok(!stdout.trim().is_empty())
         } else {
-            Err(io::Error::other(
-                "Failed to check module status",
-            ))
+            Err(io::Error::other("Failed to check module status"))
         }
     }
 
@@ -272,18 +265,13 @@ impl PluginInstaller {
     #[allow(dead_code)]
     fn check_execution_policy() -> Result<String, io::Error> {
         let output = Command::new("pwsh")
-            .args([
-                "-Command",
-                "Get-ExecutionPolicy -Scope CurrentUser",
-            ])
+            .args(["-Command", "Get-ExecutionPolicy -Scope CurrentUser"])
             .output()?;
 
         if output.status.success() {
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
         } else {
-            Err(io::Error::other(
-                "Failed to check execution policy",
-            ))
+            Err(io::Error::other("Failed to check execution policy"))
         }
     }
 
@@ -327,9 +315,7 @@ impl PluginInstaller {
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(io::Error::other(
-                format!("Failed to uninstall: {}", stderr),
-            ))
+            Err(io::Error::other(format!("Failed to uninstall: {}", stderr)))
         }
     }
 
@@ -373,9 +359,7 @@ impl PluginInstaller {
                 description: description.unwrap_or_default(),
             }))
         } else {
-            Err(io::Error::other(
-                "Failed to get module info",
-            ))
+            Err(io::Error::other("Failed to get module info"))
         }
     }
 }
