@@ -183,9 +183,9 @@ fn render_tab_bar(f: &mut Frame, area: Rect, app: &App) {
     for (i, (label, view)) in tabs.iter().enumerate() {
         let is_active = app.active_view == *view;
         let count = match view {
-            ActiveView::Themes => app.filtered_themes().len(),
-            ActiveView::Fonts => app.filtered_fonts().len(),
-            ActiveView::Segments => app.filtered_segments().len(),
+            ActiveView::Themes => app.filtered_themes_count(),
+            ActiveView::Fonts => app.filtered_fonts_count(),
+            ActiveView::Segments => app.filtered_segments_count(),
         };
 
         // Text composition

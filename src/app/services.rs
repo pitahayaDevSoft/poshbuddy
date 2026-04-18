@@ -197,6 +197,18 @@ impl App {
         }
     }
 
+    /// PERFORMANCE OPTIMIZATION (Bolt):
+    /// Calculates the number of filtered themes using iterators without allocating
+    /// a new Vector or cloning string data, avoiding memory pressure during the render loop.
+    pub fn filtered_themes_count(&self) -> usize {
+        let filter = &self.filter;
+        let local_count = self.themes.iter().filter(|t| contains_ignore_ascii_case(&t.name, filter)).count();
+        let remote_count = self.remote_themes.iter().filter(|rt| {
+            contains_ignore_ascii_case(&rt.name, filter) && !self.themes.iter().any(|t| t.name == rt.name)
+        }).count();
+        local_count + remote_count
+    }
+
     /// Returns a unified list of filtered themes (Local + Unique Remote)
     pub fn filtered_themes(&self) -> Vec<ThemeAsset> {
         let filter = &self.filter;
@@ -232,6 +244,16 @@ impl App {
         });
     }
 
+    /// PERFORMANCE OPTIMIZATION (Bolt):
+    /// Calculates the number of filtered fonts using iterators without allocating
+    /// a new Vector or cloning string data, avoiding memory pressure during the render loop.
+    pub fn filtered_fonts_count(&self) -> usize {
+        self.fonts
+            .iter()
+            .filter(|f| contains_ignore_ascii_case(&f.name, &self.fonts_filter))
+            .count()
+    }
+
     /// Returns a filtered list of fonts based on search criteria
     pub fn filtered_fonts(&self) -> Vec<FontAsset> {
         self.fonts
@@ -239,6 +261,20 @@ impl App {
             .filter(|f| contains_ignore_ascii_case(&f.name, &self.fonts_filter))
             .cloned()
             .collect()
+    }
+
+    /// PERFORMANCE OPTIMIZATION (Bolt):
+    /// Calculates the number of filtered segments using iterators without allocating
+    /// a new Vector or cloning string data, avoiding memory pressure during the render loop.
+    pub fn filtered_segments_count(&self) -> usize {
+        self.segments
+            .iter()
+            .filter(|p| {
+                contains_ignore_ascii_case(&p.name, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.description, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.category, &self.segments_filter)
+            })
+            .count()
     }
 
     /// Returns a filtered list of segments based on search criteria

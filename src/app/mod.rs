@@ -235,18 +235,22 @@ mod tests {
 
         // Empty filter should return all
         assert_eq!(app.filtered_themes().len(), 3);
+        assert_eq!(app.filtered_themes_count(), 3);
 
         // Case-insensitive matching
         app.filter = "JOKER".to_string();
         assert_eq!(app.filtered_themes()[0].name, "joker.omp.json");
+        assert_eq!(app.filtered_themes_count(), 1);
 
         // Partial matching
         app.filter = "omp".to_string();
         assert_eq!(app.filtered_themes().len(), 3);
+        assert_eq!(app.filtered_themes_count(), 3);
 
         // No match
         app.filter = "nonexistent".to_string();
         assert_eq!(app.filtered_themes().len(), 0);
+        assert_eq!(app.filtered_themes_count(), 0);
     }
 
     #[test]
@@ -269,6 +273,7 @@ mod tests {
 
         // Empty filter should return all
         assert_eq!(app.filtered_fonts().len(), 3);
+        assert_eq!(app.filtered_fonts_count(), 3);
 
         // Case-insensitive matching
         app.fonts_filter = "fira".to_string();
@@ -279,14 +284,17 @@ mod tests {
                 download_url: "https://example.com/fira".to_string(),
             }]
         );
+        assert_eq!(app.filtered_fonts_count(), 1);
 
         // Partial matching
         app.fonts_filter = "Code".to_string();
         assert_eq!(app.filtered_fonts().len(), 2);
+        assert_eq!(app.filtered_fonts_count(), 2);
 
         // No match
         app.fonts_filter = "Wingdings".to_string();
         assert_eq!(app.filtered_fonts().len(), 0);
+        assert_eq!(app.filtered_fonts_count(), 0);
     }
 
     #[test]
@@ -526,6 +534,8 @@ mod tests {
 mod filtering_tests {
     use super::*;
     use ratatui::widgets::ListState;
+
+    use std::path::PathBuf;
 
     fn create_test_app() -> App {
         App {
