@@ -7,3 +7,6 @@
 ## 2024-05-18 - Intercepting Global Shortcuts to Clear Local State
 **Learning:** In terminal applications, users intuitively press `Esc` to clear local states like active search filters before they expect to be navigated away from the current view. If global shortcuts (like 'Back to Dashboard') supersede this, users experience frustrating, accidental context loss.
 **Action:** Always intercept cancellation keys (like `Esc` or `Backspace`) to clear local states (e.g. search filters, selections) first, before falling back to global navigation actions.
+## 2024-04-18 - Distinct Focus States for Disabled Menu Items in TUIs
+**Learning:** In Ratatui-based TUIs, if a user navigates onto a disabled menu item and there is no explicitly defined "selected" state style for it, the cursor/focus visually disappears. This leaves keyboard users confused about where their focus is, violating WCAG 2.4.7 (Focus Visible).
+**Action:** Always ensure that disabled interactive elements still display a clear, distinct visual focus indicator (e.g., using a muted background like `Color::DarkGray`) when targeted by keyboard navigation.
