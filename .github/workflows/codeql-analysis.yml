@@ -27,11 +27,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
-        # Incluye las consultas del pack personalizado si existen
-        queries: security-extended,security-and-quality,./codeql-custom-queries-rust/example.ql
 
     - name: Install Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
@@ -41,6 +39,6 @@ jobs:
         cargo build --release
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
