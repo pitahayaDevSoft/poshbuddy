@@ -765,7 +765,9 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         }
         let is_selected = *action_idx == app.welcome_selected_action;
         let is_disabled = *action_idx == 3; // Diagnostics soon
-        let key_style = if is_disabled {
+        let key_style = if is_disabled && is_selected {
+            Style::default().fg(C_DIM).bg(Color::DarkGray)
+        } else if is_disabled {
             Style::default().fg(C_DIM)
         } else if is_selected {
             Style::default()
@@ -775,7 +777,9 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         } else {
             Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)
         };
-        let label_style = if is_disabled {
+        let label_style = if is_disabled && is_selected {
+            Style::default().fg(C_DIM).bg(Color::DarkGray)
+        } else if is_disabled {
             Style::default().fg(C_DIM)
         } else if is_selected {
             Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)
