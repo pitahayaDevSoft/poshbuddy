@@ -567,7 +567,7 @@ mod filtering_tests {
             fonts: vec![],
             filter: "".to_string(),
             fonts_filter: "".to_string(),
-            themes_dir: PathBuf::from("/mock/themes/dir"),
+            themes_dir: std::path::PathBuf::from("/mock/themes/dir"),
             version: "1.0.0".to_string(),
             list_state: ListState::default(),
             fonts_list_state: ListState::default(),
