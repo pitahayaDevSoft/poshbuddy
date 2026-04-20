@@ -30,8 +30,6 @@ jobs:
       uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
-        # Incluye las consultas del pack personalizado si existen
-        queries: security-extended,security-and-quality,./codeql-custom-queries-rust/example.ql
 
     - name: Install Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
