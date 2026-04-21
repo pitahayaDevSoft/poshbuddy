@@ -234,23 +234,6 @@ impl App {
         unified
     }
 
-    /// Returns the count of filtered themes without allocating a new Vec
-    pub fn filtered_themes_count(&self) -> usize {
-        let filter = &self.filter;
-        let local_count = self.themes.iter()
-            .filter(|t| contains_ignore_ascii_case(&t.name, filter))
-            .count();
-
-        let remote_count = self.remote_themes.iter()
-            .filter(|rt| {
-                contains_ignore_ascii_case(&rt.name, filter)
-                    && !self.themes.iter().any(|t| t.name == rt.name)
-            })
-            .count();
-
-        local_count + remote_count
-    }
-
     /// Asynchronously fetches the official themes catalog from GitHub
     pub fn fetch_official_themes(&self, tx: mpsc::Sender<AppMessage>) {
         let themes_dir = self.themes_dir.clone();
@@ -276,13 +259,6 @@ impl App {
             .collect()
     }
 
-    /// Returns the count of filtered fonts without allocating a new Vec
-    pub fn filtered_fonts_count(&self) -> usize {
-        self.fonts
-            .iter()
-            .filter(|f| contains_ignore_ascii_case(&f.name, &self.fonts_filter))
-            .count()
-    }
     /// Returns a filtered list of segments based on search criteria
     pub fn filtered_segments(&self) -> Vec<SegmentAsset> {
         self.segments
