@@ -253,21 +253,19 @@ impl App {
 
             AppState::Welcome => {
                 match key.code {
-                    KeyCode::Up => {
-                        if self.welcome_selected_action > 0 {
+                    KeyCode::Up
+                        if self.welcome_selected_action > 0 => {
                             self.welcome_selected_action -= 1;
                         }
-                    }
-                    KeyCode::Down => {
-                        if self.welcome_selected_action < 8 {
+                    KeyCode::Down
+                        if self.welcome_selected_action < 8 => {
                             self.welcome_selected_action += 1;
                         }
-                    }
                     KeyCode::Enter => {
                         match self.welcome_selected_action {
-                            0 => {
+                            0
                                 // Random Theme
-                                if !self.themes.is_empty() {
+                                if !self.themes.is_empty() => {
                                     use std::time::{SystemTime, UNIX_EPOCH};
                                     let idx = SystemTime::now()
                                         .duration_since(UNIX_EPOCH)
@@ -279,7 +277,6 @@ impl App {
                                         self.apply_theme_advanced(t, tx.clone());
                                     }
                                 }
-                            }
                             1 => self.state = AppState::ConfirmMassFontInstallation,
                             2 => {
                                 // Terminal Icons

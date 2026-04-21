@@ -200,10 +200,21 @@ impl App {
     /// Returns a count of filtered themes without allocating a Vec
     pub fn filtered_themes_count(&self) -> usize {
         let filter = &self.filter;
-        let local_count = self.themes.iter().filter(|t| contains_ignore_ascii_case(&t.name, filter)).count();
+
+        let mut local_count = 0;
+        let mut local_names = std::collections::HashSet::with_capacity(self.themes.len());
+
+        for t in &self.themes {
+            local_names.insert(&t.name);
+            if contains_ignore_ascii_case(&t.name, filter) {
+                local_count += 1;
+            }
+        }
+
         let remote_count = self.remote_themes.iter()
-            .filter(|rt| contains_ignore_ascii_case(&rt.name, filter) && !self.themes.iter().any(|t| t.name == rt.name))
+            .filter(|rt| !local_names.contains(&rt.name) && contains_ignore_ascii_case(&rt.name, filter))
             .count();
+
         local_count + remote_count
     }
 
@@ -212,23 +223,23 @@ impl App {
         let filter = &self.filter;
         let mut unified = Vec::new();
 
-        // Add Local
+        let mut local_names = std::collections::HashSet::with_capacity(self.themes.len());
+
         for t in &self.themes {
+            local_names.insert(&t.name);
             if contains_ignore_ascii_case(&t.name, filter) {
                 unified.push(t.clone());
             }
         }
 
-        // Add Remote (only if not local)
         for rt in &self.remote_themes {
-            if contains_ignore_ascii_case(&rt.name, filter)
-                && !self.themes.iter().any(|t| t.name == rt.name) {
-                    unified.push(ThemeAsset {
-                        name: rt.name.clone(),
-                        is_local: false,
-                        download_url: Some(rt.download_url.clone()),
-                    });
-                }
+            if !local_names.contains(&rt.name) && contains_ignore_ascii_case(&rt.name, filter) {
+                unified.push(ThemeAsset {
+                    name: rt.name.clone(),
+                    is_local: false,
+                    download_url: Some(rt.download_url.clone()),
+                });
+            }
         }
 
         unified
