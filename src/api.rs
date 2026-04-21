@@ -41,6 +41,9 @@ pub async fn download_theme_file(
     url: &str,
     target_dir: &std::path::Path,
 ) -> Result<std::path::PathBuf, String> {
+    if name.contains('/') || name.contains('\\') || name.contains("..") {
+        return Err("Invalid theme name: Contains path traversal characters".to_string());
+    }
     let client = get_client();
     let file_path = target_dir.join(format!("{}.omp.json", name));
 
@@ -65,6 +68,9 @@ pub async fn download_theme_file(
 
 /// Downloads a remote theme file to a temporary location for previewing
 pub async fn download_to_temp(name: &str, url: &str) -> Result<std::path::PathBuf, String> {
+    if name.contains('/') || name.contains('\\') || name.contains("..") {
+        return Err("Invalid theme name: Contains path traversal characters".to_string());
+    }
     let client = get_client();
     let response = client
         .get(url)
@@ -388,5 +394,19 @@ mod tests {
 
         // Channel should be dropped without sending any messages
         assert!(rx.recv().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_download_theme_file_path_traversal() {
+        let result = download_theme_file("../evil", "http://example.com", std::path::Path::new("/tmp")).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Invalid theme name: Contains path traversal characters");
+    }
+
+    #[tokio::test]
+    async fn test_download_to_temp_path_traversal() {
+        let result = download_to_temp("../evil", "http://example.com").await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Invalid theme name: Contains path traversal characters");
     }
 }
