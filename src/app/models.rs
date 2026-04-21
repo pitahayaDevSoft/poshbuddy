@@ -1,6 +1,6 @@
 use ratatui::widgets::ListState;
-use std::path::PathBuf;
 use std::collections::HashSet;
+use std::path::PathBuf;
 
 /// Metadata for a PowerShell module/extension (Legacy Plugins)
 #[derive(Clone, Debug)]

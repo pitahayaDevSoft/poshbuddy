@@ -23,8 +23,6 @@ pub fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
         .any(|w| w.eq_ignore_ascii_case(needle_bytes))
 }
 
-
-
 impl App {
     /// Initializes a new application instance with dynamic system detection
     pub fn new() -> Self {
@@ -128,7 +126,6 @@ impl App {
 
         app
     }
-
 }
 
 #[cfg(test)]
@@ -532,9 +529,9 @@ mod tests {
 
 #[cfg(test)]
 mod filtering_tests {
-    use std::path::PathBuf;
     use super::*;
     use ratatui::widgets::ListState;
+    use std::path::PathBuf;
 
     fn create_test_app() -> App {
         App {

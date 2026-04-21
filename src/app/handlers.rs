@@ -185,7 +185,7 @@ impl App {
                             } else {
                                 self.theme_preview.clear();
                             }
-                        },
+                        }
                         ActiveView::Fonts => self.fonts_list_state.select(Some(0)),
                         ActiveView::Segments => self.plugins_list_state.select(Some(0)),
                     }
@@ -200,7 +200,10 @@ impl App {
                 return Ok(false);
             }
         }
-        if key.code == KeyCode::Char('h') && !matches!(self.state, AppState::Main) && self.state != AppState::Welcome {
+        if key.code == KeyCode::Char('h')
+            && !matches!(self.state, AppState::Main)
+            && self.state != AppState::Welcome
+        {
             self.state = AppState::Welcome;
             self.filter.clear();
             self.fonts_filter.clear();
@@ -331,29 +334,53 @@ impl App {
                         if let Some(t) = self.filtered_themes().first() {
                             self.load_theme_preview(t.clone(), tx.clone());
                         }
-                    },
-                    KeyCode::Char('2') => { self.state = AppState::Main; self.active_view = ActiveView::Fonts; },
-                    KeyCode::Char('3') => { self.state = AppState::Main; self.active_view = ActiveView::Segments; },
+                    }
+                    KeyCode::Char('2') => {
+                        self.state = AppState::Main;
+                        self.active_view = ActiveView::Fonts;
+                    }
+                    KeyCode::Char('3') => {
+                        self.state = AppState::Main;
+                        self.active_view = ActiveView::Segments;
+                    }
 
                     // --- Mnemonic Quick Action Shortcuts ---
                     KeyCode::Char('r') | KeyCode::Char('R') => {
                         self.welcome_selected_action = 0;
-                        let _ = self.handle_input(crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), tx);
-                    },
-                    KeyCode::Char('n') | KeyCode::Char('N') => self.state = AppState::ConfirmMassFontInstallation,
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('n') | KeyCode::Char('N') => {
+                        self.state = AppState::ConfirmMassFontInstallation
+                    }
                     KeyCode::Char('i') | KeyCode::Char('I') => {
                         self.welcome_selected_action = 2;
-                        let _ = self.handle_input(crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), tx);
-                    },
-                    KeyCode::Char('d') | KeyCode::Char('D') => self.state = AppState::Success("Diagnostics coming soon!".to_string()),
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('d') | KeyCode::Char('D') => {
+                        self.state = AppState::Success("Diagnostics coming soon!".to_string())
+                    }
                     KeyCode::Char('v') | KeyCode::Char('V') => {
                         self.welcome_selected_action = 4;
-                        let _ = self.handle_input(crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), tx);
-                    },
-                    KeyCode::Char('b') | KeyCode::Char('B') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('b') | KeyCode::Char('B')
+                        if !key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
                         self.welcome_selected_action = 8;
-                        let _ = self.handle_input(crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), tx);
-                    },
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
 
                     KeyCode::Char('q') => return Ok(true),
                     _ => {}

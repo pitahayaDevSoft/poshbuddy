@@ -186,16 +186,30 @@ mod tests {
 
     #[tokio::test]
     async fn test_download_theme_file_path_traversal() {
-        let err = download_theme_file("../evil", "http://example.com", std::path::Path::new("/tmp")).await.unwrap_err();
+        let err = download_theme_file(
+            "../evil",
+            "http://example.com",
+            std::path::Path::new("/tmp"),
+        )
+        .await
+        .unwrap_err();
         assert_eq!(err, "Invalid theme name: Path traversal detected");
 
-        let err = download_theme_file("evil/theme", "http://example.com", std::path::Path::new("/tmp")).await.unwrap_err();
+        let err = download_theme_file(
+            "evil/theme",
+            "http://example.com",
+            std::path::Path::new("/tmp"),
+        )
+        .await
+        .unwrap_err();
         assert_eq!(err, "Invalid theme name: Path traversal detected");
     }
 
     #[tokio::test]
     async fn test_download_to_temp_path_traversal() {
-        let err = download_to_temp("../evil", "http://example.com").await.unwrap_err();
+        let err = download_to_temp("../evil", "http://example.com")
+            .await
+            .unwrap_err();
         assert_eq!(err, "Invalid theme name: Path traversal detected");
     }
 
