@@ -4,7 +4,7 @@
 
 # PoshBuddy
 
-![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.3.4--rust-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.4.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 PoshBuddy is a professional management tool for Oh My Posh configurations. It provides a high-density terminal user interface (TUI) designed to streamline theme customization, font management, and shell segment manipulation with surgical precision.
 
