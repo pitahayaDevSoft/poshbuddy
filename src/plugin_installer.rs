@@ -198,13 +198,11 @@ impl PluginInstaller {
     #[allow(dead_code)]
     async fn install_module(&self, module_name: &str) -> Result<Option<String>, io::Error> {
         let output = tokio::process::Command::new("powershell")
+            .env("MODULE_NAME", module_name)
             .args([
                 "-Command",
-                &format!(
-                    "Install-Module -Name {} -Scope CurrentUser -Force -AllowClobber -Confirm:$false; \
-                     (Get-Module -ListAvailable -Name {}).Version | Select-Object -First 1",
-                    module_name, module_name
-                ),
+                "Install-Module -Name $env:MODULE_NAME -Scope CurrentUser -Force -AllowClobber -Confirm:$false; \
+                 (Get-Module -ListAvailable -Name $env:MODULE_NAME).Version | Select-Object -First 1",
             ])
             .output()
             .await?;
@@ -244,12 +242,10 @@ impl PluginInstaller {
     #[allow(dead_code)]
     fn check_module_installed(module_name: &str) -> Result<bool, io::Error> {
         let output = Command::new("pwsh")
+            .env("MODULE_NAME", module_name)
             .args([
                 "-Command",
-                &format!(
-                    "Get-Module -ListAvailable -Name {} | Select-Object -First 1",
-                    module_name
-                ),
+                "Get-Module -ListAvailable -Name $env:MODULE_NAME | Select-Object -First 1",
             ])
             .output()?;
 
@@ -301,12 +297,10 @@ impl PluginInstaller {
     #[allow(dead_code)]
     pub async fn uninstall_module(&self, module_name: &str) -> Result<(), io::Error> {
         let output = tokio::process::Command::new("powershell")
+            .env("MODULE_NAME", module_name)
             .args([
                 "-Command",
-                &format!(
-                    "Uninstall-Module -Name {} -Scope CurrentUser -Force -Confirm:$false",
-                    module_name
-                ),
+                "Uninstall-Module -Name $env:MODULE_NAME -Scope CurrentUser -Force -Confirm:$false",
             ])
             .output()
             .await?;
@@ -323,12 +317,10 @@ impl PluginInstaller {
     #[allow(dead_code)]
     pub fn get_module_info(&self, module_name: &str) -> Result<Option<ModuleInfo>, io::Error> {
         let output = Command::new("pwsh")
+            .env("MODULE_NAME", module_name)
             .args([
                 "-Command",
-                &format!(
-                    "Get-Module -ListAvailable -Name {} | Select-Object Name, Version, Description | Format-List",
-                    module_name
-                ),
+                "Get-Module -ListAvailable -Name $env:MODULE_NAME | Select-Object Name, Version, Description | Format-List",
             ])
             .output()?;
 

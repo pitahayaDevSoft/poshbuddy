@@ -1,11 +1,10 @@
+use crate::app::models::*;
+use crate::app::{contains_ignore_ascii_case, OMP_BINARY, WHERE_CMD};
+use std::collections::HashSet;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use std::collections::HashSet;
 use tokio::sync::mpsc;
-use crate::app::models::*;
-use crate::app::{contains_ignore_ascii_case, OMP_BINARY, WHERE_CMD};
-
 
 impl App {
     /// Reads the current configuration file once and caches active segment types
@@ -200,9 +199,18 @@ impl App {
     /// Returns a count of filtered themes without allocating a Vec
     pub fn filtered_themes_count(&self) -> usize {
         let filter = &self.filter;
-        let local_count = self.themes.iter().filter(|t| contains_ignore_ascii_case(&t.name, filter)).count();
-        let remote_count = self.remote_themes.iter()
-            .filter(|rt| contains_ignore_ascii_case(&rt.name, filter) && !self.themes.iter().any(|t| t.name == rt.name))
+        let local_count = self
+            .themes
+            .iter()
+            .filter(|t| contains_ignore_ascii_case(&t.name, filter))
+            .count();
+        let remote_count = self
+            .remote_themes
+            .iter()
+            .filter(|rt| {
+                contains_ignore_ascii_case(&rt.name, filter)
+                    && !self.themes.iter().any(|t| t.name == rt.name)
+            })
             .count();
         local_count + remote_count
     }
@@ -222,13 +230,14 @@ impl App {
         // Add Remote (only if not local)
         for rt in &self.remote_themes {
             if contains_ignore_ascii_case(&rt.name, filter)
-                && !self.themes.iter().any(|t| t.name == rt.name) {
-                    unified.push(ThemeAsset {
-                        name: rt.name.clone(),
-                        is_local: false,
-                        download_url: Some(rt.download_url.clone()),
-                    });
-                }
+                && !self.themes.iter().any(|t| t.name == rt.name)
+            {
+                unified.push(ThemeAsset {
+                    name: rt.name.clone(),
+                    is_local: false,
+                    download_url: Some(rt.download_url.clone()),
+                });
+            }
         }
 
         unified
@@ -430,11 +439,13 @@ impl App {
 
             match output {
                 Ok(_) => {
-                    if tx.send(AppMessage::FontInstalled(font_name_cloned)).await.is_err() {}
+                    if tx
+                        .send(AppMessage::FontInstalled(font_name_cloned))
+                        .await
+                        .is_err()
+                    {}
                 }
-                Err(e) => {
-                    if tx.send(AppMessage::Error(e.to_string())).await.is_err() {}
-                }
+                Err(e) => if tx.send(AppMessage::Error(e.to_string())).await.is_err() {},
             }
         });
     }
@@ -462,7 +473,12 @@ impl App {
                         index: idx + 1,
                         total,
                         name: current_name.clone(),
-                    }).await.is_err() { return; }
+                    })
+                    .await
+                    .is_err()
+                {
+                    return;
+                }
 
                 // Run installation for this specific font
                 let output = tokio::process::Command::new(cmd)
@@ -475,7 +491,12 @@ impl App {
                         .send(AppMessage::Error(format!(
                             "Failed to install {}: {}",
                             current_name, e
-                        ))).await.is_err() { return; }
+                        )))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
                     return;
                 }
             }
@@ -483,7 +504,10 @@ impl App {
             if tx
                 .send(AppMessage::Success(
                     "All Nerd Fonts have been installed successfully!".to_string(),
-                )).await.is_err() {}
+                ))
+                .await
+                .is_err()
+            {}
         });
     }
 
@@ -513,7 +537,12 @@ impl App {
                                     theme: theme_cloned,
                                     preview: format!(" Error downloading preview: {}", e),
                                     request_id: current_id,
-                                }).await.is_err() { return; }
+                                })
+                                .await
+                                .is_err()
+                            {
+                                return;
+                            }
                             return;
                         }
                     }
@@ -535,7 +564,12 @@ impl App {
                                 theme: theme_cloned,
                                 preview: " Error: Theme file not found locally ".to_string(),
                                 request_id: current_id,
-                            }).await.is_err() { return; }
+                            })
+                            .await
+                            .is_err()
+                        {
+                            return;
+                        }
                         return;
                     }
                     final_theme_path
@@ -545,7 +579,8 @@ impl App {
             let mut cmd_obj = tokio::process::Command::new(cmd);
 
             // Get current working directory for a more realistic preview
-            let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            let current_dir =
+                std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
 
             // IMPORTANT: Clear environment variables that might force OMP to use the current theme
             cmd_obj
@@ -587,7 +622,10 @@ impl App {
                             theme: theme_cloned,
                             preview,
                             request_id: current_id,
-                        }).await.is_err() {}
+                        })
+                        .await
+                        .is_err()
+                    {}
                 }
                 Ok(Err(e)) => {
                     if tx
@@ -595,7 +633,10 @@ impl App {
                             theme: theme_cloned,
                             preview: format!(" Command error: {}", e),
                             request_id: current_id,
-                        }).await.is_err() {}
+                        })
+                        .await
+                        .is_err()
+                    {}
                 }
                 Err(_) => {
                     if tx
@@ -603,7 +644,10 @@ impl App {
                             theme: theme_cloned,
                             preview: " Timeout: Theme too complex for quick preview ".to_string(),
                             request_id: current_id,
-                        }).await.is_err() {}
+                        })
+                        .await
+                        .is_err()
+                    {}
                 }
             }
         });
@@ -617,7 +661,12 @@ impl App {
             if tx
                 .send(AppMessage::InstallProgress {
                     line: "Starting Oh My Posh installation...".to_string(),
-                }).await.is_err() { return; }
+                })
+                .await
+                .is_err()
+            {
+                return;
+            }
 
             let child = if cfg!(windows) {
                 tokio::process::Command::new("winget")
@@ -648,7 +697,10 @@ impl App {
                         if tx
                             .send(AppMessage::Error(
                                 "Installation failed via Winget".to_string(),
-                            )).await.is_err() {}
+                            ))
+                            .await
+                            .is_err()
+                        {}
                     }
                 },
                 Err(e) => {
@@ -656,7 +708,10 @@ impl App {
                         .send(AppMessage::Error(format!(
                             "Could not start installer: {}",
                             e
-                        ))).await.is_err() {}
+                        )))
+                        .await
+                        .is_err()
+                    {}
                 }
             }
         });
@@ -759,7 +814,12 @@ impl App {
                 .send(AppMessage::InstallUpdate {
                     stage: 0,
                     percentage: 25.0,
-                }).await.is_err() { return; }
+                })
+                .await
+                .is_err()
+            {
+                return;
+            }
 
             let source_path = if theme.is_local {
                 let name_clean = theme.name.replace(".omp.json", "");
@@ -769,7 +829,12 @@ impl App {
                     if tx_cloned
                         .send(AppMessage::Error(
                             "No internet connection detected. Check your network.".to_string(),
-                        )).await.is_err() { return; }
+                        ))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
                     return;
                 }
 
@@ -780,7 +845,12 @@ impl App {
                         Ok(p) => p,
                         Err(e) => {
                             if tx_cloned
-                                .send(AppMessage::Error(format!("Download failed: {}", e))).await.is_err() { return; }
+                                .send(AppMessage::Error(format!("Download failed: {}", e)))
+                                .await
+                                .is_err()
+                            {
+                                return;
+                            }
                             return;
                         }
                     }
@@ -788,7 +858,12 @@ impl App {
                     if tx_cloned
                         .send(AppMessage::Error(
                             "Missing download URL for remote theme".to_string(),
-                        )).await.is_err() { return; }
+                        ))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
                     return;
                 }
             };
@@ -798,12 +873,22 @@ impl App {
                 .send(AppMessage::InstallUpdate {
                     stage: 1,
                     percentage: 50.0,
-                }).await.is_err() { return; }
+                })
+                .await
+                .is_err()
+            {
+                return;
+            }
             match tokio::fs::read_to_string(&source_path).await {
                 Ok(content) => {
                     if serde_json::from_str::<serde_json::Value>(&content).is_err() {
                         if tx_cloned
-                            .send(AppMessage::Error("Invalid theme JSON format".to_string())).await.is_err() { return; }
+                            .send(AppMessage::Error("Invalid theme JSON format".to_string()))
+                            .await
+                            .is_err()
+                        {
+                            return;
+                        }
                         return;
                     }
                 }
@@ -812,7 +897,12 @@ impl App {
                         .send(AppMessage::Error(format!(
                             "Could not read theme file: {}",
                             e
-                        ))).await.is_err() { return; }
+                        )))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
                     return;
                 }
             }
@@ -822,13 +912,23 @@ impl App {
                 .send(AppMessage::InstallUpdate {
                     stage: 2,
                     percentage: 75.0,
-                }).await.is_err() { return; }
+                })
+                .await
+                .is_err()
+            {
+                return;
+            }
             for profile in &profiles {
                 if let Err(e) = backup_manager
                     .backup_profile(profile, &format!("Apply Theme Advanced: {}", name))
                 {
                     if tx_cloned
-                        .send(AppMessage::Error(format!("Backup failed: {}", e))).await.is_err() { return; }
+                        .send(AppMessage::Error(format!("Backup failed: {}", e)))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
                     return;
                 }
             }
@@ -838,13 +938,23 @@ impl App {
                 .send(AppMessage::InstallUpdate {
                     stage: 3,
                     percentage: 90.0,
-                }).await.is_err() { return; }
+                })
+                .await
+                .is_err()
+            {
+                return;
+            }
 
             let final_theme_path = if !theme.is_local {
                 let dest = themes_dir.join(format!("{}.omp.json", theme.name));
                 if let Err(e) = tokio::fs::copy(&source_path, &dest).await {
                     if tx_cloned
-                        .send(AppMessage::Error(format!("Failed to save theme: {}", e))).await.is_err() { return; }
+                        .send(AppMessage::Error(format!("Failed to save theme: {}", e)))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
                     return;
                 }
                 dest
@@ -901,7 +1011,12 @@ impl App {
 
                 if let Err(e) = tokio::fs::write(profile, new_lines.join(line_ending)).await {
                     if tx_cloned
-                        .send(AppMessage::Error(format!("Profile update failed: {}", e))).await.is_err() { return; }
+                        .send(AppMessage::Error(format!("Profile update failed: {}", e)))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
                     return;
                 }
             }
@@ -910,9 +1025,17 @@ impl App {
                 .send(AppMessage::Success(format!(
                     "Theme '{}' applied successfully!",
                     name
-                ))).await.is_err() { return; }
+                )))
+                .await
+                .is_err()
+            {
+                return;
+            }
             if tx_cloned
-                .send(AppMessage::ThemeDownloaded(final_theme_path)).await.is_err() {}
+                .send(AppMessage::ThemeDownloaded(final_theme_path))
+                .await
+                .is_err()
+            {}
         });
     }
 
@@ -957,15 +1080,18 @@ impl App {
             if tx
                 .send(AppMessage::InstallProgress {
                     line: format!("Installing module: {}...", name),
-                }).await.is_err() { return; }
+                })
+                .await
+                .is_err()
+            {
+                return;
+            }
 
             let output = tokio::process::Command::new("powershell")
+                .env("MODULE_NAME", module_name.clone())
                 .args([
                     "-Command",
-                    &format!(
-                        "Install-Module -Name {} -Scope CurrentUser -Force -Confirm:$false",
-                        module_name
-                    ),
+                    "Install-Module -Name $env:MODULE_NAME -Scope CurrentUser -Force -Confirm:$false",
                 ])
                 .output()
                 .await;
@@ -979,12 +1105,14 @@ impl App {
                         .send(AppMessage::Error(format!(
                             "Failed to install module {}",
                             module_name
-                        ))).await.is_err() {}
+                        )))
+                        .await
+                        .is_err()
+                    {}
                 }
             }
         });
     }
-
 
     /// Restores the last backup created for all detected profiles
     /// Returns the number of successfully restored profiles
