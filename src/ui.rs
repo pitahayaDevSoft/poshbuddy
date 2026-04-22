@@ -315,20 +315,23 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         )
     };
 
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(title),
-        )
-        .highlight_style(
-            Style::default()
-                .bg(Color::DarkGray)
-                .fg(C_WHITE)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(" ▶ ");
+    let mut list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(C_ACCENT))
+            .title(title),
+    );
+
+    if !themes.is_empty() {
+        list = list
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .fg(C_WHITE)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(" ▶ ");
+    }
 
     f.render_stateful_widget(list, left[1], &mut app.list_state);
 
@@ -449,20 +452,23 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         )
     };
 
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(title),
-        )
-        .highlight_style(
-            Style::default()
-                .bg(Color::DarkGray)
-                .fg(C_WHITE)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(" ▶ ");
+    let mut list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(C_ACCENT))
+            .title(title),
+    );
+
+    if !fonts.is_empty() {
+        list = list
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .fg(C_WHITE)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(" ▶ ");
+    }
 
     f.render_stateful_widget(list, left[1], &mut app.fonts_list_state);
 
@@ -591,20 +597,23 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         )
     };
 
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(title),
-        )
-        .highlight_style(
-            Style::default()
-                .bg(Color::DarkGray)
-                .fg(C_WHITE)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol("  ");
+    let mut list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(C_ACCENT))
+            .title(title),
+    );
+
+    if !segments.is_empty() {
+        list = list
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .fg(C_WHITE)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol("  ");
+    }
 
     f.render_stateful_widget(list, left[1], &mut app.plugins_list_state);
 
