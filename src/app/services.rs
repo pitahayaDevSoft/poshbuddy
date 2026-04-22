@@ -205,14 +205,14 @@ impl App {
         let mut local_names = std::collections::HashSet::with_capacity(self.themes.len());
 
         for t in &self.themes {
-            local_names.insert(&t.name);
+            local_names.insert(t.name.as_str());
             if contains_ignore_ascii_case(&t.name, filter) {
                 local_count += 1;
             }
         }
 
         let remote_count = self.remote_themes.iter()
-            .filter(|rt| !local_names.contains(&rt.name) && contains_ignore_ascii_case(&rt.name, filter))
+            .filter(|rt| !local_names.contains(rt.name.as_str()) && contains_ignore_ascii_case(&rt.name, filter))
             .count();
 
         local_count + remote_count
@@ -226,14 +226,14 @@ impl App {
         let mut local_names = std::collections::HashSet::with_capacity(self.themes.len());
 
         for t in &self.themes {
-            local_names.insert(&t.name);
+            local_names.insert(t.name.as_str());
             if contains_ignore_ascii_case(&t.name, filter) {
                 unified.push(t.clone());
             }
         }
 
         for rt in &self.remote_themes {
-            if !local_names.contains(&rt.name) && contains_ignore_ascii_case(&rt.name, filter) {
+            if !local_names.contains(rt.name.as_str()) && contains_ignore_ascii_case(&rt.name, filter) {
                 unified.push(ThemeAsset {
                     name: rt.name.clone(),
                     is_local: false,
