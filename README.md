@@ -1,12 +1,14 @@
+<!-- trunk-ignore-all(markdownlint/MD033) -->
+<!-- trunk-ignore-all(markdownlint/MD041) -->
 <div align="center">
   <img src="docs/logo.png" alt="PoshBuddy Logo" width="180" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
 </div>
 
 # PoshBuddy
 
-![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.4.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.4.1-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
-PoshBuddy is a professional management tool for Oh My Posh configurations. It provides a high-density terminal user interface (TUI) designed to streamline theme customization, font management, and shell segment manipulation with surgical precision.
+PoshBuddy is a professional management tool for Oh My Posh configurations. It provides a modernized, responsive terminal user interface (TUI) designed for high-density information display, surgical theme manipulation, and seamless Nerd Font management.
 
 <p align="center">
   <img src="assets/demo.gif" alt="PoshBuddy TUI Demo" width="90%">
@@ -57,6 +59,37 @@ cargo install --path .
 ```
 
 _Note: This tool requires the Oh My Posh binary to be present in your system PATH._
+
+## CLI Mode (Headless)
+
+PoshBuddy includes a robust command-line interface for quick actions without launching the full TUI.
+
+### Theme Commands
+
+- **Set Theme**: `poshbuddy set theme <name>`
+  - Automatically searches local themes and the official remote catalogue.
+- **List Themes**: `poshbuddy list themes [--local] [--remote]`
+  - Displays a formatted table of all available themes.
+
+### Font Commands
+
+- **Install Font**: `poshbuddy install font <name>`
+  - Installs the specified Nerd Font directly to your system.
+- **List Fonts**: `poshbuddy list fonts`
+  - Lists all available Nerd Fonts in the official collection.
+
+### Usage Examples
+
+```powershell
+# Set a specific theme by name
+poshbuddy set theme bubbles
+
+# List all local themes only
+poshbuddy list themes --local
+
+# Install FiraCode Nerd Font
+poshbuddy install font FiraCode
+```
 
 ## Controls and Navigation
 

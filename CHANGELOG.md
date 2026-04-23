@@ -5,6 +5,32 @@ All notable changes to PoshBuddy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-04-23
+
+### Changed
+
+- **Modernized TUI Layout**: Replaced rigid structures with a dynamic, responsive 50/50 horizontal layout for the Dashboard.
+- **Strict Nerd Font Integration**: Eliminated all standard emojis to prevent character width drift, ensuring pixel-perfect alignment across all terminals.
+- **ASCII Logo Stabilization**: Standardized internal padding for the main logo to ensure consistent centering and eliminate the "staircase" visual bug.
+- **Responsive Sizing**: Implemented a maximum container width (100 chars) for wide terminals and a stacked vertical layout for narrow terminals.
+
+### Fixed
+
+- **Icon Desync**: Resolved misalignment in the "System Identity" and "Quick Steps" columns by standardizing on Nerd Font glifs (`f140b`, etc.).
+
+## [0.4.0] - 2026-04-22
+
+### Added
+
+- **Advanced Dashboard**: Completely redesigned welcome screen with real-time system diagnostics and quick-action menu.
+- **Mass Installation Pipeline**: Integrated support for bulk font and plugin installations with global progress overlays.
+- **Diagnostic Engine**: Real-time detection of terminal capabilities (Windows Terminal, VS Code) and Nerd Font presence.
+
+### Fixed
+
+- **Compiler Warnings**: Resolved all remaining `dead_code` warnings in the models layer.
+
+
 ## [0.3.4] - 2026-04-13
 
 ### Added

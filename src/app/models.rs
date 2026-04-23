@@ -1,6 +1,6 @@
 use ratatui::widgets::ListState;
-use std::path::PathBuf;
 use std::collections::HashSet;
+use std::path::PathBuf;
 
 /// Metadata for a PowerShell module/extension (Legacy Plugins)
 #[derive(Clone, Debug)]
@@ -19,6 +19,7 @@ pub struct SegmentAsset {
     pub name: String,
     pub segment_type: String,
     pub description: String,
+    #[allow(dead_code)]
     pub documentation: String,
     pub category: String, // e.g., "Development", "System", "Cloud"
 }

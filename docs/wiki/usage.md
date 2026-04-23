@@ -1,8 +1,8 @@
 # PoshBuddy Wiki: Usage Procedures
 
-> **Updated**: 2026-04-13
-> **Version**: v0.3.3-rust
-> **Read Time**: 5 min  
+> **Updated**: 2026-04-23
+> **Version**: v0.4.1
+> **Read Time**: 6 min  
 
 PoshBuddy operates as an orchestrator for your PowerShell environment. Follow these procedures to ensure environment parity.
 
@@ -49,7 +49,27 @@ If you are on an unstable connection (e.g., public Wi-Fi), PoshBuddy's **Robustn
 - **Preview Guard**: Remote previews are limited by a 2-second binary guard. This ensures that even if `oh-my-posh` hangs trying to parse a corrupt file, your terminal UI remains responsive.
 - **Safe Rejection**: If no internet is detected, PoshBuddy will prevent you from clicking "Install" on remote themes, preserving local parity.
 
-⚠️ **Warning**: Icons in the preview might look broken if PoshBuddy is running in a terminal without a Nerd Font active, even if the font is installed on the system.
+## Scenario 5: Rapid Headless Customization (CLI Mode)
+
+For users who prefer the speed of the command line or need to integrate PoshBuddy into setup scripts.
+
+1. **Quick Theme Change**: You already know the theme you want (e.g., `bubbles`).
+   ```powershell
+   poshbuddy set theme bubbles
+   ```
+   PoshBuddy will find it (downloading if necessary) and inject it into all detected profiles in one atomic operation.
+
+2. **Server/Remote Management**: When SSH'ing into a Windows box, you can list and apply configurations without a terminal emulator that supports TUI drawing.
+   ```powershell
+   poshbuddy list themes --remote
+   ```
+
+3. **Font Provisioning**: Automate your development environment setup script by including:
+   ```powershell
+   poshbuddy install font FiraCode
+   ```
+
+⚠️ **Warning**: Icons in the preview or terminal might look broken if PoshBuddy is running in a terminal without a Nerd Font active, even if the font is installed on the system.
 
 ---
 **Next Step**: [Troubleshooting Procedures](./troubleshooting.md)
