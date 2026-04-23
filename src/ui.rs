@@ -35,6 +35,8 @@ pub fn ui(f: &mut Frame, app: &mut App) {
         }
         _ => render_main(f, f.size(), app),
     }
+
+    render_overlays(f, app);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -267,12 +269,28 @@ fn render_modal(f: &mut Frame, area: Rect, title: &str, msg: &str, color: Color,
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Header
+            Constraint::Min(0),    // Content
+        ])
+        .split(area);
+
+    // 1. Clean Header
+    f.render_widget(
+        Paragraph::new("\n[ THEMES EXPLORER ]")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        chunks[0],
+    );
+
     let cols = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
-        .split(area);
+        .split(chunks[1]);
 
-    // Left column: search + list
+    // 2. Left column: search + list
     let left = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)])
@@ -281,46 +299,31 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.filter, "Themes");
 
     let themes = app.filtered_themes();
-    let n_local = app.themes.len();
-    let n_remote = app.remote_themes.len();
-
     let mut items: Vec<ListItem> = themes
         .iter()
         .map(|t| {
-            if t.is_local {
-                ListItem::new(format!("  L  {}", t.name)).style(Style::default().fg(C_LOCAL))
+            let label = if t.is_local { "[Local]" } else { "[Remote]" };
+            let style = if t.is_local {
+                Style::default().fg(C_LOCAL)
             } else {
-                ListItem::new(format!("  R  {}", t.name)).style(Style::default().fg(C_REMOTE))
-            }
+                Style::default().fg(C_REMOTE)
+            };
+            ListItem::new(format!("  {} {}", t.name, label)).style(style)
         })
         .collect();
 
     if items.is_empty() {
-        let msg = if app.filter.is_empty() {
-            "  No themes available.".to_string()
-        } else {
-            format!("  No themes matching '{}'", app.filter)
-        };
         items.push(
-            ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)),
+            ListItem::new("  No themes matching filter...").style(Style::default().fg(C_DIM)),
         );
     }
-
-    let title = if app.filter.is_empty() {
-        format!(" Themes  L:{}  R:{} ", n_local, n_remote)
-    } else {
-        format!(
-            " Themes  L:{}  R:{} [Filter: {}] ",
-            n_local, n_remote, app.filter
-        )
-    };
 
     let list = List::new(items)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(C_ACCENT))
-                .title(title),
+                .title(" Themes List "),
         )
         .highlight_style(
             Style::default()
@@ -332,74 +335,26 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 
     f.render_stateful_widget(list, left[1], &mut app.list_state);
 
-    // Right column: legend + preview
-    let right = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(cols[1]);
+    // 3. Right column: preview
+    let preview_block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(C_ACCENT))
+        .title(" ANSI Preview ");
 
-    // Badge legend
-    let legend = Line::from(vec![
-        Span::raw("  "),
-        Span::styled(
-            " L ",
-            Style::default()
-                .fg(C_BLACK)
-                .bg(C_LOCAL)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(" Local  ", Style::default().fg(C_DIM)),
-        Span::styled(
-            " R ",
-            Style::default()
-                .fg(C_BLACK)
-                .bg(C_REMOTE)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(
-            " Remote — Enter to download & apply  ",
-            Style::default().fg(C_DIM),
-        ),
-        Span::styled(
-            "Enter",
-            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(" = Apply", Style::default().fg(C_DIM)),
-    ]);
-    f.render_widget(
-        Paragraph::new(legend).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_DIM)),
-        ),
-        right[0],
-    );
-
-    // Preview pane
     if app.theme_preview.is_empty() {
         f.render_widget(
-            Paragraph::new("\n  Loading preview...")
+            Paragraph::new("\n  Select a theme to see preview...")
                 .style(Style::default().fg(C_DIM))
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(C_ACCENT))
-                        .title(" Preview "),
-                ),
-            right[1],
+                .block(preview_block),
+            cols[1],
         );
     } else {
         let preview_text = app.theme_preview.as_str().into_text().unwrap_or_default();
         f.render_widget(
             Paragraph::new(preview_text)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(C_ACCENT))
-                        .title(" Preview "),
-                )
+                .block(preview_block)
                 .wrap(Wrap { trim: false }),
-            right[1],
+            cols[1],
         );
     }
 }
@@ -409,10 +364,26 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Header
+            Constraint::Min(0),    // Content
+        ])
+        .split(area);
+
+    // Header
+    f.render_widget(
+        Paragraph::new("\n[ FONT MANAGER ]")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        chunks[0],
+    );
+
     let cols = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
-        .split(area);
+        .split(chunks[1]);
 
     // Left: search + list
     let left = Layout::default()
@@ -423,38 +394,17 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
 
     let fonts = app.filtered_fonts();
-    let mut items: Vec<ListItem> = fonts
+    let items: Vec<ListItem> = fonts
         .iter()
-        .map(|font| ListItem::new(format!("   {}", font.name)).style(Style::default().fg(C_WHITE)))
+        .map(|font| ListItem::new(format!("  {}", font.name)).style(Style::default().fg(C_WHITE)))
         .collect();
-
-    if items.is_empty() {
-        let msg = if app.fonts_filter.is_empty() {
-            "  No fonts available.".to_string()
-        } else {
-            format!("  No fonts matching '{}'", app.fonts_filter)
-        };
-        items.push(
-            ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)),
-        );
-    }
-
-    let title = if app.fonts_filter.is_empty() {
-        format!(" Nerd Fonts ({}) ", fonts.len())
-    } else {
-        format!(
-            " Nerd Fonts ({}) [Filter: {}] ",
-            fonts.len(),
-            app.fonts_filter
-        )
-    };
 
     let list = List::new(items)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(C_ACCENT))
-                .title(title),
+                .title(" Available Fonts "),
         )
         .highlight_style(
             Style::default()
@@ -468,9 +418,13 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
 
     // Right: detail panel
     let selected = app.fonts_list_state.selected().and_then(|i| fonts.get(i));
+    let detail_block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(C_DIM))
+        .title(" Font Details ");
 
-    let detail: Vec<Line> = if let Some(font) = selected {
-        vec![
+    if let Some(font) = selected {
+        let lines = vec![
             Line::from(""),
             Line::from(vec![Span::styled(
                 format!("  {}", font.name),
@@ -478,50 +432,28 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
             )]),
             Line::from(""),
             Line::from(vec![
-                Span::styled("  Type    ", Style::default().fg(C_DIM)),
-                Span::raw("Nerd Font (icon-patched)"),
+                Span::styled("  Type:     ", Style::default().fg(C_DIM)),
+                Span::raw("Nerd Font"),
             ]),
             Line::from(vec![
-                Span::styled("  Source  ", Style::default().fg(C_DIM)),
-                Span::styled("nerdfonts.com", Style::default().fg(C_ACCENT)),
-            ]),
-            Line::from(""),
-            Line::from(vec![
-                Span::styled("  Press ", Style::default().fg(C_DIM)),
-                Span::styled(
-                    "Enter",
-                    Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(
-                    " to install via oh-my-posh font install",
-                    Style::default().fg(C_DIM),
-                ),
+                Span::styled("  Action:   ", Style::default().fg(C_DIM)),
+                Span::styled("Press [Enter] to install", Style::default().fg(C_LOCAL)),
             ]),
             Line::from(""),
             Line::from(vec![Span::styled(
-                "  After installing, restart your terminal.",
+                "  Note: After installing, you must update your terminal settings.",
                 Style::default().fg(C_DIM),
             )]),
-        ]
+        ];
+        f.render_widget(Paragraph::new(lines).block(detail_block), cols[1]);
     } else {
-        vec![
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "  Select a font to see details.",
-                Style::default().fg(C_DIM),
-            )]),
-        ]
-    };
-
-    f.render_widget(
-        Paragraph::new(detail).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_DIM))
-                .title(" Font Detail "),
-        ),
-        cols[1],
-    );
+        f.render_widget(
+            Paragraph::new("\n  Select a font to continue...")
+                .style(Style::default().fg(C_DIM))
+                .block(detail_block),
+            cols[1],
+        );
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -529,10 +461,26 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Header
+            Constraint::Min(0),    // Content
+        ])
+        .split(area);
+
+    // Header
+    f.render_widget(
+        Paragraph::new("\n[ SEGMENT MANAGER ]")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        chunks[0],
+    );
+
     let cols = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
-        .split(area);
+        .split(chunks[1]);
 
     // Left: search + list
     let left = Layout::default()
@@ -543,60 +491,26 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.segments_filter, "Segments");
 
     let segments = app.filtered_segments();
-
-    let mut items: Vec<ListItem> = segments
+    let items: Vec<ListItem> = segments
         .iter()
         .map(|s| {
             let active = app.is_segment_active(s);
             let dot = if active { "●" } else { "○" };
-            let cat_col = match s.category.as_str() {
-                "Development" => Color::Blue,
-                "Cloud" => C_ACCENT,
-                _ => C_DIM,
-            };
-            let name_style = if active {
+            let style = if active {
                 Style::default().fg(C_ACTIVE)
             } else {
                 Style::default().fg(C_WHITE)
             };
-            ListItem::new(Line::from(vec![
-                Span::raw(format!("  {} ", dot)),
-                Span::styled(
-                    format!("[{}] ", &s.category[..3.min(s.category.len())]),
-                    Style::default().fg(cat_col),
-                ),
-                Span::styled(s.name.clone(), name_style),
-            ]))
+            ListItem::new(format!("  {} {}", dot, s.name)).style(style)
         })
         .collect();
-
-    if items.is_empty() {
-        let msg = if app.segments_filter.is_empty() {
-            "  No segments available.".to_string()
-        } else {
-            format!("  No segments matching '{}'", app.segments_filter)
-        };
-        items.push(
-            ListItem::new(msg).style(Style::default().fg(C_DIM).add_modifier(Modifier::ITALIC)),
-        );
-    }
-
-    let title = if app.segments_filter.is_empty() {
-        format!(" Segments ({}) ", segments.len())
-    } else {
-        format!(
-            " Segments ({}) [Filter: {}] ",
-            segments.len(),
-            app.segments_filter
-        )
-    };
 
     let list = List::new(items)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(C_ACCENT))
-                .title(title),
+                .title(" Components "),
         )
         .highlight_style(
             Style::default()
@@ -604,30 +518,23 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
                 .fg(C_WHITE)
                 .add_modifier(Modifier::BOLD),
         )
-        .highlight_symbol("  ");
+        .highlight_symbol(" ▶ ");
 
     f.render_stateful_widget(list, left[1], &mut app.plugins_list_state);
 
-    // Right: detail + action
+    // Right: detail
     let selected = app
         .plugins_list_state
         .selected()
         .and_then(|i| segments.get(i));
+    let detail_block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(C_DIM))
+        .title(" Information ");
 
     if let Some(seg) = selected {
-        let right = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(0), Constraint::Length(5)])
-            .split(cols[1]);
-
         let active = app.is_segment_active(seg);
-        let status_style = if active {
-            Style::default().fg(C_ACTIVE)
-        } else {
-            Style::default().fg(C_DIM)
-        };
-
-        let detail = vec![
+        let lines = vec![
             Line::from(""),
             Line::from(vec![Span::styled(
                 format!("  {}", seg.name),
@@ -635,79 +542,38 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             )]),
             Line::from(""),
             Line::from(vec![
-                Span::styled("  Status     ", Style::default().fg(C_DIM)),
-                Span::styled(if active { "● ACTIVE" } else { "○ INACTIVE" }, status_style),
+                Span::styled("  Status:   ", Style::default().fg(C_DIM)),
+                Span::styled(
+                    if active { "ENABLED" } else { "DISABLED" },
+                    if active {
+                        Style::default().fg(C_ACTIVE)
+                    } else {
+                        Style::default().fg(C_DIM)
+                    },
+                ),
             ]),
             Line::from(vec![
-                Span::styled("  Type       ", Style::default().fg(C_DIM)),
-                Span::styled(seg.segment_type.clone(), Style::default().fg(C_ACCENT)),
-            ]),
-            Line::from(vec![
-                Span::styled("  Category   ", Style::default().fg(C_DIM)),
+                Span::styled("  Category: ", Style::default().fg(C_DIM)),
                 Span::raw(seg.category.clone()),
             ]),
             Line::from(""),
             Line::from(vec![Span::styled(
-                "  Description",
+                "  Description:",
                 Style::default().fg(C_DIM),
             )]),
             Line::from(format!("  {}", seg.description)),
-            Line::from(""),
-            Line::from(vec![Span::styled("  Notes", Style::default().fg(C_DIM))]),
-            Line::from(format!("  {}", seg.documentation)),
         ];
-
         f.render_widget(
-            Paragraph::new(detail)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(C_ACCENT))
-                        .title(" Segment Detail "),
-                )
+            Paragraph::new(lines)
+                .block(detail_block)
                 .wrap(Wrap { trim: true }),
-            right[0],
-        );
-
-        // Action hint
-        let (action_label, action_color, verb) = if active {
-            ("Enter", C_ERROR, "REMOVE from theme")
-        } else {
-            ("Enter", C_LOCAL, "ADD to theme")
-        };
-
-        f.render_widget(
-            Paragraph::new(Line::from(vec![
-                Span::raw("\n  Press "),
-                Span::styled(
-                    action_label,
-                    Style::default()
-                        .fg(action_color)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(
-                    format!(" to {} · Ctrl+R to undo last change", verb),
-                    Style::default().fg(C_DIM),
-                ),
-            ]))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(C_DIM))
-                    .title(" Action "),
-            ),
-            right[1],
+            cols[1],
         );
     } else {
         f.render_widget(
-            Paragraph::new("\n  Select a segment to see details and toggle it in your theme.")
+            Paragraph::new("\n  Select a component to toggle...")
                 .style(Style::default().fg(C_DIM))
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(C_DIM))
-                        .title(" Segment Detail "),
-                ),
+                .block(detail_block),
             cols[1],
         );
     }
@@ -718,235 +584,265 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
-    let root = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // title
-            Constraint::Min(0),    // content
-            Constraint::Length(1), // footer
-        ])
-        .split(area);
-
-    // Title
-    f.render_widget(
-        Paragraph::new(format!(
-            "  PoshBuddy v{} — Terminal Management Engine",
-            app.version
-        ))
-        .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
-        root[0],
-    );
-
-    let cols = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
-        .split(root[1]);
-
-    // ── Left: Quick Actions ─────────────────────────────────────────────────
-    let action_defs: &[(&str, &str, usize)] = &[
-        ("R", "Random Theme", 0),
-        ("N", "Install Nerd Fonts", 1),
-        ("I", "Toggle Terminal-Icons", 2),
-        ("D", "Diagnostics (Soon)", 3),
-        ("V", "View Backups Info", 4),
-        ("B", "Create Manual Backup", 8),
-        ("1", "Go to Themes", 5),
-        ("2", "Go to Fonts", 6),
-        ("3", "Go to Segments", 7),
-    ];
-
-    let mut items: Vec<ListItem> = Vec::new();
-    for (display_i, (key, label, action_idx)) in action_defs.iter().enumerate() {
-        if display_i == 6 {
-            items.push(ListItem::new(Line::from(vec![Span::styled(
-                "  ─────────────────────── ",
-                Style::default().fg(C_DIM),
-            )])));
-        }
-        let is_selected = *action_idx == app.welcome_selected_action;
-        let is_disabled = *action_idx == 3; // Diagnostics soon
-        let key_style = if is_disabled && is_selected {
-            Style::default().fg(C_DIM).bg(Color::DarkGray)
-        } else if is_disabled {
-            Style::default().fg(C_DIM)
-        } else if is_selected {
-            Style::default()
-                .fg(C_BLACK)
-                .bg(C_ACCENT)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)
-        };
-        let label_style = if is_disabled && is_selected {
-            Style::default().fg(C_DIM).bg(Color::DarkGray)
-        } else if is_disabled {
-            Style::default().fg(C_DIM)
-        } else if is_selected {
-            Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(Color::Gray)
-        };
-        items.push(ListItem::new(Line::from(vec![
-            Span::raw("  "),
-            Span::styled(format!(" {} ", key), key_style),
-            Span::raw("  "),
-            Span::styled(label.to_string(), label_style),
-        ])));
+    // 1. Responsive Guard: If terminal is extremely small, show a simplified message
+    if area.width < 40 || area.height < 10 {
+        f.render_widget(
+            Paragraph::new("Terminal too small to display Dashboard.\nPlease resize your window.")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(C_ERROR)),
+            area,
+        );
+        return;
     }
 
-    f.render_widget(
-        List::new(items).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(" Quick Actions "),
-        ),
-        cols[0],
-    );
+    // 2. Dynamic Constraints based on available height
+    let has_space_for_logo = area.height > 20;
 
-    // ── Right: System status + Resources ───────────────────────────────────
-    let right = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
-        .split(cols[1]);
-
-    // System status panel
-    let sys_lines = if let Some(s) = &app.system_specs {
+    let constraints = if has_space_for_logo {
         vec![
-            Line::from(""),
-            Line::from(vec![
-                Span::styled("  Nerd Font    ", Style::default().fg(C_DIM)),
-                if s.has_nerd_font {
-                    Span::styled("● Detected", Style::default().fg(C_LOCAL))
-                } else {
-                    Span::styled(
-                        "○ Not found  (icons may be broken)",
-                        Style::default().fg(C_ERROR),
-                    )
-                },
-            ]),
-            Line::from(vec![
-                Span::styled("  PowerShell   ", Style::default().fg(C_DIM)),
-                if s.is_pwsh_7 {
-                    Span::styled("● v7 (pwsh)", Style::default().fg(C_LOCAL))
-                } else {
-                    Span::styled(
-                        "○ v5.1  (PowerShell 7 recommended)",
-                        Style::default().fg(C_ACTIVE),
-                    )
-                },
-            ]),
-            Line::from(vec![
-                Span::styled("  Terminal     ", Style::default().fg(C_DIM)),
-                if s.is_windows_terminal {
-                    Span::styled("● Windows Terminal", Style::default().fg(C_LOCAL))
-                } else {
-                    Span::styled(
-                        "○ Classic Console  (upgrade recommended)",
-                        Style::default().fg(C_ACTIVE),
-                    )
-                },
-            ]),
-            Line::from(""),
-            Line::from(vec![
-                Span::styled("  Backups      ", Style::default().fg(C_DIM)),
-                Span::styled(
-                    format!("{} available", app.total_backups),
-                    Style::default().fg(C_WHITE),
-                ),
-            ]),
-            Line::from(vec![
-                Span::styled("  Profiles     ", Style::default().fg(C_DIM)),
-                Span::styled(
-                    format!("{} detected", app.detected_profiles.len()),
-                    Style::default().fg(C_WHITE),
-                ),
-            ]),
+            Constraint::Length(9), // Logo
+            Constraint::Length(3), // Dashboard Title
+            Constraint::Fill(1),   // Stats & Actions
+            Constraint::Length(3), // Next Step Hint
+            Constraint::Length(1), // Footer
         ]
     } else {
         vec![
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "  Scanning system...",
-                Style::default().fg(C_DIM),
-            )]),
+            Constraint::Length(1), // Spacer
+            Constraint::Length(2), // Dashboard Title (shorter)
+            Constraint::Fill(1),   // Stats & Actions
+            Constraint::Length(2), // Next Step Hint (shorter)
+            Constraint::Length(1), // Footer
         ]
     };
 
-    f.render_widget(
-        Paragraph::new(sys_lines).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_DIM))
-                .title(" System Status "),
-        ),
-        right[0],
-    );
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(constraints)
+        .split(area);
 
-    // Latest Changes panel (v0.3.3)
-    let changelog_lines = vec![
+    let mut next_chunk_idx = 0;
+
+    // Render Logo if space permits
+    if has_space_for_logo {
+        // All lines must have the exact same width for perfect centering
+        let logo = r#"  _____           _     ____            _     _        
+ |  __ \         | |   |  _ \          | |   | |       
+ | |__) |__  ___ | |__ | |_) |_   _  __| | __| |_   _  
+ |  ___/ _ \/ __|| '_ \|  _ <| | | |/ _` |/ _` | | | | 
+ | |  | (_) \__ \| | | | |_) | |_| | (_| | (_| | |_| | 
+ |_|   \___/|___/|_| |_|____/ \__,_|\__,_|\__,_|\__, | 
+                                                 __/ | 
+                                                |___/  "#;
+        f.render_widget(
+            Paragraph::new(logo)
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+            chunks[next_chunk_idx],
+        );
+        next_chunk_idx += 1;
+    }
+
+    // Dashboard Header
+    f.render_widget(
+        Paragraph::new("[ DASHBOARD ]")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        chunks[next_chunk_idx],
+    );
+    next_chunk_idx += 1;
+
+    // 3. Stats & Actions (Dynamic Side-by-Side or Stacked)
+    let is_narrow = area.width < 90;
+    let body_area = chunks[next_chunk_idx];
+    next_chunk_idx += 1;
+
+    let body_chunks = if is_narrow {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(body_area)
+    } else {
+        // Center the content on wide screens to avoid massive boxes
+        let centered_body = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Min(0),
+                Constraint::Length(100),
+                Constraint::Min(0),
+            ])
+            .split(body_area)[1];
+
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(50),
+                Constraint::Length(2), // Spacer
+                Constraint::Percentage(50),
+            ])
+            .split(centered_body)
+    };
+
+    let left_area = body_chunks[0];
+    let right_area = if is_narrow {
+        body_chunks[1]
+    } else {
+        body_chunks[2]
+    };
+
+    // Left Column: Stats + Changelog
+    let left_column = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(8), Constraint::Min(0)])
+        .split(left_area);
+
+    // System Info
+    let username = std::env::var("USERNAME").unwrap_or_else(|_| "User".to_string());
+    let os = std::env::consts::OS;
+    let mut sys_info = vec![
         Line::from(""),
         Line::from(vec![
+            Span::styled("  User:        ", Style::default().fg(C_DIM)),
             Span::styled(
-                "  v0.3.3 ",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+                username,
+                Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
             ),
-            Span::styled(" - Mass Font Installer", Style::default().fg(C_WHITE)),
+            Span::styled(format!(" @ {}", os), Style::default().fg(C_DIM)),
         ]),
         Line::from(vec![
-            Span::styled("  ● ", Style::default().fg(C_ACCENT)),
+            Span::styled("  Status:      ", Style::default().fg(C_DIM)),
+            Span::styled("󱐋 ", Style::default().fg(C_LOCAL)),
             Span::styled(
-                "Install all Nerd Fonts with one click.",
-                Style::default().fg(Color::Gray),
-            ),
-        ]),
-        Line::from(vec![
-            Span::styled("  ● ", Style::default().fg(C_ACCENT)),
-            Span::styled(
-                "Professional progress bar & safety checks.",
-                Style::default().fg(Color::Gray),
+                "READY",
+                Style::default().fg(C_LOCAL).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
-            Span::styled("  ● ", Style::default().fg(C_ACCENT)),
+            Span::styled("  Backups:     ", Style::default().fg(C_DIM)),
             Span::styled(
-                "New version dashboard panel.",
-                Style::default().fg(Color::Gray),
-            ),
-        ]),
-        Line::from(""),
-        Line::from(vec![
-            Span::styled(
-                "  v0.3.2 ",
-                Style::default().fg(C_ACTIVE).add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(" - Navigation & Localization", Style::default().fg(C_WHITE)),
-        ]),
-        Line::from(vec![
-            Span::styled("  ● ", Style::default().fg(C_ACTIVE)),
-            Span::styled(
-                "100% English & Global Nav (Esc/H).",
-                Style::default().fg(Color::Gray),
+                format!("{} profiles", app.total_backups),
+                Style::default().fg(C_WHITE),
             ),
         ]),
     ];
 
+    if let Some(s) = &app.system_specs {
+        sys_info.push(Line::from(vec![
+            Span::styled("  Nerd Font:   ", Style::default().fg(C_DIM)),
+            if s.has_nerd_font {
+                Span::styled("󰄬 ", Style::default().fg(C_LOCAL))
+            } else {
+                Span::styled("󰅖 ", Style::default().fg(C_ERROR))
+            },
+            Span::styled(
+                if s.has_nerd_font { "Detected" } else { "Missing" },
+                Style::default().fg(if s.has_nerd_font { C_LOCAL } else { C_ERROR }),
+            ),
+        ]));
+    }
+
     f.render_widget(
-        Paragraph::new(changelog_lines).block(
+        Paragraph::new(sys_info).block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(C_DIM))
-                .title(" Latest Changes "),
+                .title(" System Identity "),
         ),
-        right[1],
+        left_column[0],
     );
 
-    // ── Overlays ───────────────────────────────────────────────────────────
+    // Changelog
+    if left_column[1].height > 3 {
+        let changelog = vec![
+            Line::from(""),
+            Line::from(vec![
+                Span::styled(
+                    "  v0.4.1 ",
+                    Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+                ),
+                Span::styled("- The 'Rice' Update 󰓅", Style::default().fg(C_WHITE)),
+            ]),
+            Line::from(vec![
+                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
+                Span::raw("Modernized TUI with responsive 50/50 layout"),
+            ]),
+            Line::from(vec![
+                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
+                Span::raw("Strict Nerd Font integration (No Emojis)"),
+            ]),
+            Line::from(vec![
+                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
+                Span::raw("Pixel-perfect ASCII logo alignment"),
+            ]),
+        ];
+
+        f.render_widget(
+            Paragraph::new(changelog).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(C_DIM))
+                    .title(" Latest Changes "),
+            ),
+            left_column[1],
+        );
+    }
+
+    // Right Column: Quick Steps
+    let actions = vec![
+        Line::from(""),
+        Line::from(vec![Span::styled("  [1]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Explore Themes (T)")]),
+        Line::from(vec![Span::styled("  [2]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Install Fonts (F)")]),
+        Line::from(vec![Span::styled("  [3]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Manage Segments (S)")]),
+        Line::from(vec![Span::styled("  [4]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Randomize Style (R)")]),
+        Line::from(vec![Span::styled("  [5]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Install ALL Fonts (N)")]),
+        Line::from(vec![Span::styled("  [6]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Terminal Icons (I)")]),
+        Line::from(vec![Span::styled("  [D]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Diagnostics")]),
+        Line::from(vec![Span::styled("  [B]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Manual Backup")]),
+    ];
+
+    f.render_widget(
+        Paragraph::new(actions).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_DIM))
+                .title(" Quick Steps "),
+        ),
+        right_area,
+    );
+
+    // 4. Next Step Hint
+    f.render_widget(
+        Paragraph::new(if is_narrow {
+            "Use [1-6, T, F, S, R, N, I, D, B] to navigate"
+        } else {
+            "\nUse keys [1-6] or mnemonics [T, F, S, R, N, I, D, B] to navigate..."
+        })
+        .alignment(Alignment::Center)
+        .style(
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::ITALIC),
+        ),
+        chunks[next_chunk_idx],
+    );
+    next_chunk_idx += 1;
+
+    // 5. Footer
+    f.render_widget(
+        Paragraph::new(format!("PoshBuddy v{} │ julesklord", app.version))
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(C_DIM)),
+        chunks[next_chunk_idx],
+    );
+}
+
+fn render_overlays(f: &mut Frame, app: &App) {
+    let area = f.size();
 
     // 1. Confirm Mass Font Installation
     if app.state == AppState::ConfirmMassFontInstallation {
-        let area = centered_rect(60, 25, f.size());
-        f.render_widget(Clear, area);
+        let modal_area = centered_rect(60, 25, area);
+        f.render_widget(Clear, modal_area);
         let block = Block::default()
             .title(" Confirm Mass Installation ")
             .borders(Borders::ALL)
@@ -970,7 +866,7 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
                 ),
             ]),
         ];
-        f.render_widget(Paragraph::new(text).block(block), area);
+        f.render_widget(Paragraph::new(text).block(block), modal_area);
     }
 
     // 2. Installation Progress Gauge
@@ -981,8 +877,8 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         total,
     } = &app.state
     {
-        let area = centered_rect(70, 20, f.size());
-        f.render_widget(Clear, area);
+        let modal_area = centered_rect(70, 20, area);
+        f.render_widget(Clear, modal_area);
         let block = Block::default()
             .title(format!(" Installing Nerd Fonts ({}/{}) ", index, total))
             .borders(Borders::ALL)
@@ -997,9 +893,9 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(3), Constraint::Length(3)])
-            .split(block.inner(area));
+            .split(block.inner(modal_area));
 
-        f.render_widget(block, area);
+        f.render_widget(block, modal_area);
         f.render_widget(
             Paragraph::new(vec![Line::from(vec![
                 Span::raw("  Current: "),
@@ -1012,15 +908,6 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         );
         f.render_widget(gauge, layout[1]);
     }
-
-    // Footer
-    f.render_widget(
-        Paragraph::new(
-            "  ↑↓ Navigate  │  Enter Execute  │  1-5/B Action  │  T/F/S Go to View  │  Q Quit",
-        )
-        .style(Style::default().fg(C_DIM)),
-        root[2],
-    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

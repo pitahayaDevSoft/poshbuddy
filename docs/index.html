@@ -3,236 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoshBuddy | Terminal Perfection</title>
-    <meta name="description" content="PoshBuddy is a professional management engine for Oh My Posh, designed for terminal perfectionists.">
+    <title>poshbuddy ~ unixporn/ricing</title>
+    <meta name="description" content="poshbuddy: a terminal management engine for OMP. btw i use arch.">
+    
+    <!-- Fonts: TRUE MONOSPACE FOR ARCH USERS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Asciinema Player -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/asciinema-player@3.6.3/dist/bundle/asciinema-player.css" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="PoshBuddy | Terminal Perfection">
-    <meta property="og:description" content="A surgical management engine for Oh My Posh. Unified theme discovery, precise segment manipulation, and non-destructive profile deployment.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://julesklord.github.io/poshbuddy">
-    <meta property="og:image" content="logo.png">
+    <style>
+        :root {
+            --bg: #0a0a12;
+            --fg: #e8e0f0;
+            --primary: #ff2d78; /* Pink */
+            --secondary: #00ffcc; /* Cyan */
+            --tertiary: #ffe04a; /* Yellow */
+            --black: #1a1a2e;
+            --border-dim: #333344;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="logo.png">
+        * {
+            margin: 0; padding: 0; box-sizing: border-box; cursor: crosshair;
+        }
 
-    <link rel="stylesheet" href="index.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: var(--font-mono);
+            padding: 20px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(255, 45, 120, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 45, 120, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: -1;
+        }
+
+        a { color: var(--secondary); text-decoration: none; }
+        a:hover { color: var(--primary); text-decoration: underline; }
+
+        .wm-container {
+            max-width: 1100px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px;
+        }
+
+        .window {
+            background: var(--bg); border: 2px solid var(--border-dim); padding: 15px; position: relative;
+            box-shadow: 8px 8px 0px rgba(0,0,0,0.4);
+        }
+
+        .window-header {
+            position: absolute; top: -12px; left: 10px; background: var(--bg); padding: 0 8px;
+            font-weight: 700; font-size: 11px; color: var(--primary); text-transform: lowercase; border: 1px solid var(--border-dim);
+        }
+
+        .window:hover { border-color: var(--primary); }
+
+        .hero { grid-column: span 12; padding: 50px 20px; text-align: center; border-color: var(--primary); }
+        pre.ascii-art { color: var(--primary); font-size: 9px; line-height: 1.1; margin-bottom: 25px; display: inline-block; text-align: left; }
+
+        .info-block { grid-column: span 4; }
+        .info-key { color: var(--primary); font-weight: 700; }
+        .colors { display: flex; gap: 10px; margin-top: 20px; }
+        .color-dot { width: 18px; height: 18px; background: currentColor; border: 1px solid rgba(255,255,255,0.1); }
+
+        .features { grid-column: span 8; }
+        .features li { margin-bottom: 20px; padding-left: 25px; position: relative; list-style: none; }
+        .features li::before { content: "[*]"; position: absolute; left: 0; color: var(--secondary); font-weight: 700; }
+        .features h3 { color: var(--secondary); margin-bottom: 8px; font-size: 15px; }
+
+        /* Documentation / Wiki Section */
+        .manual { grid-column: span 12; padding: 35px; }
+        .man-header { border-bottom: 1px solid var(--border-dim); padding-bottom: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; color: var(--tertiary); font-size: 11px; font-weight: 700; }
+        .man-section { margin-bottom: 40px; }
+        .man-section h4 { color: var(--primary); margin-bottom: 15px; text-transform: uppercase; font-weight: 700; font-size: 13px; letter-spacing: 1px; }
+        .man-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
+        .man-table td, .man-table th { padding: 10px; border: 1px solid var(--border-dim); text-align: left; }
+        .man-table th { background: var(--black); color: var(--secondary); }
+        .key-badge { background: var(--primary); color: var(--bg); padding: 2px 8px; font-weight: 700; }
+
+        /* Asciinema Player Styling */
+        #demo-player { margin: 20px 0 40px 0; border: 1px solid var(--border-dim); }
+
+        .install-block { grid-column: span 12; background: var(--black); border-color: var(--secondary); }
+        .terminal-text { color: #00ff00; }
+
+        .footer { grid-column: span 12; text-align: center; padding: 50px; font-size: 12px; color: var(--border-dim); }
+
+        .top-bar {
+            position: fixed; top: 0; left: 0; width: 100%; height: 26px; background: var(--black); border-bottom: 1px solid var(--border-dim);
+            z-index: 1000; display: flex; align-items: center; padding: 0 15px; font-size: 11px; font-weight: 600;
+        }
+        .bar-item { margin-right: 25px; color: var(--border-dim); }
+        .bar-item span { color: var(--secondary); }
+        .bar-active { color: var(--primary) !important; border-bottom: 2px solid var(--primary); padding-top: 2px; }
+
+        @media (max-width: 850px) {
+            .wm-container { display: flex; flex-direction: column; }
+            .info-block, .features, .manual, .hero, .install-block { grid-column: span 12; }
+            pre.ascii-art { font-size: 6px; }
+            .hero { padding: 30px 10px; }
+        }
+
+        body { padding-top: 60px; }
+
+    </style>
 </head>
 <body>
 
-    <div class="bg-gradient"></div>
-    <div class="bg-noise"></div>
-
-    <nav id="nav">
-        <a href="#" class="nav-logo">PoshBuddy</a>
-        <div class="nav-links">
-            <a href="#features">Features</a>
-            <a href="#docs">Docs</a>
-            <a href="#install">Install</a>
-            <a href="https://github.com/julesklord/poshbuddy" class="nav-gh"><i class="fab fa-github"></i> GitHub</a>
-        </div>
-        <button class="nav-toggle" aria-label="Toggle menu" onclick="document.getElementById('nav').classList.toggle('open')">
-            <span></span><span></span><span></span>
-        </button>
-    </nav>
-
-    <header>
-        <span class="section-label animate-fade-up">Engine v0.3.1-rust</span>
-        <h1 class="hero-title animate-fade-up delay-1">The Terminal,<br>Perfected.</h1>
-        <p class="hero-subtitle animate-fade-up delay-2">
-            A surgical management engine for Oh My Posh configurations.
-            Unified theme discovery, precise segment manipulation, and
-            non-destructive profile deployment for the modern shell.
-        </p>
-        <div class="cta-group animate-fade-up delay-3">
-            <a href="#install" class="btn btn-primary">Install Now</a>
-            <a href="#docs" class="btn btn-secondary">System Docs</a>
-        </div>
-
-        <div class="terminal-block animate-fade-up delay-4">
-            <div class="terminal-header">
-                <div class="terminal-dots">
-                    <span class="dot dot-red"></span>
-                    <span class="dot dot-yellow"></span>
-                    <span class="dot dot-green"></span>
-                </div>
-                <span class="terminal-title">poshbuddy --explore</span>
-            </div>
-            <div class="terminal-body">
-                <div class="cmd-line"><span class="t-prompt">$</span> poshbuddy --explore</div>
-                <div class="cmd-line t-muted">Syncing theme catalog (Reqwest/Async)... <span class="t-ok">OK</span></div>
-                <div class="cmd-line t-muted">Found 242 remote themes from OMP. Updating cache... <span class="t-ok">OK</span></div>
-                <div class="cmd-line"><span class="t-arrow">&gt;</span> [G] Cloud.omp.json <span class="t-badge">Remote</span></div>
-                <div class="cmd-line"><span class="t-arrow">&gt;</span> [L] Agnoster.omp.json <span class="t-badge t-badge-local">Local</span></div>
-                <div class="cmd-line t-info">Action: Press Enter to download and apply theme.</div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Stats bar -->
-    <div class="stats-bar">
-        <div class="stat"><span class="stat-value">242</span><span class="stat-label">Official Themes</span></div>
-        <div class="stat-divider"></div>
-        <div class="stat"><span class="stat-value">Rust</span><span class="stat-label">Zero Overhead</span></div>
-        <div class="stat-divider"></div>
-        <div class="stat"><span class="stat-value">MIT</span><span class="stat-label">Open Source</span></div>
-        <div class="stat-divider"></div>
-        <div class="stat"><span class="stat-value">v0.3.1</span><span class="stat-label">Latest Release</span></div>
+    <div class="top-bar">
+        <div class="bar-item bar-active">1:www</div>
+        <div class="bar-item">2:term</div>
+        <div class="bar-item">3:code</div>
+        <div class="bar-item">4:chat</div>
+        <div style="flex-grow: 1;"></div>
+        <div class="bar-item">CPU: <span>14%</span></div>
+        <div class="bar-item">RAM: <span>2.7GiB</span></div>
+        <div class="bar-item">OS: <span>Windows</span></div>
+        <div class="bar-item" style="margin-right:0;">2026-04-23 07:15</div>
     </div>
 
-    <main>
-        <section id="features">
-            <div class="section-head reveal">
-                <span class="section-label">Capabilities</span>
-                <h2>Built for Perfectionists.</h2>
-            </div>
-            <div class="features-grid">
-                <div class="card reveal">
-                    <div class="card-icon"><i class="fas fa-terminal"></i></div>
-                    <h3>Surgical Edits</h3>
-                    <p>Unlike standard managers, PoshBuddy performs precise JSON manipulation on existing themes. Toggle specific segments—Git, Battery, or Execution time—without losing your custom layout.</p>
-                </div>
-                <div class="card reveal delay-card-1">
-                    <div class="card-icon"><i class="fas fa-layer-group"></i></div>
-                    <h3>Unified Asset Hub</h3>
-                    <p>The ThemeAsset engine bridges local configuration with the entire official collection. Browse over 200 themes with live, isolated previews directly from the TUI interface.</p>
-                </div>
-                <div class="card reveal delay-card-2">
-                    <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
-                    <h3>Profile Integrity</h3>
-                    <p>Engineered for safety. Your PowerShell $PROFILE is managed using an injection system based on secure markers, ensuring all modifications are localized and reversible.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="docs" class="section-alt">
-            <div class="section-head reveal">
-                <span class="section-label">Documentation</span>
-                <h2>System Intelligence Hub.</h2>
-            </div>
-            <div class="docs-grid">
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/docs/wiki/installation.md" class="doc-link reveal">
-                    <div class="doc-icon"><i class="fas fa-download"></i></div>
-                    <h4>Installation Guide</h4>
-                    <p>Detailed steps to get PoshBuddy running on your system via Cargo.</p>
-                    <span class="doc-arrow"><i class="fas fa-arrow-right"></i></span>
-                </a>
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/docs/wiki/usage.md" class="doc-link reveal delay-card-1">
-                    <div class="doc-icon"><i class="fas fa-keyboard"></i></div>
-                    <h4>Core Usage</h4>
-                    <p>Master the sidebar-driven interface and configuration engine.</p>
-                    <span class="doc-arrow"><i class="fas fa-arrow-right"></i></span>
-                </a>
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/docs/wiki/commands.md" class="doc-link reveal delay-card-2">
-                    <div class="doc-icon"><i class="fas fa-code"></i></div>
-                    <h4>CLI Commands</h4>
-                    <p>A reference for all flags and arguments accepted by the PoshBuddy engine.</p>
-                    <span class="doc-arrow"><i class="fas fa-arrow-right"></i></span>
-                </a>
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/docs/wiki/troubleshooting.md" class="doc-link reveal delay-card-3">
-                    <div class="doc-icon"><i class="fas fa-wrench"></i></div>
-                    <h4>Troubleshooting</h4>
-                    <p>How to fix missing symbols, font issues, and common diagnostic errors.</p>
-                    <span class="doc-arrow"><i class="fas fa-arrow-right"></i></span>
-                </a>
-            </div>
-        </section>
-
-        <section id="install">
-            <div class="section-head reveal">
-                <span class="section-label">Deploy Now</span>
-                <h2>Zero Friction.</h2>
-            </div>
-            <div class="install-wrapper reveal">
-                <div class="install-tabs">
-                    <button class="tab-btn active" onclick="switchTab(this, 'tab-cargo')">
-                        <i class="fas fa-box"></i> Cargo (Recommended)
-                    </button>
-                    <button class="tab-btn" onclick="switchTab(this, 'tab-git')">
-                        <i class="fab fa-git-alt"></i> From Source
-                    </button>
-                </div>
-                <div id="tab-cargo" class="tab-panel terminal-block active">
-                    <div class="terminal-header">
-                        <div class="terminal-dots">
-                            <span class="dot dot-red"></span>
-                            <span class="dot dot-yellow"></span>
-                            <span class="dot dot-green"></span>
-                        </div>
-                        <span class="terminal-title">PowerShell</span>
-                    </div>
-                    <div class="terminal-body install-terminal">
-                        <div class="cmd-line"><span class="t-prompt">$</span> cargo install poshbuddy</div>
-                        <div class="cmd-line t-muted">Compiling poshbuddy v0.3.1... <span class="t-ok">Done</span></div>
-                        <div class="cmd-line t-muted">Installing to ~/.cargo/bin/ ... <span class="t-ok">OK</span></div>
-                        <div class="cmd-line"><span class="t-prompt">$</span> poshbuddy</div>
-                    </div>
-                </div>
-                <div id="tab-git" class="tab-panel terminal-block">
-                    <div class="terminal-header">
-                        <div class="terminal-dots">
-                            <span class="dot dot-red"></span>
-                            <span class="dot dot-yellow"></span>
-                            <span class="dot dot-green"></span>
-                        </div>
-                        <span class="terminal-title">PowerShell</span>
-                    </div>
-                    <div class="terminal-body install-terminal">
-                        <div class="cmd-line"><span class="t-prompt">$</span> <span class="t-cmd">git</span> clone https://github.com/julesklord/poshbuddy.git</div>
-                        <div class="cmd-line"><span class="t-prompt">$</span> <span class="t-cmd">cd</span> poshbuddy</div>
-                        <div class="cmd-line"><span class="t-prompt">$</span> <span class="t-cmd">cargo</span> install --path .</div>
-                    </div>
-                </div>
-                <p class="install-note">Requires Rust 1.70+ and Oh My Posh installed. Developed in Rust. No compromises on performance.</p>
-            </div>
-        </section>
-    </main>
-
-    <footer>
-        <div class="footer-brand">
-            <div class="nav-logo">PoshBuddy</div>
-            <p>The Professional Terminal Management Engine.</p>
-            <p class="footer-copy">© 2025 Jules Martins &middot; MIT License</p>
+    <div class="wm-container">
+        
+        <div class="window hero">
+            <div class="window-header">poshbuddy.c</div>
+            <pre class="ascii-art">
+  _____           _     ____            _     _       
+ |  __ \         | |   |  _ \          | |   | |      
+ | |__) |__  ___ | |__ | |_) |_   _  __| | __| |_   _ 
+ |  ___/ _ \/ __|| '_ \|  _ <| | | |/ _` |/ _` | | | |
+ | |  | (_) \__ \| | | | |_) | |_| | (_| | (_| | |_| |
+ |_|   \___/|___/|_| |_|____/ \__,_|\__,_|\__,_|\__, |
+                                                 __/ |
+                                                |___/ 
+            </pre>
+            <div class="tagline">surgical management for oh-my-posh config files</div>
         </div>
-        <div class="footer-links">
-            <div class="footer-col">
-                <span class="footer-col-title">Project</span>
-                <a href="https://github.com/julesklord/poshbuddy">GitHub</a>
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/CHANGELOG.md">Changelog</a>
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/LICENSE">MIT License</a>
+
+    <div class="window info-block">
+        <div class="window-header">winfetch</div>
+        <div class="info-line"><span class="info-key">Project</span>: <span class="info-val">poshbuddy v0.4.1</span></div>
+        <div class="info-line"><span class="info-key">Engine</span>: <span class="info-val">Rust (Standard ISO)</span></div>
+        <div class="info-line"><span class="info-key">TUI-Lib</span>: <span class="info-val">Ratatui 0.26+</span></div>
+        <div class="info-line"><span class="info-key">Network</span>: <span class="info-val">Tokio / Reqwest</span></div>
+        <div class="info-line"><span class="info-key">Parser</span>: <span class="info-val">Serde-JSON (Surgical)</span></div>
+        <div class="info-line"><span class="info-key">Host</span>: <span class="info-val">Windows Terminal / Pwsh</span></div>
+        <div class="info-line"><span class="info-key">License</span>: <span class="info-val">MIT (Open Source)</span></div>
+
+        
+        <div class="colors">
+            <div class="color-dot" style="color: #ff2d78;"></div>
+            <div class="color-dot" style="color: #00ffcc;"></div>
+            <div class="color-dot" style="color: #ffe04a;"></div>
+            <div class="color-dot" style="color: #fff;"></div>
+        </div>
+        <br>
+        <p style="font-size: 11px; color: var(--border-dim); font-style: italic;">"btw i use windows terminal"</p>
+    </div>
+
+    <div class="window features">
+        <div class="window-header">architecture.txt</div>
+        <ul>
+            <li>
+                <h3>surgical json manipulation</h3>
+                <p>Powered by <b>Serde</b>, PoshBuddy performs precise edits to your OMP JSON files. Toggle segments without breaking custom styles.</p>
+            </li>
+            <li>
+                <h3>async themeasset engine</h3>
+                <p>Built with <b>Tokio</b> for non-blocking theme discovery. Access 240+ themes with environment-isolated previews.</p>
+            </li>
+            <li>
+                <h3>safe profile injection</h3>
+                <p>Uses a marker-based system to manage your $PROFILE. Reversible, auditable, and won't touch your existing logic.</p>
+            </li>
+            <li>
+                <h3>responsive tui engine</h3>
+                <p>Dynamic 50/50 layout that adapts to your terminal size. Optimized for ultra-wide and mobile-style terminal views.</p>
+            </li>
+        </ul>
+    </div>
+
+        <!-- Documentation Window (The Manual) -->
+        <div class="window manual">
+            <div class="window-header">poshbuddy(1)</div>
+            <div class="man-header">
+                <span>PoshBuddy Manual</span>
+                <span>Section 1: UI & Operations</span>
             </div>
-            <div class="footer-col">
-                <span class="footer-col-title">Docs</span>
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/docs/wiki/installation.md">Installation</a>
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/docs/wiki/usage.md">Usage</a>
-                <a href="https://github.com/julesklord/poshbuddy/blob/main/docs/wiki/commands.md">Commands</a>
+
+            <div class="man-section">
+                <h4>Synopsis</h4>
+                <p><b>poshbuddy</b> [OPTION]...<br>
+                A high-density terminal user interface designed to streamline theme customization and shell segment manipulation.</p>
+            </div>
+
+            <!-- Asciinema Player Section -->
+            <div class="man-section">
+                <h4>Visual Demonstration</h4>
+                <div id="demo-player"></div>
+            </div>
+
+            <div class="man-section">
+                <h4>Global Keybindings</h4>
+                <table class="man-table">
+                    <thead>
+                        <tr><th>Key</th><th>Action Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="key-badge">1</span></td><td><b>Themes Explorer</b> — Browse 240+ official remote themes.</td></tr>
+                        <tr><td><span class="key-badge">2</span></td><td><b>Font Manager</b> — One-click Nerd Fonts installation.</td></tr>
+                        <tr><td><span class="key-badge">3</span></td><td><b>Segment Manager</b> — Toggle theme components in real-time.</td></tr>
+                        <tr><td><span class="key-badge">B</span></td><td><b>Backup Manager</b> — Manage and restore profile snapshots.</td></tr>
+                        <tr><td><span class="key-badge">D</span></td><td><b>Diagnostics</b> — Check for fonts, shell, and compatibility.</td></tr>
+                        <tr><td><span class="key-badge">H / Esc</span></td><td>Return to Dashboard / Home screen.</td></tr>
+                        <tr><td><span class="key-badge">Q</span></td><td>Exit the application safely.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="man-section">
+                <h4>CLI Direct Access (Headless Mode)</h4>
+                <p>For quick operations without launching the TUI, use the following command structure:</p>
+                <table class="man-table">
+                    <thead>
+                        <tr><th>Command</th><th>Purpose</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>poshbuddy set theme &lt;name&gt;</code></td><td>Search and apply a theme instantly.</td></tr>
+                        <tr><td><code>poshbuddy install font &lt;name&gt;</code></td><td>Atomic installation of a specific Nerd Font.</td></tr>
+                        <tr><td><code>poshbuddy list themes [--local | --remote]</code></td><td>Formatted table of all available configurations.</td></tr>
+                        <tr><td><code>poshbuddy list fonts</code></td><td>Enumerate all supported Nerd Fonts.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="man-section">
+                <h4>Operational Procedures</h4>
+                <p><b>1. Fresh Environment Setup</b><br>
+                Run <i>System Diagnostic [D]</i> first. If Oh My Posh is missing, PoshBuddy will initiate an atomic installation pipeline. Once verified, move to <i>Font Manager [2]</i> to install a Nerd Font (Windows Terminal recommended).</p>
+                
+                <p style="margin-top: 15px;"><b>2. Surgical Theme Discovery</b><br>
+                Navigate <i>Themes Explorer [1]</i>. Start typing to filter. PoshBuddy uses <i>env_clear</i> to ensure previews are unaffected by your current shell state. Apply with [ENTER].</p>
+
+                <p style="margin-top: 15px;"><b>3. Resilience & Security</b><br>
+                - <b>10s Network Guard</b>: Tokio aborts hung GitHub requests automatically.<br>
+                - <b>Marker Integrity</b>: All profile changes are wrapped in <i># PoshBuddy</i> tags for 100% reversible operations.</p>
             </div>
         </div>
-    </footer>
 
+        <div class="window install-block">
+            <div class="window-header">install.sh</div>
+            <p class="terminal-text">$ git clone https://github.com/julesklord/poshbuddy.git</p>
+            <p class="terminal-text">$ cd poshbuddy && cargo install --path .</p>
+            <p class="terminal-text">$ poshbuddy set theme bubbles</p>
+        </div>
+
+        <div class="window" style="grid-column: span 12;">
+            <div class="window-header">links.txt</div>
+            <div style="display: flex; gap: 30px; justify-content: center;">
+                <a href="https://github.com/julesklord/poshbuddy">[github]</a>
+                <a href="https://github.com/julesklord/poshbuddy/wiki">[wiki]</a>
+                <a href="https://aur.archlinux.org/packages/poshbuddy-bin">[aur]</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            ┌────────────────────────────────────────────────────────────┐<br>
+            │ managed by jules martins &middot; mit license &middot; 2026      │<br>
+            └────────────────────────────────────────────────────────────┘
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.6.3/dist/bundle/asciinema-player.min.js"></script>
     <script>
-        // Scroll reveal via IntersectionObserver
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(e => {
-                if (e.isIntersecting) { e.target.classList.add('visible'); }
+        // Asciinema Player initialization
+        AsciinemaPlayer.create('./demo.cast', document.getElementById('demo-player'), {
+            theme: 'tango',
+            fontSize: 'small',
+            autoPlay: true,
+            speed: 1.0,
+            idleTimeLimit: 2
+        });
+
+        // Window focus effect
+        document.querySelectorAll('.window').forEach(w => {
+            w.addEventListener('click', () => {
+                document.querySelectorAll('.window').forEach(win => win.style.borderColor = 'var(--border-dim)');
+                w.style.borderColor = 'var(--primary)';
             });
-        }, { threshold: 0.1 });
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-        // Nav scroll effect
-        window.addEventListener('scroll', () => {
-            document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 50);
-        }, { passive: true });
-
-        // Install tabs
-        function switchTab(btn, panelId) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById(panelId).classList.add('active');
-        }
+        });
     </script>
-
 </body>
 </html>
