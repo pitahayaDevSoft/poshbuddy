@@ -532,7 +532,6 @@ mod tests {
 
 #[cfg(test)]
 mod filtering_tests {
-    use std::path::PathBuf;
     use super::*;
     use ratatui::widgets::ListState;
 

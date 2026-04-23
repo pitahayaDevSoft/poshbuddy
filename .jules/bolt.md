@@ -13,3 +13,7 @@
 ## 2024-05-19 - Zero-allocation list length counting
 **Learning:** In Ratatui-based TUIs, determining list item counts using methods that allocate and clone elements into new `Vec`s (e.g. `app.filtered_items().len()`) causes massive memory allocation overhead and Garbage Collection pressure during the frequent render loop.
 **Action:** Implement and use iterator-based `_count()` methods (e.g., `.filter(...).count()`) instead of `.len()` on collected `Vec`s to perform zero-allocation counting directly inside rendering loops.
+
+## 2024-05-19 - O(N*M) to O(N+M) loop optimization
+**Learning:** Matching remote items against local items using `.iter().any(...)` inside a loop creates an O(N*M) performance bottleneck.
+**Action:** Pre-compute a `HashSet` of the local items' identifiers to reduce loop complexity to O(N+M) via O(1) lookups.
