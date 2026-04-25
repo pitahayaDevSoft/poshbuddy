@@ -312,26 +312,39 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         })
         .collect();
 
-    if items.is_empty() {
-        items.push(
-            ListItem::new("  No themes matching filter...").style(Style::default().fg(C_DIM)),
-        );
+    let is_empty = items.is_empty();
+    let title = if app.filter.is_empty() {
+        " Themes List "
+    } else {
+        " Themes List (Filtered) "
+    };
+
+    if is_empty {
+        let msg = if app.filter.is_empty() {
+            "  No themes available.".to_string()
+        } else {
+            format!("  No themes matching '{}'", app.filter)
+        };
+        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
     }
 
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(" Themes List "),
-        )
-        .highlight_style(
-            Style::default()
-                .bg(Color::DarkGray)
-                .fg(C_WHITE)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(" ▶ ");
+    let mut list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(C_ACCENT))
+            .title(title),
+    );
+
+    if !is_empty {
+        list = list
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .fg(C_WHITE)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(" ▶ ");
+    }
 
     f.render_stateful_widget(list, left[1], &mut app.list_state);
 
@@ -394,25 +407,44 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
 
     let fonts = app.filtered_fonts();
-    let items: Vec<ListItem> = fonts
+    let mut items: Vec<ListItem> = fonts
         .iter()
         .map(|font| ListItem::new(format!("  {}", font.name)).style(Style::default().fg(C_WHITE)))
         .collect();
 
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(" Available Fonts "),
-        )
-        .highlight_style(
-            Style::default()
-                .bg(Color::DarkGray)
-                .fg(C_WHITE)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(" ▶ ");
+    let is_empty = items.is_empty();
+    let title = if app.fonts_filter.is_empty() {
+        " Available Fonts "
+    } else {
+        " Available Fonts (Filtered) "
+    };
+
+    if is_empty {
+        let msg = if app.fonts_filter.is_empty() {
+            "  No fonts available.".to_string()
+        } else {
+            format!("  No fonts matching '{}'", app.fonts_filter)
+        };
+        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
+    }
+
+    let mut list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(C_ACCENT))
+            .title(title),
+    );
+
+    if !is_empty {
+        list = list
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .fg(C_WHITE)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(" ▶ ");
+    }
 
     f.render_stateful_widget(list, left[1], &mut app.fonts_list_state);
 
@@ -491,7 +523,7 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.segments_filter, "Segments");
 
     let segments = app.filtered_segments();
-    let items: Vec<ListItem> = segments
+    let mut items: Vec<ListItem> = segments
         .iter()
         .map(|s| {
             let active = app.is_segment_active(s);
@@ -505,20 +537,39 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         })
         .collect();
 
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(" Components "),
-        )
-        .highlight_style(
-            Style::default()
-                .bg(Color::DarkGray)
-                .fg(C_WHITE)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(" ▶ ");
+    let is_empty = items.is_empty();
+    let title = if app.segments_filter.is_empty() {
+        " Components "
+    } else {
+        " Components (Filtered) "
+    };
+
+    if is_empty {
+        let msg = if app.segments_filter.is_empty() {
+            "  No components available.".to_string()
+        } else {
+            format!("  No components matching '{}'", app.segments_filter)
+        };
+        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
+    }
+
+    let mut list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(C_ACCENT))
+            .title(title),
+    );
+
+    if !is_empty {
+        list = list
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .fg(C_WHITE)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(" ▶ ");
+    }
 
     f.render_stateful_widget(list, left[1], &mut app.plugins_list_state);
 
