@@ -47,6 +47,10 @@ pub async fn download_theme_file(
     url: &str,
     target_dir: &std::path::Path,
 ) -> Result<std::path::PathBuf, String> {
+    // Path Traversal Mitigation
+    if name.contains("..") || name.contains('/') || name.contains('\\') {
+        return Err("Security Error: Potential path traversal detected in theme name".to_string());
+    }
     let client = get_client();
     let file_path = target_dir.join(format!("{}.omp.json", name));
 
@@ -71,6 +75,10 @@ pub async fn download_theme_file(
 
 /// Downloads a remote theme file to a temporary location for previewing
 pub async fn download_to_temp(name: &str, url: &str) -> Result<std::path::PathBuf, String> {
+    // Path Traversal Mitigation
+    if name.contains("..") || name.contains('/') || name.contains('\\') {
+        return Err("Security Error: Potential path traversal detected in theme name".to_string());
+    }
     let client = get_client();
     let response = client
         .get(url)
@@ -394,5 +402,26 @@ mod tests {
 
         // Channel should be dropped without sending any messages
         assert!(rx.recv().await.is_none());
+    }
+}
+
+#[cfg(test)]
+mod security_tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[tokio::test]
+    async fn test_download_theme_file_traversal() {
+        let themes_dir = PathBuf::from(".");
+        let result = download_theme_file("../etc/passwd", "http://example.com", &themes_dir).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("path traversal"));
+    }
+
+    #[tokio::test]
+    async fn test_download_to_temp_traversal() {
+        let result = download_to_temp("malicious/path", "http://example.com").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("path traversal"));
     }
 }

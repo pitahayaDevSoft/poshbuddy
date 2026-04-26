@@ -264,14 +264,32 @@ impl App {
                         }
                     }
                     KeyCode::Down => {
-                        if self.welcome_selected_action < 8 {
+                        if self.welcome_selected_action < 7 {
                             self.welcome_selected_action += 1;
                         }
                     }
                     KeyCode::Enter => {
                         match self.welcome_selected_action {
                             0 => {
-                                // Random Theme
+                                // Explore Themes
+                                self.state = AppState::Main;
+                                self.active_view = ActiveView::Themes;
+                                if let Some(t) = self.filtered_themes().first() {
+                                    self.load_theme_preview(t.clone(), tx.clone());
+                                }
+                            }
+                            1 => {
+                                // Install Fonts
+                                self.state = AppState::Main;
+                                self.active_view = ActiveView::Fonts;
+                            }
+                            2 => {
+                                // Manage Segments
+                                self.state = AppState::Main;
+                                self.active_view = ActiveView::Segments;
+                            }
+                            3 => {
+                                // Randomize Style
                                 if !self.themes.is_empty() {
                                     use std::time::{SystemTime, UNIX_EPOCH};
                                     let idx = SystemTime::now()
@@ -285,8 +303,8 @@ impl App {
                                     }
                                 }
                             }
-                            1 => self.state = AppState::ConfirmMassFontInstallation,
-                            2 => {
+                            4 => self.state = AppState::ConfirmMassFontInstallation,
+                            5 => {
                                 // Terminal Icons
                                 if let Some(p) = self
                                     .plugins
@@ -301,22 +319,11 @@ impl App {
                                     }
                                 }
                             }
-                            5 => {
-                                self.state = AppState::Main;
-                                self.active_view = ActiveView::Themes;
-                                if let Some(t) = self.filtered_themes().first() {
-                                    self.load_theme_preview(t.clone(), tx.clone());
-                                }
-                            }
                             6 => {
-                                self.state = AppState::Main;
-                                self.active_view = ActiveView::Fonts;
+                                // Diagnostics
+                                self.state = AppState::Success("Diagnostics coming soon!".to_string());
                             }
                             7 => {
-                                self.state = AppState::Main;
-                                self.active_view = ActiveView::Segments;
-                            }
-                            8 => {
                                 // Manual Backup
                                 if let Err(e) = self.create_manual_backup() {
                                     self.state = AppState::Error(format!("Backup failed: {}", e));
@@ -345,30 +352,87 @@ impl App {
                         self.state = AppState::Main;
                         self.active_view = ActiveView::Segments;
                     }
+                    KeyCode::Char('4') => {
+                        self.welcome_selected_action = 3;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('5') => {
+                        self.welcome_selected_action = 4;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('6') => {
+                        self.welcome_selected_action = 5;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('7') => {
+                        self.welcome_selected_action = 6;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('8') => {
+                        self.welcome_selected_action = 7;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
 
                     // --- Mnemonic Quick Action Shortcuts ---
-                    KeyCode::Char('r') | KeyCode::Char('R') => {
+                    KeyCode::Char('t') | KeyCode::Char('T') => {
                         self.welcome_selected_action = 0;
                         let _ = self.handle_input(
                             crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
                             tx,
                         );
                     }
-                    KeyCode::Char('n') | KeyCode::Char('N') => {
-                        self.state = AppState::ConfirmMassFontInstallation
+                    KeyCode::Char('f') | KeyCode::Char('F') => {
+                        self.welcome_selected_action = 1;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
                     }
-                    KeyCode::Char('i') | KeyCode::Char('I') => {
+                    KeyCode::Char('s') | KeyCode::Char('S') => {
                         self.welcome_selected_action = 2;
                         let _ = self.handle_input(
                             crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
                             tx,
                         );
                     }
-                    KeyCode::Char('d') | KeyCode::Char('D') => {
-                        self.state = AppState::Success("Diagnostics coming soon!".to_string())
+                    KeyCode::Char('r') | KeyCode::Char('R') => {
+                        self.welcome_selected_action = 3;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
                     }
-                    KeyCode::Char('v') | KeyCode::Char('V') => {
+                    KeyCode::Char('n') | KeyCode::Char('N') => {
                         self.welcome_selected_action = 4;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('i') | KeyCode::Char('I') => {
+                        self.welcome_selected_action = 5;
+                        let _ = self.handle_input(
+                            crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                            tx,
+                        );
+                    }
+                    KeyCode::Char('d') | KeyCode::Char('D') => {
+                        self.welcome_selected_action = 6;
                         let _ = self.handle_input(
                             crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
                             tx,
@@ -377,7 +441,7 @@ impl App {
                     KeyCode::Char('b') | KeyCode::Char('B')
                         if !key.modifiers.contains(KeyModifiers::CONTROL) =>
                     {
-                        self.welcome_selected_action = 8;
+                        self.welcome_selected_action = 7;
                         let _ = self.handle_input(
                             crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
                             tx,

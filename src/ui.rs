@@ -843,65 +843,49 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     }
 
     // Right Column: Quick Steps
-    let actions = vec![
-        Line::from(""),
-        Line::from(vec![
-            Span::styled(
-                "  [1]",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" Explore Themes (T)"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "  [2]",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" Install Fonts (F)"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "  [3]",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" Manage Segments (S)"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "  [4]",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" Randomize Style (R)"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "  [5]",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" Install ALL Fonts (N)"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "  [6]",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" Terminal Icons (I)"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "  [D]",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" Diagnostics"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "  [B]",
-                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" Manual Backup"),
-        ]),
+    let action_labels = [
+        (" Explore Themes ", "T", "1"),
+        (" Install Fonts  ", "F", "2"),
+        (" Manage Segments ", "S", "3"),
+        (" Randomize Style ", "R", "4"),
+        (" Install ALL Fonts ", "N", "5"),
+        (" Terminal Icons  ", "I", "6"),
+        (" Diagnostics     ", "D", "7"),
+        (" Manual Backup   ", "B", "8"),
     ];
+
+    let mut actions = vec![Line::from("")];
+    for (i, (label, mnemonic, key)) in action_labels.iter().enumerate() {
+        let is_selected = i == app.welcome_selected_action;
+        let is_disabled = i == 6; // Diagnostics soon
+
+        let (key_style, label_style) = if is_disabled && is_selected {
+            (
+                Style::default().fg(C_DIM).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+                Style::default().fg(C_DIM).bg(Color::DarkGray),
+            )
+        } else if is_disabled {
+            (
+                Style::default().fg(C_DIM),
+                Style::default().fg(C_DIM),
+            )
+        } else if is_selected {
+            (
+                Style::default().fg(C_BLACK).bg(C_ACCENT).add_modifier(Modifier::BOLD),
+                Style::default().fg(C_WHITE).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+                Style::default().fg(C_WHITE),
+            )
+        };
+
+        actions.push(Line::from(vec![
+            Span::styled(format!("  [{}]", key), key_style),
+            Span::styled(format!(" {} ({})", label, mnemonic), label_style),
+        ]));
+    }
 
     f.render_widget(
         Paragraph::new(actions).block(
@@ -916,9 +900,9 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     // 4. Next Step Hint
     f.render_widget(
         Paragraph::new(if is_narrow {
-            "Use [1-6, T, F, S, R, N, I, D, B] to navigate"
+            "Use [1-8, T, F, S, R, N, I, D, B] to navigate"
         } else {
-            "\nUse keys [1-6] or mnemonics [T, F, S, R, N, I, D, B] to navigate..."
+            "\nUse keys [1-8] or mnemonics [T, F, S, R, N, I, D, B] to navigate..."
         })
         .alignment(Alignment::Center)
         .style(
