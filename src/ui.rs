@@ -735,7 +735,11 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled("󰅖 ", Style::default().fg(C_ERROR))
             },
             Span::styled(
-                if s.has_nerd_font { "Detected" } else { "Missing" },
+                if s.has_nerd_font {
+                    "Detected"
+                } else {
+                    "Missing"
+                },
                 Style::default().fg(if s.has_nerd_font { C_LOCAL } else { C_ERROR }),
             ),
         ]));
@@ -790,14 +794,62 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     // Right Column: Quick Steps
     let actions = vec![
         Line::from(""),
-        Line::from(vec![Span::styled("  [1]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Explore Themes (T)")]),
-        Line::from(vec![Span::styled("  [2]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Install Fonts (F)")]),
-        Line::from(vec![Span::styled("  [3]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Manage Segments (S)")]),
-        Line::from(vec![Span::styled("  [4]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Randomize Style (R)")]),
-        Line::from(vec![Span::styled("  [5]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Install ALL Fonts (N)")]),
-        Line::from(vec![Span::styled("  [6]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Terminal Icons (I)")]),
-        Line::from(vec![Span::styled("  [D]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Diagnostics")]),
-        Line::from(vec![Span::styled("  [B]", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)), Span::raw(" Manual Backup")]),
+        Line::from(vec![
+            Span::styled(
+                "  [1]",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Explore Themes (T)"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "  [2]",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Install Fonts (F)"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "  [3]",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Manage Segments (S)"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "  [4]",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Randomize Style (R)"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "  [5]",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Install ALL Fonts (N)"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "  [6]",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Terminal Icons (I)"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "  [D]",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Diagnostics"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "  [B]",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Manual Backup"),
+        ]),
     ];
 
     f.render_widget(
