@@ -861,18 +861,24 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
         let (key_style, label_style) = if is_disabled && is_selected {
             (
-                Style::default().fg(C_DIM).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_DIM)
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
                 Style::default().fg(C_DIM).bg(Color::DarkGray),
             )
         } else if is_disabled {
-            (
-                Style::default().fg(C_DIM),
-                Style::default().fg(C_DIM),
-            )
+            (Style::default().fg(C_DIM), Style::default().fg(C_DIM))
         } else if is_selected {
             (
-                Style::default().fg(C_BLACK).bg(C_ACCENT).add_modifier(Modifier::BOLD),
-                Style::default().fg(C_WHITE).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_BLACK)
+                    .bg(C_ACCENT)
+                    .add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_WHITE)
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
             )
         } else {
             (

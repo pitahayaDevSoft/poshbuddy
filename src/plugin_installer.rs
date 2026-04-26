@@ -23,7 +23,6 @@ pub struct PreCheckResult {
     pub errors: Vec<String>,
     pub module_exists: bool,
     pub has_powershell: bool,
-    pub has_permissions: bool,
 }
 
 impl PreCheckResult {
@@ -35,7 +34,6 @@ impl PreCheckResult {
             errors: Vec::new(),
             module_exists: false,
             has_powershell: false,
-            has_permissions: false,
         }
     }
 
@@ -92,27 +90,6 @@ impl PluginInstaller {
                 result
                     .warnings
                     .push(format!("Could not verify if module exists: {}", e));
-            }
-        }
-
-        // 3. Check script execution permissions
-        match Self::check_execution_policy() {
-            Ok(policy) => {
-                if crate::app::contains_ignore_ascii_case(&policy, "restricted") {
-                    result.errors.push(
-                        "PowerShell execution policy is restricted. \
-                         Run: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser"
-                            .to_string(),
-                    );
-                    result.can_install = false;
-                } else {
-                    result.has_permissions = true;
-                }
-            }
-            Err(e) => {
-                result
-                    .warnings
-                    .push(format!("Could not verify execution policy: {}", e));
             }
         }
 
@@ -254,20 +231,6 @@ impl PluginInstaller {
             Ok(!stdout.trim().is_empty())
         } else {
             Err(io::Error::other("Failed to check module status"))
-        }
-    }
-
-    /// Checks PowerShell execution policy
-    #[allow(dead_code)]
-    fn check_execution_policy() -> Result<String, io::Error> {
-        let output = Command::new("pwsh")
-            .args(["-Command", "Get-ExecutionPolicy -Scope CurrentUser"])
-            .output()?;
-
-        if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
-        } else {
-            Err(io::Error::other("Failed to check execution policy"))
         }
     }
 
@@ -419,5 +382,4 @@ mod tests {
         let result = installer.pre_check("Pester");
         assert!(result.has_powershell);
     }
-
 }
