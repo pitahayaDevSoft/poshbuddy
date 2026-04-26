@@ -1088,12 +1088,10 @@ impl App {
             }
 
             let output = tokio::process::Command::new("powershell")
+                .env("POSHBUDDY_MODULE_NAME", &module_name)
                 .args([
                     "-Command",
-                    &format!(
-                        "Install-Module -Name {} -Scope CurrentUser -Force -Confirm:$false",
-                        module_name
-                    ),
+                    "Install-Module -Name $env:POSHBUDDY_MODULE_NAME -Scope CurrentUser -Force -Confirm:$false",
                 ])
                 .output()
                 .await;
