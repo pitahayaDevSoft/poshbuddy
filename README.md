@@ -1,9 +1,3 @@
-<!-- trunk-ignore-all(markdownlint/MD033) -->
-<!-- trunk-ignore-all(markdownlint/MD041) -->
-<div align="center">
-  <img src="docs/logo.png" alt="PoshBuddy Logo" width="180" onerror="this.src='https://placehold.co/200x200/222222/00d2ff?text=PoshBuddy'"/>
-</div>
-
 # PoshBuddy
 
 ![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.4.1-blue) ![License](https://img.shields.io/badge/license-MIT-green)
