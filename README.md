@@ -11,7 +11,7 @@
 PoshBuddy is a professional management tool for Oh My Posh configurations. It provides a modernized, responsive terminal user interface (TUI) designed for high-density information display, surgical theme manipulation, and seamless Nerd Font management.
 
 <p align="center">
-  <img src="assets/demo.gif" alt="PoshBuddy TUI Demo" width="90%">
+  <img src="assets/demo.jpg" alt="PoshBuddy TUI Demo" width="90%">
 </p>
 
 Developed in Rust, PoshBuddy prioritizes safety and performance, ensuring that your PowerShell environment remains stable and your configuration files remain auditable at all times.
