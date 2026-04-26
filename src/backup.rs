@@ -458,4 +458,13 @@ mod tests {
         let result = manager.backup_profile(&fake_profile, "Test");
         assert!(matches!(result, Err(BackupError::ProfileNotFound(_))));
     }
+
+    #[test]
+    fn test_restore_latest_empty() {
+        let (manager, _temp_dir) = create_test_backup_manager();
+        let fake_profile = PathBuf::from("profile.ps1");
+
+        let result = manager.restore_latest(&fake_profile);
+        assert!(matches!(result, Err(BackupError::BackupNotFound(_))));
+    }
 }
