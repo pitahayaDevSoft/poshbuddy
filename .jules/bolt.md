@@ -13,3 +13,6 @@
 ## 2024-05-19 - Zero-allocation list length counting
 **Learning:** In Ratatui-based TUIs, determining list item counts using methods that allocate and clone elements into new `Vec`s (e.g. `app.filtered_items().len()`) causes massive memory allocation overhead and Garbage Collection pressure during the frequent render loop.
 **Action:** Implement and use iterator-based `_count()` methods (e.g., `.filter(...).count()`) instead of `.len()` on collected `Vec`s to perform zero-allocation counting directly inside rendering loops.
+## 2024-05-19 - Cache local sets for O(N+M) TUI filtering
+**Learning:** In Ratatui-based TUIs, comparing remote items against local items during the render loop using nested `O(N*M)` iterator scans (e.g. `!self.local_items.iter().any(...)`) creates massive frame latency as collections grow, and dynamically allocating a `HashSet` inside the method adds memory overhead per frame.
+**Action:** To optimize O(N*M) lookups in TUI render loops (e.g., matching remote themes against local themes), cache a pre-computed `HashSet` of identifiers directly on the application state (`App` struct) and update it via message handlers. Do not dynamically allocate the `HashSet` inside the frequently called render/filter methods to avoid unnecessary heap allocations.

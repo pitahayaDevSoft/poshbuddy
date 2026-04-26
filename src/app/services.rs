@@ -209,7 +209,7 @@ impl App {
             .iter()
             .filter(|rt| {
                 contains_ignore_ascii_case(&rt.name, filter)
-                    && !self.themes.iter().any(|t| t.name == rt.name)
+                    && !self.local_theme_names.contains(&rt.name)
             })
             .count();
         local_count + remote_count
@@ -230,7 +230,7 @@ impl App {
         // Add Remote (only if not local)
         for rt in &self.remote_themes {
             if contains_ignore_ascii_case(&rt.name, filter)
-                && !self.themes.iter().any(|t| t.name == rt.name)
+                && !self.local_theme_names.contains(&rt.name)
             {
                 unified.push(ThemeAsset {
                     name: rt.name.clone(),

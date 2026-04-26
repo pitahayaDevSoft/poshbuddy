@@ -164,4 +164,5 @@ pub struct App {
     pub preview_request_id: u64,        // ID to version and cancel obsolete previews
     pub active_preview_task: Option<tokio::task::JoinHandle<()>>, // Handle to abort preview tasks
     pub active_segments: HashSet<String>, // Cache of active segments to avoid repetitive I/O
+    pub local_theme_names: HashSet<String>, // Cache of local theme names to avoid O(N*M) loop inside filtered_themes
 }

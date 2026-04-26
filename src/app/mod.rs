@@ -83,6 +83,8 @@ impl App {
         }
         local_themes.sort_by(|a, b| a.name.cmp(&b.name));
 
+        let local_theme_names: std::collections::HashSet<String> = local_themes.iter().map(|t| t.name.clone()).collect();
+
         let mut app = App {
             state: AppState::Welcome,
             active_view: ActiveView::Themes,
@@ -115,6 +117,7 @@ impl App {
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
+            local_theme_names,
         };
 
         // Initialize active config path and segments cache
@@ -211,6 +214,7 @@ mod tests {
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
+            local_theme_names: HashSet::new(),
         }
     }
 
@@ -602,6 +606,14 @@ mod filtering_tests {
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
+            local_theme_names: vec![
+                "agnoster".to_string(),
+                "amro".to_string(),
+                "atomic".to_string(),
+                "catppuccin_frappe".to_string(),
+                "Catppuccin_Macchiato".to_string(),
+                "cyberpunk".to_string(),
+            ].into_iter().collect(),
         }
     }
 

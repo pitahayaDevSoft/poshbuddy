@@ -14,6 +14,7 @@ impl App {
                 AppMessage::ThemesLoaded(new_themes) => {
                     for t in new_themes {
                         if !self.themes.iter().any(|existing| existing.name == t.name) {
+                            self.local_theme_names.insert(t.name.clone());
                             self.themes.push(t);
                         }
                     }
@@ -58,6 +59,7 @@ impl App {
                         };
 
                         if !self.themes.iter().any(|t| t.name == theme_asset.name) {
+                            self.local_theme_names.insert(theme_asset.name.clone());
                             self.themes.push(theme_asset.clone());
                             self.themes.sort_by(|a, b| a.name.cmp(&b.name));
                         }
