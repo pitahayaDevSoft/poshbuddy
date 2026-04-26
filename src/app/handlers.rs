@@ -321,7 +321,8 @@ impl App {
                             }
                             6 => {
                                 // Diagnostics
-                                self.state = AppState::Success("Diagnostics coming soon!".to_string());
+                                self.state =
+                                    AppState::Success("Diagnostics coming soon!".to_string());
                             }
                             7 => {
                                 // Manual Backup
