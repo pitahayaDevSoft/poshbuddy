@@ -226,80 +226,10 @@ impl Diagnostic {
         Ok(result)
     }
 
-    /// Verifies all detected profiles
-    #[allow(dead_code)]
-    pub fn check_all_profiles(
-        &self,
-        profiles: &[std::path::PathBuf],
-    ) -> Result<DiagnosticResult, DiagnosticError> {
-        let mut result = DiagnosticResult::new();
-
-        if profiles.is_empty() {
-            result.add_error("No PowerShell profiles detected");
-            result.add_suggestion("Run 'notepad $PROFILE' to create a profile");
-            return Ok(result);
-        }
-
-        for profile in profiles {
-            let profile_result = self.check_profile(profile)?;
-            if !profile_result.is_valid() {
-                result.add_error(format!(
-                    "Issues in {}: {}",
-                    profile.display(),
-                    profile_result.errors.join(", ")
-                ));
-            }
-            for warning in &profile_result.warnings {
-                result.add_warning(format!("{}: {}", profile.display(), warning));
-            }
-        }
-
-        Ok(result)
-    }
-
-    /// Runs a full system diagnostic
-    #[allow(dead_code)]
-    pub fn run_full_diagnostic(
-        &self,
-        profiles: &[std::path::PathBuf],
-    ) -> Result<DiagnosticResult, DiagnosticError> {
-        let mut result = DiagnosticResult::new();
-
-        // 1. Verify PowerShell is installed
-        if !Self::is_powershell_available() {
-            result.add_error("PowerShell is not available in PATH");
-            return Ok(result);
-        }
-
-        // 2. Check Oh My Posh
-        match self.check_oh_my_posh() {
-            Ok(omp_ok) => {
-                if !omp_ok {
-                    result.add_error("Oh My Posh is not installed or not in PATH");
-                    result.add_suggestion(
-                        "Install Oh My Posh: winget install JanDeDobbeleer.OhMyPosh",
-                    );
-                }
-            }
-            Err(e) => {
-                result.add_warning(format!("Could not verify Oh My Posh: {}", e));
-            }
-        }
-
-        // 3. Verify profiles
-        let profile_result = self.check_all_profiles(profiles)?;
-        result.warnings.extend(profile_result.warnings);
-        result.errors.extend(profile_result.errors);
-        result.suggestions.extend(profile_result.suggestions);
-
-        result.success = result.errors.is_empty();
-        Ok(result)
-    }
-
     /// Checks if PowerShell is available
     #[allow(dead_code)]
     pub fn is_powershell_available() -> bool {
-        let cmd = if cfg!(windows) { "pwsh" } else { "pwsh" };
+        let cmd = "pwsh";
         Command::new(cmd)
             .arg("-Command")
             .arg("$PSVersionTable.PSVersion")
