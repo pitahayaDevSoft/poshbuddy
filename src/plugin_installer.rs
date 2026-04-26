@@ -117,7 +117,7 @@ impl PluginInstaller {
         }
 
         // 4. Verify connectivity to PSGallery (simplified)
-        if !Self::check_internet_connectivity() {
+        if !crate::api::check_internet_connectivity() {
             result
                 .warnings
                 .push("No internet connection detected. Installation might fail.".to_string());
@@ -268,28 +268,6 @@ impl PluginInstaller {
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
         } else {
             Err(io::Error::other("Failed to check execution policy"))
-        }
-    }
-
-    /// Checks basic internet connectivity
-    #[allow(dead_code)]
-    fn check_internet_connectivity() -> bool {
-        // Attempts to ping Google DNS as a simple test
-        #[cfg(windows)]
-        {
-            Command::new("ping")
-                .args(["-n", "1", "-w", "1000", "8.8.8.8"])
-                .output()
-                .map(|o| o.status.success())
-                .unwrap_or(false)
-        }
-        #[cfg(not(windows))]
-        {
-            Command::new("ping")
-                .args(["-c", "1", "-W", "1", "8.8.8.8"])
-                .output()
-                .map(|o| o.status.success())
-                .unwrap_or(false)
         }
     }
 
