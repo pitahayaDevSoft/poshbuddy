@@ -230,13 +230,21 @@ fn render_tab_bar(f: &mut Frame, area: Rect, app: &App) {
 
 // ── Context-sensitive footer (1 line, no border) ──────────────────────────────
 fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
+    let is_filtering = match app.active_view {
+        ActiveView::Themes => !app.filter.is_empty(),
+        ActiveView::Fonts => !app.fonts_filter.is_empty(),
+        ActiveView::Segments => !app.segments_filter.is_empty(),
+    };
+
+    let esc_action = if is_filtering { "Esc Clear Search" } else { "Esc/H Dashboard" };
+
     let hint = match app.active_view {
         ActiveView::Themes =>
-            "  ↑↓ Navigate  │  Enter Apply  │  Type Search  │  Esc/H Dashboard  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit",
+            format!("  ↑↓ Navigate  │  Enter Apply  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit", esc_action),
         ActiveView::Fonts =>
-            "  ↑↓ Navigate  │  Enter Install  │  Type Search  │  Esc/H Dashboard  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit",
+            format!("  ↑↓ Navigate  │  Enter Install  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit", esc_action),
         ActiveView::Segments =>
-            "  ↑↓ Navigate  │  Enter Toggle  │  Type Search  │  Esc/H Dashboard  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit",
+            format!("  ↑↓ Navigate  │  Enter Toggle  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit", esc_action),
     };
     f.render_widget(Paragraph::new(hint).style(Style::default().fg(C_DIM)), area);
 }
