@@ -14,3 +14,6 @@
 ## 2026-04-25 - Explicit Empty States and Disabled Highlights
 **Learning:** In TUI applications built with Ratatui, active filters yielding zero results should have explicit empty states rather than blank views, and empty state list items shouldn't be highlighted as if they are selectable.
 **Action:** When rendering lists with an empty fallback message, I will conditionally disable the list's `highlight_style` and `highlight_symbol` (e.g. `if !items.is_empty()`) and explicitly update block titles to reflect active filters.
+## 2024-11-25 - Context-Sensitive Keyboard Shortcut Hints
+**Learning:** In TUI applications built with Ratatui, keyboard shortcuts for actions like clearing active filters using Esc key can be misleading when text elements statically indicate "Esc Dashboard" or similar default text, leading users to believe it performs a different action.
+**Action:** Always dynamically update context-sensitive keyboard shortcut hints (like footer text) to reflect the current local state (e.g., changing 'Esc Dashboard' to 'Esc Clear Search' when a filter is active) to prevent misleading users.
