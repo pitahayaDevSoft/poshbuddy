@@ -215,6 +215,38 @@ impl App {
         local_count + remote_count
     }
 
+    /// Retrieves a filtered theme by its index without allocating the full list
+    pub fn filtered_theme_at(&self, index: usize) -> Option<crate::app::models::ThemeAsset> {
+        let filter = &self.filter;
+        let mut current = 0;
+
+        for t in &self.themes {
+            if contains_ignore_ascii_case(&t.name, filter) {
+                if current == index {
+                    return Some(t.clone());
+                }
+                current += 1;
+            }
+        }
+
+        for rt in &self.remote_themes {
+            if contains_ignore_ascii_case(&rt.name, filter)
+                && !self.local_theme_names.contains(&rt.name)
+            {
+                if current == index {
+                    return Some(crate::app::models::ThemeAsset {
+                        name: rt.name.clone(),
+                        is_local: false,
+                        download_url: Some(rt.download_url.clone()),
+                    });
+                }
+                current += 1;
+            }
+        }
+
+        None
+    }
+
     /// Returns a unified list of filtered themes (Local + Unique Remote)
     pub fn filtered_themes(&self) -> Vec<ThemeAsset> {
         let filter = &self.filter;

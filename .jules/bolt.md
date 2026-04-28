@@ -19,3 +19,6 @@
 ## 2024-04-27 - Unnecessary Allocation in TUI Navigation
 **Learning:** In Ratatui-based TUI event handlers within this codebase, full list allocation methods (e.g., `filtered_fonts()`) were being called purely to check `.len()` for keyboard navigation boundaries, discarding the heavy `Vec` immediately after.
 **Action:** Always prefer `_count()` methods (e.g., `filtered_fonts_count()`) for list boundary calculations during navigation to avoid O(N) allocation and deep copying on every arrow key press.
+## 2024-04-28 - Zero-allocation Theme List Navigation
+**Learning:** Calling `self.filtered_themes()` purely to access a single item via `.get(i)` or `.first()` during keyboard navigation allocates a full `Vec` on every keystroke, leading to O(N) allocation overhead for a simple lookup.
+**Action:** Implement and use a zero-allocation `filtered_theme_at(&self, index: usize) -> Option<ThemeAsset>` method for retrieving specific themes directly from the iterators instead of building and discarding the entire filtered list.

@@ -36,9 +36,8 @@ impl App {
                     request_id,
                 } => {
                     if request_id == self.preview_request_id {
-                        let filtered = self.filtered_themes();
                         if let Some(selected_index) = self.list_state.selected() {
-                            if let Some(current_theme) = filtered.get(selected_index) {
+                            if let Some(current_theme) = self.filtered_theme_at(selected_index) {
                                 if current_theme.name == theme.name {
                                     self.theme_preview = preview;
                                 }
@@ -181,7 +180,7 @@ impl App {
                     match self.active_view {
                         ActiveView::Themes => {
                             self.list_state.select(Some(0));
-                            if let Some(t) = self.filtered_themes().first() {
+                            if let Some(t) = self.filtered_theme_at(0) {
                                 self.theme_preview = " Loading preview...".to_string();
                                 self.load_theme_preview(t.clone(), tx.clone());
                             } else {
@@ -274,7 +273,7 @@ impl App {
                                 // Explore Themes
                                 self.state = AppState::Main;
                                 self.active_view = ActiveView::Themes;
-                                if let Some(t) = self.filtered_themes().first() {
+                                if let Some(t) = self.filtered_theme_at(0) {
                                     self.load_theme_preview(t.clone(), tx.clone());
                                 }
                             }
@@ -341,7 +340,7 @@ impl App {
                     KeyCode::Char('1') => {
                         self.state = AppState::Main;
                         self.active_view = ActiveView::Themes;
-                        if let Some(t) = self.filtered_themes().first() {
+                        if let Some(t) = self.filtered_theme_at(0) {
                             self.load_theme_preview(t.clone(), tx.clone());
                         }
                     }
@@ -539,21 +538,21 @@ impl App {
     fn navigate_list(&mut self, forward: bool, tx: mpsc::Sender<AppMessage>) {
         match self.active_view {
             ActiveView::Themes => {
-                let filtered = self.filtered_themes();
-                if filtered.is_empty() {
+                let count = self.filtered_themes_count();
+                if count == 0 {
                     return;
                 }
                 let i = match self.list_state.selected() {
                     Some(i) => {
                         if forward {
-                            if i >= filtered.len() - 1 {
+                            if i >= count - 1 {
                                 0
                             } else {
                                 i + 1
                             }
                         } else {
                             if i == 0 {
-                                filtered.len() - 1
+                                count - 1
                             } else {
                                 i - 1
                             }
@@ -562,7 +561,7 @@ impl App {
                     None => 0,
                 };
                 self.list_state.select(Some(i));
-                if let Some(t) = filtered.get(i) {
+                if let Some(t) = self.filtered_theme_at(i) {
                     self.theme_preview = " Loading preview...".to_string();
                     self.load_theme_preview(t.clone(), tx);
                 }
@@ -624,9 +623,8 @@ impl App {
     fn execute_active_view_action(&mut self, tx: mpsc::Sender<AppMessage>) {
         match self.active_view {
             ActiveView::Themes => {
-                let filtered = self.filtered_themes();
                 if let Some(selected) = self.list_state.selected() {
-                    if let Some(theme) = filtered.get(selected) {
+                    if let Some(theme) = self.filtered_theme_at(selected) {
                         if !theme.is_local && !crate::api::check_internet_connectivity() {
                             self.state =
                                 AppState::Error("No internet connection detected.".to_string());
