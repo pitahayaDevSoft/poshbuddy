@@ -7,8 +7,6 @@ use std::path::PathBuf;
 pub struct PluginAsset {
     pub name: String,
     pub description: String,
-    #[allow(dead_code)]
-    pub documentation: String,
     pub module_name: String,
     pub init_script: Option<String>,
 }

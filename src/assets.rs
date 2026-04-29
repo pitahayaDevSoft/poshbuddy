@@ -6,21 +6,18 @@ pub fn get_default_plugins() -> Vec<PluginAsset> {
         PluginAsset {
             name: "Terminal-Icons".to_string(),
             description: "Adds file and folder icons to your terminal outputs (ls, dir).".to_string(),
-            documentation: "Requires a Nerd Font. Enhances visual data parsing in long lists.".to_string(),
             module_name: "Terminal-Icons".to_string(),
             init_script: None,
         },
         PluginAsset {
             name: "zoxide (z Explorer)".to_string(),
             description: "A smarter cd command. It remembers which directories you use most often.".to_string(),
-            documentation: "Usage: type 'z <name>' to jump. Replaces 'cd' with intelligent fuzzy matching.".to_string(),
             module_name: "zoxide".to_string(),
             init_script: Some("if (Get-Command zoxide -ErrorAction SilentlyContinue) { zoxide init powershell --hook pwd | Out-String | Invoke-Expression }".to_string()),
         },
         PluginAsset {
             name: "PSReadLine Mastery".to_string(),
             description: "Enables Predictive IntelliSense (fish-like) and syntax highlighting.".to_string(),
-            documentation: "Optimizes command history search and adds visual feedback while typing.".to_string(),
             module_name: "PSReadLine".to_string(),
             init_script: Some("Set-PSReadLineOption -PredictionSource History\nSet-PSReadLineOption -PredictionViewStyle ListView".to_string()),
         },
