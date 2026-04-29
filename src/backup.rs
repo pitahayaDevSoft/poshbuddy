@@ -19,8 +19,6 @@ pub struct BackupInfo {
     pub original_path: PathBuf,
     pub timestamp: u64,
     #[allow(dead_code)]
-    pub size_bytes: u64,
-    #[allow(dead_code)]
     pub description: String,
 }
 
@@ -189,9 +187,6 @@ impl BackupManager {
                     && (path.extension() == Some(std::ffi::OsStr::new("backup"))
                         || path.extension() == Some(std::ffi::OsStr::new("ps1")))
                 {
-                    let metadata = fs::metadata(&path)?;
-                    let size_bytes = metadata.len();
-
                     // Extract timestamp from name
                     let timestamp = filename
                         .split('_')
@@ -220,7 +215,6 @@ impl BackupManager {
                         path,
                         original_path: profile_path.to_path_buf(),
                         timestamp,
-                        size_bytes,
                         description,
                     });
                 }
