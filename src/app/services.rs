@@ -215,6 +215,63 @@ impl App {
         local_count + remote_count
     }
 
+    /// Returns a specific filtered theme without allocating a full Vec
+    pub fn filtered_theme_at(&self, index: usize) -> Option<ThemeAsset> {
+        let filter = &self.filter;
+
+        let mut current_idx = 0;
+
+        // Search Local
+        for t in &self.themes {
+            if contains_ignore_ascii_case(&t.name, filter) {
+                if current_idx == index {
+                    return Some(t.clone());
+                }
+                current_idx += 1;
+            }
+        }
+
+        // Search Remote (only if not local)
+        for rt in &self.remote_themes {
+            if contains_ignore_ascii_case(&rt.name, filter)
+                && !self.local_theme_names.contains(&rt.name)
+            {
+                if current_idx == index {
+                    return Some(ThemeAsset {
+                        name: rt.name.clone(),
+                        is_local: false,
+                        download_url: Some(rt.download_url.clone()),
+                    });
+                }
+                current_idx += 1;
+            }
+        }
+
+        None
+    }
+
+    /// Returns a specific filtered font without allocating a full Vec
+    pub fn filtered_font_at(&self, index: usize) -> Option<FontAsset> {
+        self.fonts
+            .iter()
+            .filter(|f| contains_ignore_ascii_case(&f.name, &self.fonts_filter))
+            .nth(index)
+            .cloned()
+    }
+
+    /// Returns a specific filtered segment without allocating a full Vec
+    pub fn filtered_segment_at(&self, index: usize) -> Option<SegmentAsset> {
+        self.segments
+            .iter()
+            .filter(|p| {
+                contains_ignore_ascii_case(&p.name, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.description, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.category, &self.segments_filter)
+            })
+            .nth(index)
+            .cloned()
+    }
+
     /// Returns a unified list of filtered themes (Local + Unique Remote)
     pub fn filtered_themes(&self) -> Vec<ThemeAsset> {
         let filter = &self.filter;

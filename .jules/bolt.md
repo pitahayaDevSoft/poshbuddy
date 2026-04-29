@@ -19,3 +19,6 @@
 ## 2024-04-27 - Unnecessary Allocation in TUI Navigation
 **Learning:** In Ratatui-based TUI event handlers within this codebase, full list allocation methods (e.g., `filtered_fonts()`) were being called purely to check `.len()` for keyboard navigation boundaries, discarding the heavy `Vec` immediately after.
 **Action:** Always prefer `_count()` methods (e.g., `filtered_fonts_count()`) for list boundary calculations during navigation to avoid O(N) allocation and deep copying on every arrow key press.
+## 2024-05-24 - Zero-allocation List Element Lookups
+**Learning:** In Rust TUI applications, fetching a single element from a filtered list using methods that allocate a full `Vec` (e.g. `app.filtered_themes().first()`) creates O(N) allocation overhead per keystroke during keyboard navigation or event handling.
+**Action:** Implement zero-allocation lazy-iteration lookups (e.g., `filtered_theme_at(&self, index: usize)`) that lazily scan and return the Nth element, avoiding full collection allocations and deep cloning just to check a single item's state.
