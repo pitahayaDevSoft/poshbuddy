@@ -83,7 +83,8 @@ impl App {
         }
         local_themes.sort_by(|a, b| a.name.cmp(&b.name));
 
-        let local_theme_names: std::collections::HashSet<String> = local_themes.iter().map(|t| t.name.clone()).collect();
+        let local_theme_names: std::collections::HashSet<String> =
+            local_themes.iter().map(|t| t.name.clone()).collect();
 
         let mut app = App {
             state: AppState::Welcome,
@@ -612,7 +613,9 @@ mod filtering_tests {
                 "catppuccin_frappe".to_string(),
                 "Catppuccin_Macchiato".to_string(),
                 "cyberpunk".to_string(),
-            ].into_iter().collect(),
+            ]
+            .into_iter()
+            .collect(),
         }
     }
 

@@ -14,13 +14,15 @@ use std::sync::OnceLock;
 static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 pub fn get_client() -> reqwest::Client {
-    CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
-            .user_agent("poshbuddy")
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
-    }).clone()
+    CLIENT
+        .get_or_init(|| {
+            reqwest::Client::builder()
+                .user_agent("poshbuddy")
+                .timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new())
+        })
+        .clone()
 }
 
 /// Checks if the system has an active internet connection by attempting a fast resolve

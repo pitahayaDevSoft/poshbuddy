@@ -419,5 +419,4 @@ mod tests {
         let result = installer.pre_check("Pester");
         assert!(result.has_powershell);
     }
-
 }

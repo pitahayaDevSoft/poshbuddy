@@ -33,6 +33,21 @@ pub fn ui(f: &mut Frame, app: &mut App) {
         } => {
             render_installing_dep(f, f.size(), &log, &current_action);
         }
+        AppState::ApplyingProgress {
+            name,
+            stage,
+            progress,
+        } => {
+            let title = match stage {
+                0 => " ⬇ Downloading ",
+                1 => " 🔍 Verifying ",
+                2 => " 💾 Backing up ",
+                3 => " ⚡ Applying ",
+                _ => " ⏳ Working ",
+            };
+            let msg = format!("Theme: {}\n\nProgress: {}%", name, progress);
+            render_modal(f, f.size(), title, &msg, C_ACCENT, "please wait");
+        }
         _ => render_main(f, f.size(), app),
     }
 
@@ -691,13 +706,13 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     // Render Logo if space permits
     if has_space_for_logo {
         // All lines must have the exact same width for perfect centering
-        let logo = r#"  _____           _     ____            _     _        
- |  __ \         | |   |  _ \          | |   | |       
- | |__) |__  ___ | |__ | |_) |_   _  __| | __| |_   _  
- |  ___/ _ \/ __|| '_ \|  _ <| | | |/ _` |/ _` | | | | 
- | |  | (_) \__ \| | | | |_) | |_| | (_| | (_| | |_| | 
- |_|   \___/|___/|_| |_|____/ \__,_|\__,_|\__,_|\__, | 
-                                                 __/ | 
+        let logo = r#"  _____           _     ____            _     _
+ |  __ \         | |   |  _ \          | |   | |
+ | |__) |__  ___ | |__ | |_) |_   _  __| | __| |_   _
+ |  ___/ _ \/ __|| '_ \|  _ <| | | |/ _` |/ _` | | | |
+ | |  | (_) \__ \| | | | |_) | |_| | (_| | (_| | |_| |
+ |_|   \___/|___/|_| |_|____/ \__,_|\__,_|\__,_|\__, |
+                                                 __/ |
                                                 |___/  "#;
         f.render_widget(
             Paragraph::new(logo)
@@ -875,18 +890,24 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
         let (key_style, label_style) = if is_disabled && is_selected {
             (
-                Style::default().fg(C_DIM).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_DIM)
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
                 Style::default().fg(C_DIM).bg(Color::DarkGray),
             )
         } else if is_disabled {
-            (
-                Style::default().fg(C_DIM),
-                Style::default().fg(C_DIM),
-            )
+            (Style::default().fg(C_DIM), Style::default().fg(C_DIM))
         } else if is_selected {
             (
-                Style::default().fg(C_BLACK).bg(C_ACCENT).add_modifier(Modifier::BOLD),
-                Style::default().fg(C_WHITE).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_BLACK)
+                    .bg(C_ACCENT)
+                    .add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_WHITE)
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
             )
         } else {
             (
