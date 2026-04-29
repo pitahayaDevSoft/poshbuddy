@@ -68,7 +68,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
     // Floating modals — rendered on top of everything
     match &app.state {
         AppState::Success(msg) => {
-            render_modal(f, area, " ✓ Applied ", msg, C_ACTIVE, "any key");
+            render_modal(f, area, " ✓ Applied ", msg, C_ACTIVE, Some("any key"));
         }
         AppState::FontSuccess(name) => {
             render_modal(
@@ -77,7 +77,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 " ✓ Font Installed ",
                 &format!("'{}' installed successfully.", name),
                 C_LOCAL,
-                "any key to continue",
+                Some("any key to continue"),
             );
         }
         AppState::PluginSuccess(name) => {
@@ -87,7 +87,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 " ✓ Segment Toggled ",
                 &format!("'{}' toggled in your active theme.", name),
                 C_LOCAL,
-                "any key to continue",
+                Some("any key to continue"),
             );
         }
         AppState::Installing(name) => {
@@ -97,11 +97,11 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 " ⏳ Working ",
                 &format!("Processing: {}\n\nThis may take a moment...", name),
                 C_ACCENT,
-                "please wait",
+                None,
             );
         }
         AppState::Error(msg) => {
-            render_modal(f, area, " ✗ Error ", msg, C_ERROR, "any key");
+            render_modal(f, area, " ✗ Error ", msg, C_ERROR, Some("any key"));
         }
         AppState::ApplyingProgress {
             name,
@@ -116,7 +116,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 _ => " ⏳ Working ",
             };
             let msg = format!("Theme: {}\n\nProgress: {}%", name, progress);
-            render_modal(f, area, title, &msg, C_ACCENT, "please wait");
+            render_modal(f, area, title, &msg, C_ACCENT, None);
         }
         _ => {}
     }
@@ -250,16 +250,22 @@ fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 // ── Floating modal ────────────────────────────────────────────────────────────
-fn render_modal(f: &mut Frame, area: Rect, title: &str, msg: &str, color: Color, dismiss: &str) {
+fn render_modal(f: &mut Frame, area: Rect, title: &str, msg: &str, color: Color, dismiss: Option<&str>) {
     let w = area.width.min(58);
     let h = 7u16;
     let x = area.x + (area.width.saturating_sub(w)) / 2;
     let y = area.y + (area.height.saturating_sub(h)) / 2;
     let modal = Rect::new(x, y, w, h);
 
+    let content = if let Some(d) = dismiss {
+        format!("\n  {}\n\n  Press {} to dismiss.", msg, d)
+    } else {
+        format!("\n  {}", msg)
+    };
+
     f.render_widget(Clear, modal);
     f.render_widget(
-        Paragraph::new(format!("\n  {}\n\n  Press {} to dismiss.", msg, dismiss))
+        Paragraph::new(content)
             .style(Style::default().fg(color))
             .block(
                 Block::default()

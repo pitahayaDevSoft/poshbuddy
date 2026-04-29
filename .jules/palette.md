@@ -14,3 +14,6 @@
 ## 2026-04-25 - Explicit Empty States and Disabled Highlights
 **Learning:** In TUI applications built with Ratatui, active filters yielding zero results should have explicit empty states rather than blank views, and empty state list items shouldn't be highlighted as if they are selectable.
 **Action:** When rendering lists with an empty fallback message, I will conditionally disable the list's `highlight_style` and `highlight_symbol` (e.g. `if !items.is_empty()`) and explicitly update block titles to reflect active filters.
+## 2024-04-28 - Hide Dismiss Hints on Non-Interactive States
+**Learning:** Progress dialogs or loading states should not prompt users with misleading dismiss hints like "Press please wait to dismiss" when the action is non-interactive. It increases cognitive load and causes confusion.
+**Action:** Always make dismiss hints optional in shared modal components. Only show interactive keyboard hints (like "Press any key to dismiss") when the user actually can interact with the dialog.
