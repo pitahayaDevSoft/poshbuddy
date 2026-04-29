@@ -24,7 +24,6 @@ const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧
 pub fn ui(f: &mut Frame, app: &mut App) {
     match app.state.clone() {
         AppState::Welcome => render_welcome(f, f.size(), app),
-        AppState::Onboarding(specs) => render_onboarding(f, f.size(), &specs),
         AppState::DependencyMissing => render_dep_missing(f, f.size()),
         AppState::Loading => render_loading(f, f.size(), app),
         AppState::InstallingDependency {
@@ -46,7 +45,7 @@ pub fn ui(f: &mut Frame, app: &mut App) {
                 _ => " ⏳ Working ",
             };
             let msg = format!("Theme: {}\n\nProgress: {}%", name, progress);
-            render_modal(f, f.size(), title, &msg, C_ACCENT, "please wait");
+            render_modal(f, f.size(), title, &msg, C_ACCENT, Some("please wait"));
         }
         _ => render_main(f, f.size(), app),
     }
@@ -95,7 +94,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 Some("any key to continue"),
             );
         }
-        AppState::PluginSuccess(name) => {
+        AppState::SegmentSuccess(name) => {
             render_modal(
                 f,
                 area,
@@ -150,7 +149,7 @@ fn render_title_bar(f: &mut Frame, area: Rect, app: &App) {
 
     // Left: brand
     f.render_widget(
-        Paragraph::new(format!("  PoshBuddy v{}", app.version))
+        Paragraph::new(format!("  🐱 PoshBuddy v{}", app.version))
             .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
         cols[0],
     );
@@ -251,7 +250,11 @@ fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
         ActiveView::Segments => !app.segments_filter.is_empty(),
     };
 
-    let esc_action = if is_filtering { "Esc Clear Search" } else { "Esc/H Dashboard" };
+    let esc_action = if is_filtering {
+        "Esc Clear Search"
+    } else {
+        "Esc/H Dashboard"
+    };
 
     let hint = match app.active_view {
         ActiveView::Themes =>
@@ -265,7 +268,14 @@ fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 // ── Floating modal ────────────────────────────────────────────────────────────
-fn render_modal(f: &mut Frame, area: Rect, title: &str, msg: &str, color: Color, dismiss: Option<&str>) {
+fn render_modal(
+    f: &mut Frame,
+    area: Rect,
+    title: &str,
+    msg: &str,
+    color: Color,
+    dismiss: Option<&str>,
+) {
     let w = area.width.min(58);
     let h = 7u16;
     let x = area.x + (area.width.saturating_sub(w)) / 2;
@@ -600,11 +610,11 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             .highlight_symbol(" ▶ ");
     }
 
-    f.render_stateful_widget(list, left[1], &mut app.plugins_list_state);
+    f.render_stateful_widget(list, left[1], &mut app.segments_list_state);
 
     // Right: detail
     let selected = app
-        .plugins_list_state
+        .segments_list_state
         .selected()
         .and_then(|i| segments.get(i));
     let detail_block = Block::default()
@@ -676,11 +686,11 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     }
 
     // 2. Dynamic Constraints based on available height
-    let has_space_for_logo = area.height > 20;
+    let has_space_for_logo = area.height > 25;
 
     let constraints = if has_space_for_logo {
         vec![
-            Constraint::Length(9), // Logo
+            Constraint::Length(14), // Logo
             Constraint::Length(3), // Dashboard Title
             Constraint::Fill(1),   // Stats & Actions
             Constraint::Length(3), // Next Step Hint
@@ -705,19 +715,50 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
     // Render Logo if space permits
     if has_space_for_logo {
-        // All lines must have the exact same width for perfect centering
-        let logo = r#"  _____           _     ____            _     _
- |  __ \         | |   |  _ \          | |   | |
- | |__) |__  ___ | |__ | |_) |_   _  __| | __| |_   _
- |  ___/ _ \/ __|| '_ \|  _ <| | | |/ _` |/ _` | | | |
- | |  | (_) \__ \| | | | |_) | |_| | (_| | (_| | |_| |
- |_|   \___/|___/|_| |_|____/ \__,_|\__,_|\__,_|\__, |
-                                                 __/ |
-                                                |___/  "#;
+        // Blocky Cat mascot head + stylized PoshBuddy title + vertical gradient
+        let cat_and_text = [
+            "                              ▄█▄       ▄█▄                              ",
+            "                             ███████████████                             ",
+            "                             ██ ▀██   ██▀ ██                             ",
+            "                             ██    ▄▄▄    ██                             ",
+            "                              ▀███████████▀                              ",
+            "                                                                         ",
+            "██████╗  ██████╗ ███████╗██╗  ██╗██████╗ ██╗   ██╗██████╗ ██████╗ ██╗   ██╗",
+            "██╔══██╗██╔═══██╗██╔════╝██║  ██║██╔══██╗██║   ██║██╔══██╗██╔══██╗╚██╗ ██╔╝",
+            "██████╔╝██║   ██║███████╗███████║██████╔╝██║   ██║██║  ██║██║  ██║ ╚████╔╝ ",
+            "██╔═══╝ ██║   ██║╚════██║██╔══██║██╔══██╗██║   ██║██║  ██║██║  ██║  ╚██╔╝  ",
+            "██║     ╚██████╔╝███████║██║  ██║██████╔╝╚██████╔╝██████╔╝██████╔╝   ██║   ",
+            "╚═╝      ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═════╝ ╚═════╝    ╚═╝   ",
+            "                             ~ posh posh posh !! ~                           ",
+        ];
+
+        let colors = [
+            Color::Rgb(66, 133, 244),   // Blue
+            Color::Rgb(84, 110, 246),
+            Color::Rgb(102, 88, 248),
+            Color::Rgb(120, 66, 250),
+            Color::Rgb(138, 44, 252),
+            Color::Rgb(156, 22, 254),
+            Color::Rgb(175, 0, 255),    // Purple
+            Color::Rgb(191, 0, 223),
+            Color::Rgb(207, 0, 191),
+            Color::Rgb(223, 0, 159),
+            Color::Rgb(239, 0, 127),
+            Color::Rgb(255, 0, 95),     // Pinkish red
+            Color::Rgb(255, 80, 80),    // Tagline
+        ];
+
+        let mut lines = Vec::new();
+        for (i, line) in cat_and_text.iter().enumerate() {
+            lines.push(Line::from(Span::styled(
+                *line,
+                Style::default().fg(colors[i % colors.len()]).add_modifier(Modifier::BOLD)
+            )));
+        }
+
         f.render_widget(
-            Paragraph::new(logo)
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+            Paragraph::new(lines)
+                .alignment(Alignment::Center),
             chunks[next_chunk_idx],
         );
         next_chunk_idx += 1;
@@ -777,95 +818,97 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         .split(left_area);
 
     // System Info
-    let username = std::env::var("USERNAME").unwrap_or_else(|_| "User".to_string());
+    let username = whoami::username();
+    let hostname = whoami::fallible::hostname().unwrap_or_else(|_| "Host".to_string());
     let os = std::env::consts::OS;
-    let mut sys_info = vec![
+    let sys_info = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("  User:        ", Style::default().fg(C_DIM)),
+            Span::styled("  Account:     ", Style::default().fg(C_DIM)),
             Span::styled(
                 username,
                 Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
             ),
-            Span::styled(format!(" @ {}", os), Style::default().fg(C_DIM)),
+            Span::styled(format!(" @ {}", hostname), Style::default().fg(C_DIM)),
+        ]),
+        Line::from(vec![
+            Span::styled("  System:      ", Style::default().fg(C_DIM)),
+            Span::styled(os.to_uppercase(), Style::default().fg(C_WHITE)),
+            Span::styled(format!(" ({})", std::env::consts::ARCH), Style::default().fg(C_DIM)),
         ]),
         Line::from(vec![
             Span::styled("  Status:      ", Style::default().fg(C_DIM)),
             Span::styled("󱐋 ", Style::default().fg(C_LOCAL)),
             Span::styled(
-                "READY",
+                "ACTIVE",
                 Style::default().fg(C_LOCAL).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
             Span::styled("  Backups:     ", Style::default().fg(C_DIM)),
             Span::styled(
-                format!("{} profiles", app.total_backups),
+                format!("{} archived", app.total_backups),
                 Style::default().fg(C_WHITE),
             ),
         ]),
     ];
-
-    if let Some(s) = &app.system_specs {
-        sys_info.push(Line::from(vec![
-            Span::styled("  Nerd Font:   ", Style::default().fg(C_DIM)),
-            if s.has_nerd_font {
-                Span::styled("󰄬 ", Style::default().fg(C_LOCAL))
-            } else {
-                Span::styled("󰅖 ", Style::default().fg(C_ERROR))
-            },
-            Span::styled(
-                if s.has_nerd_font {
-                    "Detected"
-                } else {
-                    "Missing"
-                },
-                Style::default().fg(if s.has_nerd_font { C_LOCAL } else { C_ERROR }),
-            ),
-        ]));
-    }
 
     f.render_widget(
         Paragraph::new(sys_info).block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(C_DIM))
-                .title(" System Identity "),
+                .title(" Session Identity "),
         ),
         left_column[0],
     );
 
-    // Changelog
-    if left_column[1].height > 3 {
-        let changelog = vec![
+    // System Environment (Neofetch style)
+    if left_column[1].height > 5 {
+        let is_pwsh_7 = app.system_specs.as_ref().map(|s| s.is_pwsh_7).unwrap_or(false);
+        let is_wt = app.system_specs.as_ref().map(|s| s.is_windows_terminal).unwrap_or(false);
+        let has_nf = app.system_specs.as_ref().map(|s| s.has_nerd_font).unwrap_or(false);
+
+        let info = vec![
             Line::from(""),
             Line::from(vec![
-                Span::styled(
-                    "  v0.4.1 ",
-                    Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-                ),
-                Span::styled("- The 'Rice' Update 󰓅", Style::default().fg(C_WHITE)),
+                Span::styled("  SHELL     ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::styled("󱆃 ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::raw(if is_pwsh_7 { "pwsh 7+" } else { "powershell" }),
             ]),
             Line::from(vec![
-                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
-                Span::raw("Modernized TUI with responsive 50/50 layout"),
+                Span::styled("  TERM      ", Style::default().fg(Color::Rgb(197, 138, 249))),
+                Span::styled("󰆍 ", Style::default().fg(Color::Rgb(197, 138, 249))),
+                Span::raw(if is_wt { "Windows Terminal" } else { "Console" }),
             ]),
             Line::from(vec![
-                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
-                Span::raw("Strict Nerd Font integration (No Emojis)"),
+                Span::styled("  FONTS     ", Style::default().fg(Color::Rgb(247, 137, 215))),
+                Span::styled(if has_nf { "󰄬 " } else { "󰅖 " }, Style::default().fg(if has_nf { C_LOCAL } else { C_ERROR })),
+                Span::raw(if has_nf { "Nerd Font Active" } else { "Nerd Font Missing" }),
             ]),
             Line::from(vec![
-                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
-                Span::raw("Pixel-perfect ASCII logo alignment"),
+                Span::styled("  VERSION   ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::styled("󰚀 ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::raw(format!("v{}", app.version)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::raw("  "),
+                Span::styled("● ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::styled("● ", Style::default().fg(Color::Rgb(197, 138, 249))),
+                Span::styled("● ", Style::default().fg(Color::Rgb(247, 137, 215))),
+                Span::styled("● ", Style::default().fg(C_ACCENT)),
+                Span::styled("● ", Style::default().fg(C_LOCAL)),
+                Span::styled("● ", Style::default().fg(C_DIM)),
             ]),
         ];
 
         f.render_widget(
-            Paragraph::new(changelog).block(
+            Paragraph::new(info).block(
                 Block::default()
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(C_DIM))
-                    .title(" Latest Changes "),
+                    .title(" Environment "),
             ),
             left_column[1],
         );
@@ -951,9 +994,12 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
     // 5. Footer
     f.render_widget(
-        Paragraph::new(format!("PoshBuddy v{} │ julesklord", app.version))
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(C_DIM)),
+        Paragraph::new(format!(
+            "🐱 PoshBuddy v{} · crafted with ♥ by julesklord",
+            app.version
+        ))
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(C_DIM)),
         chunks[next_chunk_idx],
     );
 }
@@ -1035,53 +1081,6 @@ fn render_overlays(f: &mut Frame, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════════
 //  ONBOARDING / LOADING / DEPENDENCY MISSING
 // ═══════════════════════════════════════════════════════════════════════════════
-
-fn render_onboarding(f: &mut Frame, area: Rect, specs: &crate::app::SystemSpecs) {
-    let center = centered_rect(58, 52, area);
-    f.render_widget(Clear, center);
-
-    let rows: Vec<Line> = vec![
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            "  System Diagnostics",
-            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-        )]),
-        Line::from(""),
-        status_line(
-            "  Nerd Font   ",
-            specs.has_nerd_font,
-            "Detected",
-            "Not found — icons may break",
-        ),
-        status_line(
-            "  PowerShell  ",
-            specs.is_pwsh_7,
-            "v7 (pwsh)",
-            "v5.1 — PowerShell 7 recommended",
-        ),
-        status_line(
-            "  Terminal    ",
-            specs.is_windows_terminal,
-            "Windows Terminal",
-            "Classic Console — upgrade recommended",
-        ),
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            "  Press Enter to continue  ·  Q to quit",
-            Style::default().fg(C_DIM),
-        )]),
-    ];
-
-    f.render_widget(
-        Paragraph::new(rows).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(" Welcome to PoshBuddy "),
-        ),
-        center,
-    );
-}
 
 fn render_loading(f: &mut Frame, area: Rect, app: &App) {
     let spin = SPINNER[app.spinner_tick % SPINNER.len()];
@@ -1219,18 +1218,6 @@ fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context: &str) {
         ),
         area,
     );
-}
-
-/// Returns a status line with ●/○ indicator and color coding
-fn status_line<'a>(label: &'a str, ok: bool, ok_msg: &'a str, warn_msg: &'a str) -> Line<'a> {
-    Line::from(vec![
-        Span::styled(label, Style::default().fg(C_DIM)),
-        if ok {
-            Span::styled(format!("● {}", ok_msg), Style::default().fg(C_LOCAL))
-        } else {
-            Span::styled(format!("○ {}", warn_msg), Style::default().fg(C_ACTIVE))
-        },
-    ])
 }
 
 /// Centers a rect of given percentage within parent
