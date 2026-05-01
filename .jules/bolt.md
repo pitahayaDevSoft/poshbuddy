@@ -22,3 +22,6 @@
 ## 2024-05-24 - Zero-allocation List Element Lookups
 **Learning:** In Rust TUI applications, fetching a single element from a filtered list using methods that allocate a full `Vec` (e.g. `app.filtered_themes().first()`) creates O(N) allocation overhead per keystroke during keyboard navigation or event handling.
 **Action:** Implement zero-allocation lazy-iteration lookups (e.g., `filtered_theme_at(&self, index: usize)`) that lazily scan and return the Nth element, avoiding full collection allocations and deep cloning just to check a single item's state.
+## 2024-05-24 - Replace HashSet with binary_search_by for small sorted lists
+**Learning:** For small collections (like ~200 remote themes) matched against a local sorted list, maintaining a separate `HashSet` of identifiers introduces unnecessary string cloning and memory overhead per application state initialization.
+**Action:** Since the `themes` vector is already maintained in a sorted state on the `App` struct, use `binary_search_by` directly for O(log N) deduplication lookups. This avoids the memory overhead and cloning costs associated with a separate `HashSet` while providing similar high performance.
