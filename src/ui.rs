@@ -44,8 +44,8 @@ pub fn ui(f: &mut Frame, app: &mut App) {
                 3 => " ⚡ Applying ",
                 _ => " ⏳ Working ",
             };
-            let msg = format!("Theme: {}\n\nProgress: {}%", name, progress);
-            render_modal(f, f.area(), title, &msg, C_ACCENT, Some("please wait"));
+            let msg = format!("Theme: {}\n\nProgress: {}%\n\nPlease wait...", name, progress);
+            render_modal(f, f.area(), title, &msg, C_ACCENT, None);
         }
         _ => render_main(f, f.area(), app),
     }
@@ -129,7 +129,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 3 => " ⚡ Applying ",
                 _ => " ⏳ Working ",
             };
-            let msg = format!("Theme: {}\n\nProgress: {}%", name, progress);
+            let msg = format!("Theme: {}\n\nProgress: {}%\n\nPlease wait...", name, progress);
             render_modal(f, area, title, &msg, C_ACCENT, None);
         }
         _ => {}
