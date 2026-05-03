@@ -44,7 +44,15 @@ PoshBuddy is built for performance and reliability using modern systems programm
 
 ## Installation
 
-Ensure you have the [Rust toolchain](https://rustup.rs/) installed.
+The easiest way to install PoshBuddy is via [crates.io](https://crates.io/crates/poshbuddy):
+
+```powershell
+cargo install poshbuddy
+```
+
+### Building from Source
+
+If you prefer to build from source, ensure you have the [Rust toolchain](https://rustup.rs/) installed.
 
 ```powershell
 git clone https://github.com/julesklord/poshbuddy.git
