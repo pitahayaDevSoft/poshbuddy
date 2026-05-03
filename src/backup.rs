@@ -15,8 +15,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[derive(Debug, Clone)]
 pub struct BackupInfo {
     pub path: PathBuf,
-    #[allow(dead_code)]
-    pub original_path: PathBuf,
     pub timestamp: u64,
     #[allow(dead_code)]
     pub size_bytes: u64,
@@ -218,7 +216,6 @@ impl BackupManager {
 
                     backups.push(BackupInfo {
                         path,
-                        original_path: profile_path.to_path_buf(),
                         timestamp,
                         size_bytes,
                         description,
