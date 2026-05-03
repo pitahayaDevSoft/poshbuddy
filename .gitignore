@@ -26,3 +26,6 @@ cargo_test_restored.txt
 .manifests/migration.tsmft
 .gitignore
 poshbuddy.code-workspace
+.trunk/build-cache/*
+qp_audit.md
+

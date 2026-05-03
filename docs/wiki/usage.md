@@ -1,7 +1,7 @@
 # PoshBuddy Wiki: Usage Procedures
 
-> **Updated**: 2026-04-23
-> **Version**: v0.4.1
+> **Updated**: 2026-04-29
+> **Version**: v0.4.5
 > **Read Time**: 6 min  
 
 PoshBuddy operates as an orchestrator for your PowerShell environment. Follow these procedures to ensure environment parity.

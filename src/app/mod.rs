@@ -46,8 +46,8 @@ impl App {
         let mut fonts_list_state = ListState::default();
         fonts_list_state.select(Some(0));
 
-        let mut plugins_list_state = ListState::default();
-        plugins_list_state.select(Some(0));
+        let mut segments_list_state = ListState::default();
+        segments_list_state.select(Some(0));
 
         // 1. Initial system diagnostics
         let has_nerd_font = Self::check_nerd_font();
@@ -83,8 +83,6 @@ impl App {
         }
         local_themes.sort_by(|a, b| a.name.cmp(&b.name));
 
-        let local_theme_names: std::collections::HashSet<String> = local_themes.iter().map(|t| t.name.clone()).collect();
-
         let mut app = App {
             state: AppState::Welcome,
             active_view: ActiveView::Themes,
@@ -95,29 +93,24 @@ impl App {
             segments: crate::assets::get_default_segments(),
             filter: String::new(),
             fonts_filter: String::new(),
-            plugins_filter: String::new(),
             segments_filter: String::new(),
             themes_dir,
             version: env!("CARGO_PKG_VERSION").to_string(),
             list_state,
             fonts_list_state,
-            plugins_list_state,
+            segments_list_state,
             spinner_tick: 0,
             has_nerd_font,
             theme_preview: String::new(),
             detected_profiles: detected_profiles.clone(),
             active_config_path: None,
             backup_manager: crate::backup::BackupManager::new(None),
-            last_backup: None,
-            diagnostic: crate::diagnostic::Diagnostic::new(),
-            plugin_installer: crate::plugin_installer::PluginInstaller::new(),
             welcome_selected_action: 0,
             system_specs: Some(specs),
             total_backups: 0,
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
-            local_theme_names,
         };
 
         // Initialize active config path and segments cache
@@ -163,20 +156,22 @@ mod tests {
 
     impl Drop for EnvGuard {
         fn drop(&mut self) {
-            if let Some(ref v) = self.wt_session {
-                env::set_var("WT_SESSION", v);
-            } else {
-                env::remove_var("WT_SESSION");
-            }
-            if let Some(ref v) = self.term_program {
-                env::set_var("TERM_PROGRAM", v);
-            } else {
-                env::remove_var("TERM_PROGRAM");
-            }
-            if let Some(ref v) = self.path {
-                env::set_var("PATH", v);
-            } else {
-                env::remove_var("PATH");
+            unsafe {
+                if let Some(ref v) = self.wt_session {
+                    env::set_var("WT_SESSION", v);
+                } else {
+                    env::remove_var("WT_SESSION");
+                }
+                if let Some(ref v) = self.term_program {
+                    env::set_var("TERM_PROGRAM", v);
+                } else {
+                    env::remove_var("TERM_PROGRAM");
+                }
+                if let Some(ref v) = self.path {
+                    env::set_var("PATH", v);
+                } else {
+                    env::remove_var("PATH");
+                }
             }
         }
     }
@@ -194,10 +189,9 @@ mod tests {
             version: "test".to_string(),
             list_state: ListState::default(),
             fonts_list_state: ListState::default(),
-            plugins_list_state: ListState::default(),
+            segments_list_state: ListState::default(),
             plugins: Vec::new(),
             segments: Vec::new(),
-            plugins_filter: String::new(),
             segments_filter: String::new(),
             spinner_tick: 0,
             has_nerd_font: false,
@@ -205,16 +199,12 @@ mod tests {
             detected_profiles: Vec::new(),
             active_config_path: None,
             backup_manager: crate::backup::BackupManager::new(Some(10)),
-            last_backup: None,
-            diagnostic: crate::diagnostic::Diagnostic::new(),
-            plugin_installer: crate::plugin_installer::PluginInstaller::new(),
             welcome_selected_action: 0,
             system_specs: None,
             total_backups: 0,
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
-            local_theme_names: HashSet::new(),
         }
     }
 
@@ -346,12 +336,12 @@ mod tests {
 
             // Use ONLY the mock directory in PATH - this ensures Windows finds our .cmd mocks
             // instead of any real pwsh.exe/powershell.exe that might be installed
-            env::set_var("PATH", &dir);
+            unsafe { env::set_var("PATH", &dir) };
 
             let profiles = App::detect_profiles();
 
             // Restore original PATH for cleanup (EnvGuard will also restore it)
-            env::set_var("PATH", &original_path);
+            unsafe { env::set_var("PATH", &original_path) };
 
             assert!(!profiles.is_empty(), "Profiles should not be empty");
 
@@ -418,12 +408,12 @@ mod tests {
             }
 
             // Use ONLY the mock directory in PATH
-            env::set_var("PATH", &dir);
+            unsafe { env::set_var("PATH", &dir) };
 
             let profiles = App::detect_profiles();
 
             // Restore original PATH
-            env::set_var("PATH", &original_path);
+            unsafe { env::set_var("PATH", &original_path) };
 
             assert!(
                 profiles.is_empty(),
@@ -447,8 +437,10 @@ mod tests {
             let original_path = env::var("PATH").unwrap_or_default();
 
             // Scenario 1: Default behavior (no WT_SESSION, no vscode, mock pwsh absent)
-            env::remove_var("WT_SESSION");
-            env::remove_var("TERM_PROGRAM");
+            unsafe {
+                env::remove_var("WT_SESSION");
+                env::remove_var("TERM_PROGRAM");
+            }
 
             // Ensure pwsh is not in PATH. But we need 'which' to work, so we keep original path but make sure there's no pwsh in it.
             // For testing purposes, we can just let 'pwsh' command fail naturally on CI if it's not installed,
@@ -468,7 +460,7 @@ mod tests {
             assert!(!specs.has_nerd_font, "Expected has_nerd_font to be false");
 
             // Scenario 2: WT_SESSION set
-            env::set_var("WT_SESSION", "1");
+            unsafe { env::set_var("WT_SESSION", "1") };
             let specs = App::gather_system_specs(true);
             assert!(
                 specs.is_windows_terminal,
@@ -477,8 +469,10 @@ mod tests {
             assert!(specs.has_nerd_font, "Expected has_nerd_font to be true");
 
             // Scenario 3: TERM_PROGRAM=vscode set
-            env::remove_var("WT_SESSION");
-            env::set_var("TERM_PROGRAM", "vscode");
+            unsafe {
+                env::remove_var("WT_SESSION");
+                env::set_var("TERM_PROGRAM", "vscode");
+            }
             let specs = App::gather_system_specs(false);
             assert!(
                 specs.is_windows_terminal,
@@ -515,14 +509,14 @@ mod tests {
 
             // Use ONLY mock directory in PATH if we are mocking `where` as well
             #[cfg(unix)]
-            env::set_var("PATH", &dir);
+            unsafe { env::set_var("PATH", &dir) };
             #[cfg(windows)]
-            env::set_var("PATH", format!("{};{}", dir.display(), original_path));
+            unsafe { env::set_var("PATH", format!("{};{}", dir.display(), original_path)) };
 
             let specs = App::gather_system_specs(false);
 
             // Restore original PATH
-            env::set_var("PATH", &original_path);
+            unsafe { env::set_var("PATH", &original_path) };
 
             assert!(
                 specs.is_pwsh_7,
@@ -585,10 +579,9 @@ mod filtering_tests {
             version: "1.0.0".to_string(),
             list_state: ListState::default(),
             fonts_list_state: ListState::default(),
-            plugins_list_state: ListState::default(),
+            segments_list_state: ListState::default(),
             plugins: vec![],
             segments: vec![],
-            plugins_filter: "".to_string(),
             segments_filter: "".to_string(),
             spinner_tick: 0,
             has_nerd_font: true,
@@ -596,23 +589,12 @@ mod filtering_tests {
             detected_profiles: vec![],
             active_config_path: None,
             backup_manager: crate::backup::BackupManager::new(Some(10)),
-            last_backup: None,
-            diagnostic: crate::diagnostic::Diagnostic::new(),
-            plugin_installer: crate::plugin_installer::PluginInstaller::new(),
             welcome_selected_action: 0,
             system_specs: None,
             total_backups: 0,
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
-            local_theme_names: vec![
-                "agnoster".to_string(),
-                "amro".to_string(),
-                "atomic".to_string(),
-                "catppuccin_frappe".to_string(),
-                "Catppuccin_Macchiato".to_string(),
-                "cyberpunk".to_string(),
-            ].into_iter().collect(),
         }
     }
 

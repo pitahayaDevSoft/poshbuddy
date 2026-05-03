@@ -1,21 +1,49 @@
 [package]
 name = "poshbuddy"
-version = "0.4.1"
-edition = "2021"
+version = "0.4.5"
+edition = "2024"
+authors = ["Julio <julesklord@gmail.com>"]
+description = "A professional TUI Theme Management for Oh My Posh"
+license = "MIT"
+homepage = "https://github.com/julesklord/poshbuddy"
+repository = "https://github.com/julesklord/poshbuddy"
+readme = "README.md"
+keywords = ["cli", "tui", "oh-my-posh", "powershell", "terminal"]
+categories = ["command-line-utilities", "development-tools"]
+exclude = [
+    "node_modules",
+    ".github",
+    ".trunk",
+    ".jules",
+    "assets",
+    "docs",
+    "olds",
+    "tests",
+    ".vscode",
+    "demo.cast",
+    "package.json",
+    "package-lock.json",
+    "poshbuddy-windows-x86_64.zip",
+    "AGENTS.md",
+    "DESIGN.md",
+    "GEMINI.md",
+    "openssf_audit.md",
+    "**/*.orig"
+]
 
 [dependencies]
-ratatui = "0.26"
-crossterm = { version = "0.27", features = ["event-stream"] }
+ratatui = "0.30"
+crossterm = { version = "0.29", features = ["event-stream"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-dirs = "5.0"
+dirs = "6.0.0"
 futures = "0.3.32"
-ansi-to-tui = "4.0.1"
-tempfile = "3.10"
+ansi-to-tui = "8.0"
+tempfile = "3.12"
 chrono = "0.4"
-whoami = "1.5"
-reqwest = { version = "0.12", features = ["json"] }
+whoami = "2.1"
+reqwest = { version = "0.13", features = ["json"] }
 clap = { version = "4.5", features = ["derive"] }
 
 [dev-dependencies]

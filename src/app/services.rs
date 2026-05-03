@@ -17,8 +17,8 @@ impl App {
         };
 
         let mut active = HashSet::new();
-        if let Ok(content) = fs::read_to_string(path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+        if let Ok(content) = fs::read_to_string(path)
+            && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
                 // Look in top-level segments
                 if let Some(segments) = json.get("segments").and_then(|v| v.as_array()) {
                     for s in segments {
@@ -41,7 +41,6 @@ impl App {
                     }
                 }
             }
-        }
         self.active_segments = active;
     }
 
@@ -162,11 +161,10 @@ impl App {
 
     /// Heuristic to check if a Nerd Font is likely being used by the system
     pub fn check_nerd_font() -> bool {
-        if let Ok(term_prog) = std::env::var("TERM_PROGRAM") {
-            if term_prog == "vscode" {
+        if let Ok(term_prog) = std::env::var("TERM_PROGRAM")
+            && term_prog == "vscode" {
                 return true;
             }
-        }
 
         let cmd = if cfg!(windows) {
             "powershell"
@@ -209,10 +207,67 @@ impl App {
             .iter()
             .filter(|rt| {
                 contains_ignore_ascii_case(&rt.name, filter)
-                    && !self.local_theme_names.contains(&rt.name)
+                    && self.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
             })
             .count();
         local_count + remote_count
+    }
+
+    /// Returns a specific filtered theme without allocating a full Vec
+    pub fn filtered_theme_at(&self, index: usize) -> Option<ThemeAsset> {
+        let filter = &self.filter;
+
+        let mut current_idx = 0;
+
+        // Search Local
+        for t in &self.themes {
+            if contains_ignore_ascii_case(&t.name, filter) {
+                if current_idx == index {
+                    return Some(t.clone());
+                }
+                current_idx += 1;
+            }
+        }
+
+        // Search Remote (only if not local)
+        for rt in &self.remote_themes {
+            if contains_ignore_ascii_case(&rt.name, filter)
+                && self.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
+            {
+                if current_idx == index {
+                    return Some(ThemeAsset {
+                        name: rt.name.clone(),
+                        is_local: false,
+                        download_url: Some(rt.download_url.clone()),
+                    });
+                }
+                current_idx += 1;
+            }
+        }
+
+        None
+    }
+
+    /// Returns a specific filtered font without allocating a full Vec
+    pub fn filtered_font_at(&self, index: usize) -> Option<FontAsset> {
+        self.fonts
+            .iter()
+            .filter(|f| contains_ignore_ascii_case(&f.name, &self.fonts_filter))
+            .nth(index)
+            .cloned()
+    }
+
+    /// Returns a specific filtered segment without allocating a full Vec
+    pub fn filtered_segment_at(&self, index: usize) -> Option<SegmentAsset> {
+        self.segments
+            .iter()
+            .filter(|p| {
+                contains_ignore_ascii_case(&p.name, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.description, &self.segments_filter)
+                    || contains_ignore_ascii_case(&p.category, &self.segments_filter)
+            })
+            .nth(index)
+            .cloned()
     }
 
     /// Returns a unified list of filtered themes (Local + Unique Remote)
@@ -230,7 +285,7 @@ impl App {
         // Add Remote (only if not local)
         for rt in &self.remote_themes {
             if contains_ignore_ascii_case(&rt.name, filter)
-                && !self.local_theme_names.contains(&rt.name)
+                && self.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
             {
                 unified.push(ThemeAsset {
                     name: rt.name.clone(),
@@ -293,22 +348,15 @@ impl App {
             .count()
     }
 
-    /// Returns a filtered list of legacy plugins based on search criteria
-    #[allow(dead_code)]
-    pub fn filtered_plugins(&self) -> Vec<PluginAsset> {
-        self.plugins
-            .iter()
-            .filter(|p| contains_ignore_ascii_case(&p.name, &self.plugins_filter))
-            .cloned()
-            .collect()
-    }
-
     /// Checks if a segment is active in the currently loaded Oh My Posh config
     pub fn is_segment_active(&self, segment: &SegmentAsset) -> bool {
         self.active_segments.contains(&segment.segment_type)
     }
 
-    /// Surgical JSON edit to toggle a segment in the active Oh My Posh theme
+    /// Surgical JSON edit to toggle a segment in the active Oh My Posh theme.
+    /// It searches for the segment across all blocks and top-level segments.
+    /// If found, it removes all instances (deactivation).
+    /// If not found, it adds it to the first available block (activation).
     pub fn toggle_segment(&mut self, segment: &SegmentAsset) -> io::Result<()> {
         let path = self
             .active_config_path
@@ -319,50 +367,74 @@ impl App {
         let mut json: serde_json::Value = serde_json::from_str(&content)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
 
-        // Logic to find and remove or add to the FIRST block found
-        let mut toggled = false;
+        let mut found_any = false;
 
+        // 1. Remove from top-level segments if present
+        if let Some(segments) = json.get_mut("segments").and_then(|v| v.as_array_mut()) {
+            let initial_len = segments.len();
+            segments
+                .retain(|s| s.get("type").and_then(|v| v.as_str()) != Some(&segment.segment_type));
+            if segments.len() < initial_len {
+                found_any = true;
+            }
+        }
+
+        // 2. Remove from all blocks if present
         if let Some(blocks) = json.get_mut("blocks").and_then(|v| v.as_array_mut()) {
-            if let Some(first_block) = blocks.first_mut() {
-                if let Some(segments) = first_block
-                    .get_mut("segments")
-                    .and_then(|v| v.as_array_mut())
-                {
-                    let pos = segments.iter().position(|s| {
-                        s.get("type").and_then(|v| v.as_str()) == Some(&segment.segment_type)
+            for block in blocks.iter_mut() {
+                if let Some(segments) = block.get_mut("segments").and_then(|v| v.as_array_mut()) {
+                    let initial_len = segments.len();
+                    segments.retain(|s| {
+                        s.get("type").and_then(|v| v.as_str()) != Some(&segment.segment_type)
                     });
-
-                    if let Some(i) = pos {
-                        segments.remove(i);
-                        toggled = true;
-                    } else {
-                        // Add new segment
-                        let new_segment = serde_json::json!({
-                            "type": segment.segment_type,
-                            "style": "powerline",
-                            "powerline_symbol": "\u{e0b0}",
-                            "foreground": "#ffffff",
-                            "background": "#61afef",
-                            "template": format!(" {} ", segment.segment_type)
-                        });
-                        segments.push(new_segment);
-                        toggled = true;
+                    if segments.len() < initial_len {
+                        found_any = true;
                     }
                 }
             }
         }
 
-        if toggled {
-            let new_json =
-                serde_json::to_string_pretty(&json).map_err(|e| io::Error::other(e.to_string()))?;
-            fs::write(path, new_json)?;
-            self.refresh_active_segments(); // Update cache after write
-            Ok(())
-        } else {
-            Err(io::Error::other(
-                "Could not find a valid segments block to edit",
-            ))
+        // 3. If not found, add to the first block (or create one if missing)
+        if !found_any {
+            let new_segment = serde_json::json!({
+                "type": segment.segment_type,
+                "style": "powerline",
+                "powerline_symbol": "\u{e0b0}",
+                "foreground": "#ffffff",
+                "background": "#61afef",
+                "template": format!(" {} ", segment.segment_type)
+            });
+
+            // Ensure "blocks" exists and has at least one element
+            if json.get("blocks").is_none() {
+                json["blocks"] = serde_json::json!([]);
+            }
+
+            let blocks = json
+                .get_mut("blocks")
+                .and_then(|v| v.as_array_mut())
+                .unwrap();
+            if blocks.is_empty() {
+                blocks.push(serde_json::json!({
+                    "type": "prompt",
+                    "alignment": "left",
+                    "segments": []
+                }));
+            }
+
+            if let Some(segments) = blocks[0].get_mut("segments").and_then(|v| v.as_array_mut()) {
+                segments.push(new_segment);
+            } else {
+                // If the block exists but segments field is missing
+                blocks[0]["segments"] = serde_json::json!([new_segment]);
+            }
         }
+
+        let new_json =
+            serde_json::to_string_pretty(&json).map_err(|e| io::Error::other(e.to_string()))?;
+        fs::write(path, new_json)?;
+        self.refresh_active_segments(); // Update cache after write
+        Ok(())
     }
 
     /// Actualiza quirúrgicamente una sección del perfil de PowerShell envuelta en marcadores de PoshBuddy
@@ -737,14 +809,13 @@ impl App {
             if !profile.exists() {
                 continue;
             }
-            if let Ok(content) = fs::read_to_string(profile) {
-                if content
+            if let Ok(content) = fs::read_to_string(profile)
+                && content
                     .lines()
                     .any(|line| Self::is_plugin_line(line, plugin))
                 {
                     return true;
                 }
-            }
         }
         false
     }
@@ -1098,7 +1169,7 @@ impl App {
 
             match output {
                 Ok(out) if out.status.success() => {
-                    if tx.send(AppMessage::PluginInstalled(name)).await.is_err() {}
+                    if tx.send(AppMessage::SegmentToggled(name)).await.is_err() {}
                 }
                 _ => {
                     if tx
@@ -1164,14 +1235,13 @@ impl App {
         let mut errors = Vec::new();
         for profile in &self.detected_profiles {
             // Manual backup for existing profiles
-            if profile.exists() {
-                if let Err(e) = self
+            if profile.exists()
+                && let Err(e) = self
                     .backup_manager
                     .backup_profile(profile, "Manual backup from PoshBuddy")
                 {
                     errors.push(format!("{}: {}", profile.display(), e));
                 }
-            }
         }
 
         // Refresh count after backup

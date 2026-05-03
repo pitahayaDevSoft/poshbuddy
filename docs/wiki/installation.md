@@ -1,14 +1,14 @@
 # PoshBuddy Wiki: Prerequisites & Setup
 
-> **Updated**: 2026-04-13
-> **Version**: v0.3.3-rust
+> **Updated**: 2026-04-29
+> **Version**: v0.4.5
 > **Read Time**: 4 min  
 
 PoshBuddy exists as a standalone binary but requires specific external dependencies to reach the "Golden Standard" terminal experience.
 
 ## Developer Environment
 
-- **Rust Toolchain**: 1.76 or higher.
+- **Rust Toolchain**: 1.85 or higher (required for Rust 2024 edition).
 - **Git**: Required for cloning and updating the source repository.
 
 ## Runtime Dependencies

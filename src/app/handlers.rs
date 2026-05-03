@@ -11,21 +11,6 @@ impl App {
     ) {
         while let Ok(msg) = rx.try_recv() {
             match msg {
-                AppMessage::ThemesLoaded(new_themes) => {
-                    for t in new_themes {
-                        if !self.themes.iter().any(|existing| existing.name == t.name) {
-                            self.local_theme_names.insert(t.name.clone());
-                            self.themes.push(t);
-                        }
-                    }
-                    self.themes.sort_by(|a, b| a.name.cmp(&b.name));
-                    if self.state == AppState::Loading {
-                        self.state = AppState::Main;
-                    }
-                    if let Some(t) = self.themes.first() {
-                        self.load_theme_preview(t.clone(), tx.clone());
-                    }
-                }
                 AppMessage::FontsLoaded(mut fonts) => {
                     fonts.sort_by(|a, b| a.name.cmp(&b.name));
                     self.fonts = fonts;
@@ -35,16 +20,12 @@ impl App {
                     preview,
                     request_id,
                 } => {
-                    if request_id == self.preview_request_id {
-                        let filtered = self.filtered_themes();
-                        if let Some(selected_index) = self.list_state.selected() {
-                            if let Some(current_theme) = filtered.get(selected_index) {
-                                if current_theme.name == theme.name {
+                    if request_id == self.preview_request_id
+                        && let Some(selected_index) = self.list_state.selected()
+                            && let Some(current_theme) = self.filtered_theme_at(selected_index)
+                                && current_theme.name == theme.name {
                                     self.theme_preview = preview;
                                 }
-                            }
-                        }
-                    }
                 }
                 AppMessage::RemoteThemesLoaded(themes) => {
                     self.remote_themes = themes;
@@ -58,8 +39,7 @@ impl App {
                             download_url: None,
                         };
 
-                        if !self.themes.iter().any(|t| t.name == theme_asset.name) {
-                            self.local_theme_names.insert(theme_asset.name.clone());
+                        if self.themes.binary_search_by(|t| t.name.cmp(&theme_asset.name)).is_err() {
                             self.themes.push(theme_asset.clone());
                             self.themes.sort_by(|a, b| a.name.cmp(&b.name));
                         }
@@ -83,8 +63,8 @@ impl App {
                     self.state = AppState::FontSuccess(name);
                     self.has_nerd_font = true;
                 }
-                AppMessage::PluginInstalled(name) => {
-                    self.state = AppState::PluginSuccess(name);
+                AppMessage::SegmentToggled(name) => {
+                    self.state = AppState::SegmentSuccess(name);
                 }
                 AppMessage::InstallProgress { line } => {
                     if let AppState::InstallingDependency { log, .. } = &mut self.state {
@@ -181,7 +161,7 @@ impl App {
                     match self.active_view {
                         ActiveView::Themes => {
                             self.list_state.select(Some(0));
-                            if let Some(t) = self.filtered_themes().first() {
+                            if let Some(t) = self.filtered_theme_at(0) {
                                 self.theme_preview = " Loading preview...".to_string();
                                 self.load_theme_preview(t.clone(), tx.clone());
                             } else {
@@ -189,7 +169,7 @@ impl App {
                             }
                         }
                         ActiveView::Fonts => self.fonts_list_state.select(Some(0)),
-                        ActiveView::Segments => self.plugins_list_state.select(Some(0)),
+                        ActiveView::Segments => self.segments_list_state.select(Some(0)),
                     }
                     return Ok(false);
                 }
@@ -220,7 +200,7 @@ impl App {
             AppState::Success(_)
             | AppState::Error(_)
             | AppState::FontSuccess(_)
-            | AppState::PluginSuccess(_) => {
+            | AppState::SegmentSuccess(_) => {
                 self.state = AppState::Main;
                 return Ok(false);
             }
@@ -274,7 +254,7 @@ impl App {
                                 // Explore Themes
                                 self.state = AppState::Main;
                                 self.active_view = ActiveView::Themes;
-                                if let Some(t) = self.filtered_themes().first() {
+                                if let Some(t) = self.filtered_theme_at(0) {
                                     self.load_theme_preview(t.clone(), tx.clone());
                                 }
                             }
@@ -315,7 +295,7 @@ impl App {
                                     if let Err(e) = self.toggle_plugin(&p) {
                                         self.state = AppState::Error(e.to_string());
                                     } else {
-                                        self.state = AppState::PluginSuccess(p.name);
+                                        self.state = AppState::SegmentSuccess(p.name);
                                     }
                                 }
                             }
@@ -341,7 +321,7 @@ impl App {
                     KeyCode::Char('1') => {
                         self.state = AppState::Main;
                         self.active_view = ActiveView::Themes;
-                        if let Some(t) = self.filtered_themes().first() {
+                        if let Some(t) = self.filtered_theme_at(0) {
                             self.load_theme_preview(t.clone(), tx.clone());
                         }
                     }
@@ -501,7 +481,7 @@ impl App {
                             }
                             ActiveView::Segments => {
                                 self.segments_filter.pop();
-                                self.plugins_list_state.select(Some(0));
+                                self.segments_list_state.select(Some(0));
                             }
                         }
                         return Ok(false);
@@ -521,7 +501,7 @@ impl App {
                             }
                             ActiveView::Segments => {
                                 self.segments_filter.push(c);
-                                self.plugins_list_state.select(Some(0));
+                                self.segments_list_state.select(Some(0));
                             }
                         }
                         return Ok(false);
@@ -539,21 +519,21 @@ impl App {
     fn navigate_list(&mut self, forward: bool, tx: mpsc::Sender<AppMessage>) {
         match self.active_view {
             ActiveView::Themes => {
-                let filtered = self.filtered_themes();
-                if filtered.is_empty() {
+                let count = self.filtered_themes_count();
+                if count == 0 {
                     return;
                 }
                 let i = match self.list_state.selected() {
                     Some(i) => {
                         if forward {
-                            if i >= filtered.len() - 1 {
+                            if i >= count - 1 {
                                 0
                             } else {
                                 i + 1
                             }
                         } else {
                             if i == 0 {
-                                filtered.len() - 1
+                                count - 1
                             } else {
                                 i - 1
                             }
@@ -562,9 +542,9 @@ impl App {
                     None => 0,
                 };
                 self.list_state.select(Some(i));
-                if let Some(t) = filtered.get(i) {
+                if let Some(t) = self.filtered_theme_at(i) {
                     self.theme_preview = " Loading preview...".to_string();
-                    self.load_theme_preview(t.clone(), tx);
+                    self.load_theme_preview(t, tx);
                 }
             }
             ActiveView::Fonts => {
@@ -597,7 +577,7 @@ impl App {
                 if count == 0 {
                     return;
                 }
-                let i = match self.plugins_list_state.selected() {
+                let i = match self.segments_list_state.selected() {
                     Some(i) => {
                         if forward {
                             if i >= count - 1 {
@@ -615,7 +595,7 @@ impl App {
                     }
                     None => 0,
                 };
-                self.plugins_list_state.select(Some(i));
+                self.segments_list_state.select(Some(i));
             }
         }
     }
@@ -624,39 +604,33 @@ impl App {
     fn execute_active_view_action(&mut self, tx: mpsc::Sender<AppMessage>) {
         match self.active_view {
             ActiveView::Themes => {
-                let filtered = self.filtered_themes();
-                if let Some(selected) = self.list_state.selected() {
-                    if let Some(theme) = filtered.get(selected) {
+                if let Some(selected) = self.list_state.selected()
+                    && let Some(theme) = self.filtered_theme_at(selected) {
                         if !theme.is_local && !crate::api::check_internet_connectivity() {
                             self.state =
                                 AppState::Error("No internet connection detected.".to_string());
                         } else {
-                            self.apply_theme_advanced(theme.clone(), tx);
+                            self.apply_theme_advanced(theme, tx);
                         }
                     }
-                }
             }
             ActiveView::Fonts => {
-                let filtered = self.filtered_fonts();
-                if let Some(selected) = self.fonts_list_state.selected() {
-                    if let Some(font) = filtered.get(selected) {
+                if let Some(selected) = self.fonts_list_state.selected()
+                    && let Some(font) = self.filtered_font_at(selected) {
                         self.state = AppState::Installing(font.name.clone());
                         self.install_font(font.name.clone(), tx);
                     }
-                }
             }
             ActiveView::Segments => {
-                let filtered = self.filtered_segments();
-                if let Some(selected) = self.plugins_list_state.selected() {
-                    if let Some(segment) = filtered.get(selected) {
-                        if let Err(e) = self.toggle_segment(segment) {
+                if let Some(selected) = self.segments_list_state.selected()
+                    && let Some(segment) = self.filtered_segment_at(selected) {
+                        if let Err(e) = self.toggle_segment(&segment) {
                             self.state =
                                 AppState::Error(format!("Failed to toggle segment: {}", e));
                         } else {
-                            self.state = AppState::PluginSuccess(segment.name.clone());
+                            self.state = AppState::SegmentSuccess(segment.name.clone());
                         }
                     }
-                }
             }
         }
     }

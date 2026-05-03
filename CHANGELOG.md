@@ -5,6 +5,20 @@ All notable changes to PoshBuddy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-04-29
+
+### Changed
+
+- **Core Dependency Overhaul**: Updated `ratatui` to v0.30 and `crossterm` to v0.29 for improved performance and modern API support.
+- **API Migration**: Refactored rendering logic to use `Frame::area()` instead of the deprecated `f.size()`.
+- **System Identity Handling**: Updated `whoami` to v2.1, implementing robust `Result` handling for username and hostname resolution.
+- **ANSI Rendering Pipeline**: Migrated `ansi-to-tui` to v8.0, optimizing the byte-stream to TUI text conversion trait.
+- **Modernized Toolchain**: Updated project to Rust 2024 edition.
+
+### Fixed
+
+- **Compiler Warnings Purge**: Resolved all deprecation warnings related to TUI and system identity crates.
+
 ## [0.4.1] - 2026-04-23
 
 ### Changed

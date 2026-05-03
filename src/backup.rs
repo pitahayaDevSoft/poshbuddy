@@ -15,8 +15,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[derive(Debug, Clone)]
 pub struct BackupInfo {
     pub path: PathBuf,
-    #[allow(dead_code)]
-    pub original_path: PathBuf,
     pub timestamp: u64,
     #[allow(dead_code)]
     pub size_bytes: u64,
@@ -218,7 +216,6 @@ impl BackupManager {
 
                     backups.push(BackupInfo {
                         path,
-                        original_path: profile_path.to_path_buf(),
                         timestamp,
                         size_bytes,
                         description,
@@ -304,23 +301,6 @@ impl BackupManager {
         }
 
         Ok(())
-    }
-
-    /// Gets the total size used by all backups
-    #[allow(dead_code)]
-    pub fn total_backup_size(&self) -> Result<u64, BackupError> {
-        self.ensure_backup_dir()?;
-
-        let mut total = 0u64;
-        for entry in fs::read_dir(&self.backup_dir)? {
-            let entry = entry?;
-            let metadata = entry.metadata()?;
-            if metadata.is_file() {
-                total += metadata.len();
-            }
-        }
-
-        Ok(total)
     }
 }
 

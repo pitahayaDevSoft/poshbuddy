@@ -1,6 +1,6 @@
 # PoshBuddy
 
-![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.4.1-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Rust](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml) [![Security Scan](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml)
+![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.4.5-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Rust](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml) [![Security Scan](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml)
 
 PoshBuddy is a professional management tool for Oh My Posh configurations. It provides a modernized, responsive terminal user interface (TUI) designed for high-density information display, surgical theme manipulation, and seamless Nerd Font management.
 
@@ -44,7 +44,15 @@ PoshBuddy is built for performance and reliability using modern systems programm
 
 ## Installation
 
-Ensure you have the [Rust toolchain](https://rustup.rs/) installed.
+The easiest way to install PoshBuddy is via [crates.io](https://crates.io/crates/poshbuddy):
+
+```powershell
+cargo install poshbuddy
+```
+
+### Building from Source
+
+If you prefer to build from source, ensure you have the [Rust toolchain](https://rustup.rs/) installed.
 
 ```powershell
 git clone https://github.com/julesklord/poshbuddy.git

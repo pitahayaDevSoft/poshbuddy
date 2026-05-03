@@ -1,5 +1,5 @@
 use crate::app::{ActiveView, App, AppState};
-use ansi_to_tui::IntoText;
+use ansi_to_tui::IntoText as _;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -23,17 +23,31 @@ const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧
 // ── Root dispatcher ────────────────────────────────────────────────────────────
 pub fn ui(f: &mut Frame, app: &mut App) {
     match app.state.clone() {
-        AppState::Welcome => render_welcome(f, f.size(), app),
-        AppState::Onboarding(specs) => render_onboarding(f, f.size(), &specs),
-        AppState::DependencyMissing => render_dep_missing(f, f.size()),
-        AppState::Loading => render_loading(f, f.size(), app),
+        AppState::Welcome => render_welcome(f, f.area(), app),
+        AppState::DependencyMissing => render_dep_missing(f, f.area()),
+        AppState::Loading => render_loading(f, f.area(), app),
         AppState::InstallingDependency {
             log,
             current_action,
         } => {
-            render_installing_dep(f, f.size(), &log, &current_action);
+            render_installing_dep(f, f.area(), &log, &current_action);
         }
-        _ => render_main(f, f.size(), app),
+        AppState::ApplyingProgress {
+            name,
+            stage,
+            progress,
+        } => {
+            let title = match stage {
+                0 => " ⬇ Downloading ",
+                1 => " 🔍 Verifying ",
+                2 => " 💾 Backing up ",
+                3 => " ⚡ Applying ",
+                _ => " ⏳ Working ",
+            };
+            let msg = format!("Theme: {}\n\nProgress: {}%", name, progress);
+            render_modal(f, f.area(), title, &msg, C_ACCENT, Some("please wait"));
+        }
+        _ => render_main(f, f.area(), app),
     }
 
     render_overlays(f, app);
@@ -68,7 +82,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
     // Floating modals — rendered on top of everything
     match &app.state {
         AppState::Success(msg) => {
-            render_modal(f, area, " ✓ Applied ", msg, C_ACTIVE, "any key");
+            render_modal(f, area, " ✓ Applied ", msg, C_ACTIVE, Some("any key"));
         }
         AppState::FontSuccess(name) => {
             render_modal(
@@ -77,17 +91,17 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 " ✓ Font Installed ",
                 &format!("'{}' installed successfully.", name),
                 C_LOCAL,
-                "any key to continue",
+                Some("any key to continue"),
             );
         }
-        AppState::PluginSuccess(name) => {
+        AppState::SegmentSuccess(name) => {
             render_modal(
                 f,
                 area,
                 " ✓ Segment Toggled ",
                 &format!("'{}' toggled in your active theme.", name),
                 C_LOCAL,
-                "any key to continue",
+                Some("any key to continue"),
             );
         }
         AppState::Installing(name) => {
@@ -97,11 +111,11 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 " ⏳ Working ",
                 &format!("Processing: {}\n\nThis may take a moment...", name),
                 C_ACCENT,
-                "please wait",
+                None,
             );
         }
         AppState::Error(msg) => {
-            render_modal(f, area, " ✗ Error ", msg, C_ERROR, "any key");
+            render_modal(f, area, " ✗ Error ", msg, C_ERROR, Some("any key"));
         }
         AppState::ApplyingProgress {
             name,
@@ -116,7 +130,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
                 _ => " ⏳ Working ",
             };
             let msg = format!("Theme: {}\n\nProgress: {}%", name, progress);
-            render_modal(f, area, title, &msg, C_ACCENT, "please wait");
+            render_modal(f, area, title, &msg, C_ACCENT, None);
         }
         _ => {}
     }
@@ -135,7 +149,7 @@ fn render_title_bar(f: &mut Frame, area: Rect, app: &App) {
 
     // Left: brand
     f.render_widget(
-        Paragraph::new(format!("  PoshBuddy v{}", app.version))
+        Paragraph::new(format!("  🐱 PoshBuddy v{}", app.version))
             .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
         cols[0],
     );
@@ -156,7 +170,7 @@ fn render_title_bar(f: &mut Frame, area: Rect, app: &App) {
 
     // Right: user + clock
     let time = chrono::Local::now().format("%H:%M").to_string();
-    let user = whoami::username();
+    let user = whoami::username().unwrap_or_else(|_| "unknown".to_string());
     f.render_widget(
         Paragraph::new(format!("{}  {}  ", user, time))
             .alignment(Alignment::Right)
@@ -236,7 +250,11 @@ fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
         ActiveView::Segments => !app.segments_filter.is_empty(),
     };
 
-    let esc_action = if is_filtering { "Esc Clear Search" } else { "Esc/H Dashboard" };
+    let esc_action = if is_filtering {
+        "Esc Clear Search"
+    } else {
+        "Esc/H Dashboard"
+    };
 
     let hint = match app.active_view {
         ActiveView::Themes =>
@@ -250,16 +268,29 @@ fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 // ── Floating modal ────────────────────────────────────────────────────────────
-fn render_modal(f: &mut Frame, area: Rect, title: &str, msg: &str, color: Color, dismiss: &str) {
+fn render_modal(
+    f: &mut Frame,
+    area: Rect,
+    title: &str,
+    msg: &str,
+    color: Color,
+    dismiss: Option<&str>,
+) {
     let w = area.width.min(58);
     let h = 7u16;
     let x = area.x + (area.width.saturating_sub(w)) / 2;
     let y = area.y + (area.height.saturating_sub(h)) / 2;
     let modal = Rect::new(x, y, w, h);
 
+    let content = if let Some(d) = dismiss {
+        format!("\n  {}\n\n  Press {} to dismiss.", msg, d)
+    } else {
+        format!("\n  {}", msg)
+    };
+
     f.render_widget(Clear, modal);
     f.render_widget(
-        Paragraph::new(format!("\n  {}\n\n  Press {} to dismiss.", msg, dismiss))
+        Paragraph::new(content)
             .style(Style::default().fg(color))
             .block(
                 Block::default()
@@ -370,7 +401,7 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
             cols[1],
         );
     } else {
-        let preview_text = app.theme_preview.as_str().into_text().unwrap_or_default();
+        let preview_text = app.theme_preview.as_bytes().into_text().unwrap_or_default();
         f.render_widget(
             Paragraph::new(preview_text)
                 .block(preview_block)
@@ -579,11 +610,11 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             .highlight_symbol(" ▶ ");
     }
 
-    f.render_stateful_widget(list, left[1], &mut app.plugins_list_state);
+    f.render_stateful_widget(list, left[1], &mut app.segments_list_state);
 
     // Right: detail
     let selected = app
-        .plugins_list_state
+        .segments_list_state
         .selected()
         .and_then(|i| segments.get(i));
     let detail_block = Block::default()
@@ -655,11 +686,11 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     }
 
     // 2. Dynamic Constraints based on available height
-    let has_space_for_logo = area.height > 20;
+    let has_space_for_logo = area.height > 25;
 
     let constraints = if has_space_for_logo {
         vec![
-            Constraint::Length(9), // Logo
+            Constraint::Length(14), // Logo
             Constraint::Length(3), // Dashboard Title
             Constraint::Fill(1),   // Stats & Actions
             Constraint::Length(3), // Next Step Hint
@@ -684,19 +715,50 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
     // Render Logo if space permits
     if has_space_for_logo {
-        // All lines must have the exact same width for perfect centering
-        let logo = r#"  _____           _     ____            _     _        
- |  __ \         | |   |  _ \          | |   | |       
- | |__) |__  ___ | |__ | |_) |_   _  __| | __| |_   _  
- |  ___/ _ \/ __|| '_ \|  _ <| | | |/ _` |/ _` | | | | 
- | |  | (_) \__ \| | | | |_) | |_| | (_| | (_| | |_| | 
- |_|   \___/|___/|_| |_|____/ \__,_|\__,_|\__,_|\__, | 
-                                                 __/ | 
-                                                |___/  "#;
+        // Blocky Cat mascot head + stylized PoshBuddy title + vertical gradient
+        let cat_and_text = [
+            "                              ▄█▄       ▄█▄                              ",
+            "                             ███████████████                             ",
+            "                             ██ ▀██   ██▀ ██                             ",
+            "                             ██    ▄▄▄    ██                             ",
+            "                              ▀███████████▀                              ",
+            "                                                                         ",
+            "██████╗  ██████╗ ███████╗██╗  ██╗██████╗ ██╗   ██╗██████╗ ██████╗ ██╗   ██╗",
+            "██╔══██╗██╔═══██╗██╔════╝██║  ██║██╔══██╗██║   ██║██╔══██╗██╔══██╗╚██╗ ██╔╝",
+            "██████╔╝██║   ██║███████╗███████║██████╔╝██║   ██║██║  ██║██║  ██║ ╚████╔╝ ",
+            "██╔═══╝ ██║   ██║╚════██║██╔══██║██╔══██╗██║   ██║██║  ██║██║  ██║  ╚██╔╝  ",
+            "██║     ╚██████╔╝███████║██║  ██║██████╔╝╚██████╔╝██████╔╝██████╔╝   ██║   ",
+            "╚═╝      ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═════╝ ╚═════╝    ╚═╝   ",
+            "                             ~ posh posh posh !! ~                           ",
+        ];
+
+        let colors = [
+            Color::Rgb(66, 133, 244),   // Blue
+            Color::Rgb(84, 110, 246),
+            Color::Rgb(102, 88, 248),
+            Color::Rgb(120, 66, 250),
+            Color::Rgb(138, 44, 252),
+            Color::Rgb(156, 22, 254),
+            Color::Rgb(175, 0, 255),    // Purple
+            Color::Rgb(191, 0, 223),
+            Color::Rgb(207, 0, 191),
+            Color::Rgb(223, 0, 159),
+            Color::Rgb(239, 0, 127),
+            Color::Rgb(255, 0, 95),     // Pinkish red
+            Color::Rgb(255, 80, 80),    // Tagline
+        ];
+
+        let mut lines = Vec::new();
+        for (i, line) in cat_and_text.iter().enumerate() {
+            lines.push(Line::from(Span::styled(
+                *line,
+                Style::default().fg(colors[i % colors.len()]).add_modifier(Modifier::BOLD)
+            )));
+        }
+
         f.render_widget(
-            Paragraph::new(logo)
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+            Paragraph::new(lines)
+                .alignment(Alignment::Center),
             chunks[next_chunk_idx],
         );
         next_chunk_idx += 1;
@@ -756,95 +818,97 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         .split(left_area);
 
     // System Info
-    let username = std::env::var("USERNAME").unwrap_or_else(|_| "User".to_string());
+    let username = whoami::username().unwrap_or_else(|_| "User".to_string());
+    let hostname = whoami::hostname().unwrap_or_else(|_| "Host".to_string());
     let os = std::env::consts::OS;
-    let mut sys_info = vec![
+    let sys_info = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("  User:        ", Style::default().fg(C_DIM)),
+            Span::styled("  Account:     ", Style::default().fg(C_DIM)),
             Span::styled(
                 username,
                 Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
             ),
-            Span::styled(format!(" @ {}", os), Style::default().fg(C_DIM)),
+            Span::styled(format!(" @ {}", hostname), Style::default().fg(C_DIM)),
+        ]),
+        Line::from(vec![
+            Span::styled("  System:      ", Style::default().fg(C_DIM)),
+            Span::styled(os.to_uppercase(), Style::default().fg(C_WHITE)),
+            Span::styled(format!(" ({})", std::env::consts::ARCH), Style::default().fg(C_DIM)),
         ]),
         Line::from(vec![
             Span::styled("  Status:      ", Style::default().fg(C_DIM)),
             Span::styled("󱐋 ", Style::default().fg(C_LOCAL)),
             Span::styled(
-                "READY",
+                "ACTIVE",
                 Style::default().fg(C_LOCAL).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
             Span::styled("  Backups:     ", Style::default().fg(C_DIM)),
             Span::styled(
-                format!("{} profiles", app.total_backups),
+                format!("{} archived", app.total_backups),
                 Style::default().fg(C_WHITE),
             ),
         ]),
     ];
-
-    if let Some(s) = &app.system_specs {
-        sys_info.push(Line::from(vec![
-            Span::styled("  Nerd Font:   ", Style::default().fg(C_DIM)),
-            if s.has_nerd_font {
-                Span::styled("󰄬 ", Style::default().fg(C_LOCAL))
-            } else {
-                Span::styled("󰅖 ", Style::default().fg(C_ERROR))
-            },
-            Span::styled(
-                if s.has_nerd_font {
-                    "Detected"
-                } else {
-                    "Missing"
-                },
-                Style::default().fg(if s.has_nerd_font { C_LOCAL } else { C_ERROR }),
-            ),
-        ]));
-    }
 
     f.render_widget(
         Paragraph::new(sys_info).block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(C_DIM))
-                .title(" System Identity "),
+                .title(" Session Identity "),
         ),
         left_column[0],
     );
 
-    // Changelog
-    if left_column[1].height > 3 {
-        let changelog = vec![
+    // System Environment (Neofetch style)
+    if left_column[1].height > 5 {
+        let is_pwsh_7 = app.system_specs.as_ref().map(|s| s.is_pwsh_7).unwrap_or(false);
+        let is_wt = app.system_specs.as_ref().map(|s| s.is_windows_terminal).unwrap_or(false);
+        let has_nf = app.system_specs.as_ref().map(|s| s.has_nerd_font).unwrap_or(false);
+
+        let info = vec![
             Line::from(""),
             Line::from(vec![
-                Span::styled(
-                    "  v0.4.1 ",
-                    Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-                ),
-                Span::styled("- The 'Rice' Update 󰓅", Style::default().fg(C_WHITE)),
+                Span::styled("  SHELL     ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::styled("󱆃 ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::raw(if is_pwsh_7 { "pwsh 7+" } else { "powershell" }),
             ]),
             Line::from(vec![
-                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
-                Span::raw("Modernized TUI with responsive 50/50 layout"),
+                Span::styled("  TERM      ", Style::default().fg(Color::Rgb(197, 138, 249))),
+                Span::styled("󰆍 ", Style::default().fg(Color::Rgb(197, 138, 249))),
+                Span::raw(if is_wt { "Windows Terminal" } else { "Console" }),
             ]),
             Line::from(vec![
-                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
-                Span::raw("Strict Nerd Font integration (No Emojis)"),
+                Span::styled("  FONTS     ", Style::default().fg(Color::Rgb(247, 137, 215))),
+                Span::styled(if has_nf { "󰄬 " } else { "󰅖 " }, Style::default().fg(if has_nf { C_LOCAL } else { C_ERROR })),
+                Span::raw(if has_nf { "Nerd Font Active" } else { "Nerd Font Missing" }),
             ]),
             Line::from(vec![
-                Span::styled("  󰄬 ", Style::default().fg(C_ACCENT)),
-                Span::raw("Pixel-perfect ASCII logo alignment"),
+                Span::styled("  VERSION   ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::styled("󰚀 ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::raw(format!("v{}", app.version)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::raw("  "),
+                Span::styled("● ", Style::default().fg(Color::Rgb(138, 180, 248))),
+                Span::styled("● ", Style::default().fg(Color::Rgb(197, 138, 249))),
+                Span::styled("● ", Style::default().fg(Color::Rgb(247, 137, 215))),
+                Span::styled("● ", Style::default().fg(C_ACCENT)),
+                Span::styled("● ", Style::default().fg(C_LOCAL)),
+                Span::styled("● ", Style::default().fg(C_DIM)),
             ]),
         ];
 
         f.render_widget(
-            Paragraph::new(changelog).block(
+            Paragraph::new(info).block(
                 Block::default()
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(C_DIM))
-                    .title(" Latest Changes "),
+                    .title(" Environment "),
             ),
             left_column[1],
         );
@@ -869,18 +933,24 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
         let (key_style, label_style) = if is_disabled && is_selected {
             (
-                Style::default().fg(C_DIM).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_DIM)
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
                 Style::default().fg(C_DIM).bg(Color::DarkGray),
             )
         } else if is_disabled {
-            (
-                Style::default().fg(C_DIM),
-                Style::default().fg(C_DIM),
-            )
+            (Style::default().fg(C_DIM), Style::default().fg(C_DIM))
         } else if is_selected {
             (
-                Style::default().fg(C_BLACK).bg(C_ACCENT).add_modifier(Modifier::BOLD),
-                Style::default().fg(C_WHITE).bg(Color::DarkGray).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_BLACK)
+                    .bg(C_ACCENT)
+                    .add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(C_WHITE)
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
             )
         } else {
             (
@@ -924,15 +994,18 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
     // 5. Footer
     f.render_widget(
-        Paragraph::new(format!("PoshBuddy v{} │ julesklord", app.version))
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(C_DIM)),
+        Paragraph::new(format!(
+            "🐱 PoshBuddy v{} · crafted with ♥ by julesklord",
+            app.version
+        ))
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(C_DIM)),
         chunks[next_chunk_idx],
     );
 }
 
 fn render_overlays(f: &mut Frame, app: &App) {
-    let area = f.size();
+    let area = f.area();
 
     // 1. Confirm Mass Font Installation
     if app.state == AppState::ConfirmMassFontInstallation {
@@ -1008,53 +1081,6 @@ fn render_overlays(f: &mut Frame, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════════
 //  ONBOARDING / LOADING / DEPENDENCY MISSING
 // ═══════════════════════════════════════════════════════════════════════════════
-
-fn render_onboarding(f: &mut Frame, area: Rect, specs: &crate::app::SystemSpecs) {
-    let center = centered_rect(58, 52, area);
-    f.render_widget(Clear, center);
-
-    let rows: Vec<Line> = vec![
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            "  System Diagnostics",
-            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-        )]),
-        Line::from(""),
-        status_line(
-            "  Nerd Font   ",
-            specs.has_nerd_font,
-            "Detected",
-            "Not found — icons may break",
-        ),
-        status_line(
-            "  PowerShell  ",
-            specs.is_pwsh_7,
-            "v7 (pwsh)",
-            "v5.1 — PowerShell 7 recommended",
-        ),
-        status_line(
-            "  Terminal    ",
-            specs.is_windows_terminal,
-            "Windows Terminal",
-            "Classic Console — upgrade recommended",
-        ),
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            "  Press Enter to continue  ·  Q to quit",
-            Style::default().fg(C_DIM),
-        )]),
-    ];
-
-    f.render_widget(
-        Paragraph::new(rows).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(C_ACCENT))
-                .title(" Welcome to PoshBuddy "),
-        ),
-        center,
-    );
-}
 
 fn render_loading(f: &mut Frame, area: Rect, app: &App) {
     let spin = SPINNER[app.spinner_tick % SPINNER.len()];
@@ -1192,18 +1218,6 @@ fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context: &str) {
         ),
         area,
     );
-}
-
-/// Returns a status line with ●/○ indicator and color coding
-fn status_line<'a>(label: &'a str, ok: bool, ok_msg: &'a str, warn_msg: &'a str) -> Line<'a> {
-    Line::from(vec![
-        Span::styled(label, Style::default().fg(C_DIM)),
-        if ok {
-            Span::styled(format!("● {}", ok_msg), Style::default().fg(C_LOCAL))
-        } else {
-            Span::styled(format!("○ {}", warn_msg), Style::default().fg(C_ACTIVE))
-        },
-    ])
 }
 
 /// Centers a rect of given percentage within parent

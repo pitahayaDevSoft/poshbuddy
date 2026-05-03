@@ -1,7 +1,7 @@
 # PoshBuddy Wiki: Troubleshooting Procedures
 
-> **Updated**: 2026-04-13
-> **Version**: v0.3.4-rust
+> **Updated**: 2026-04-29
+> **Version**: v0.4.5
 > **Read Time**: 5 min
 
 PoshBuddy categorizes issues into deterministic symptoms. If your issue persists after following these directives, consult the system logs.
@@ -44,8 +44,8 @@ stateDiagram-v2
 
 **Cause**: Environment variable override or extension mismatch.
 
-- **Fix 1**: Ensure you are running PoshBuddy **v0.3.4** or higher, which implements mandatory environment isolation (`POSH_THEME` clearing).
-- **Fix 2**: Check theme file naming. PoshBuddy v0.3.4 supports both `.omp.json` and standard `.json` extensions dynamically.
+- **Fix 1**: Ensure you are running PoshBuddy **v0.4.5** or higher, which implements mandatory environment isolation (`POSH_THEME` clearing).
+- **Fix 2**: Check theme file naming. PoshBuddy v0.4.5 supports both `.omp.json` and standard `.json` extensions dynamically.
 - **Fix 3**: Verify `oh-my-posh` is in your system PATH and accessible.
 
 ## Symptom: Terminal latency / Slow startup
