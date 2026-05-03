@@ -156,20 +156,22 @@ mod tests {
 
     impl Drop for EnvGuard {
         fn drop(&mut self) {
-            if let Some(ref v) = self.wt_session {
-                unsafe { env::set_var("WT_SESSION", v); }
-            } else {
-                unsafe { env::remove_var("WT_SESSION"); }
-            }
-            if let Some(ref v) = self.term_program {
-                unsafe { env::set_var("TERM_PROGRAM", v); }
-            } else {
-                unsafe { env::remove_var("TERM_PROGRAM"); }
-            }
-            if let Some(ref v) = self.path {
-                unsafe { env::set_var("PATH", v); }
-            } else {
-                unsafe { env::remove_var("PATH"); }
+            unsafe {
+                if let Some(ref v) = self.wt_session {
+                    env::set_var("WT_SESSION", v);
+                } else {
+                    env::remove_var("WT_SESSION");
+                }
+                if let Some(ref v) = self.term_program {
+                    env::set_var("TERM_PROGRAM", v);
+                } else {
+                    env::remove_var("TERM_PROGRAM");
+                }
+                if let Some(ref v) = self.path {
+                    env::set_var("PATH", v);
+                } else {
+                    env::remove_var("PATH");
+                }
             }
         }
     }
@@ -334,12 +336,12 @@ mod tests {
 
             // Use ONLY the mock directory in PATH - this ensures Windows finds our .cmd mocks
             // instead of any real pwsh.exe/powershell.exe that might be installed
-            unsafe { env::set_var("PATH", &dir); }
+            unsafe { env::set_var("PATH", &dir) };
 
             let profiles = App::detect_profiles();
 
             // Restore original PATH for cleanup (EnvGuard will also restore it)
-            unsafe { env::set_var("PATH", &original_path); }
+            unsafe { env::set_var("PATH", &original_path) };
 
             assert!(!profiles.is_empty(), "Profiles should not be empty");
 
@@ -406,12 +408,12 @@ mod tests {
             }
 
             // Use ONLY the mock directory in PATH
-            unsafe { env::set_var("PATH", &dir); }
+            unsafe { env::set_var("PATH", &dir) };
 
             let profiles = App::detect_profiles();
 
             // Restore original PATH
-            unsafe { env::set_var("PATH", &original_path); }
+            unsafe { env::set_var("PATH", &original_path) };
 
             assert!(
                 profiles.is_empty(),
@@ -435,8 +437,10 @@ mod tests {
             let original_path = env::var("PATH").unwrap_or_default();
 
             // Scenario 1: Default behavior (no WT_SESSION, no vscode, mock pwsh absent)
-            unsafe { env::remove_var("WT_SESSION"); }
-            unsafe { env::remove_var("TERM_PROGRAM"); }
+            unsafe {
+                env::remove_var("WT_SESSION");
+                env::remove_var("TERM_PROGRAM");
+            }
 
             // Ensure pwsh is not in PATH. But we need 'which' to work, so we keep original path but make sure there's no pwsh in it.
             // For testing purposes, we can just let 'pwsh' command fail naturally on CI if it's not installed,
@@ -456,7 +460,7 @@ mod tests {
             assert!(!specs.has_nerd_font, "Expected has_nerd_font to be false");
 
             // Scenario 2: WT_SESSION set
-            unsafe { env::set_var("WT_SESSION", "1"); }
+            unsafe { env::set_var("WT_SESSION", "1") };
             let specs = App::gather_system_specs(true);
             assert!(
                 specs.is_windows_terminal,
@@ -465,8 +469,10 @@ mod tests {
             assert!(specs.has_nerd_font, "Expected has_nerd_font to be true");
 
             // Scenario 3: TERM_PROGRAM=vscode set
-            unsafe { env::remove_var("WT_SESSION"); }
-            unsafe { env::set_var("TERM_PROGRAM", "vscode"); }
+            unsafe {
+                env::remove_var("WT_SESSION");
+                env::set_var("TERM_PROGRAM", "vscode");
+            }
             let specs = App::gather_system_specs(false);
             assert!(
                 specs.is_windows_terminal,
@@ -503,14 +509,14 @@ mod tests {
 
             // Use ONLY mock directory in PATH if we are mocking `where` as well
             #[cfg(unix)]
-            unsafe { env::set_var("PATH", &dir); }
+            unsafe { env::set_var("PATH", &dir) };
             #[cfg(windows)]
-            unsafe { env::set_var("PATH", format!("{};{}", dir.display(), original_path)); }
+            unsafe { env::set_var("PATH", format!("{};{}", dir.display(), original_path)) };
 
             let specs = App::gather_system_specs(false);
 
             // Restore original PATH
-            unsafe { env::set_var("PATH", &original_path); }
+            unsafe { env::set_var("PATH", &original_path) };
 
             assert!(
                 specs.is_pwsh_7,

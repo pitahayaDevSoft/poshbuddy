@@ -6,15 +6,12 @@
 **Action:** Use a sliding window approach with bytes `haystack.as_bytes().windows(needle_bytes.len()).any(|w| w.eq_ignore_ascii_case(needle_bytes))` to perform zero-allocation, case-insensitive substring matching for ASCII strings, which is significantly faster and more memory efficient.
 ## 2026-04-15 - Graceful Background Task Termination
 **Learning:** Background tokio tasks using `mpsc` channels for UI updates continue to consume resources (CPU/Memory) if the UI receiver drops during application shutdown and the sender's error is ignored.
-**Action:** When using `tokio::sync::mpsc` channels, explicitly handle `tx.send().await` errors (e.g., `if tx.send(...).await.is_err() { return; }`) to gracefully terminate the task when the channel is closed.
-## 2026-04-15 - Graceful Background Task Termination
-**Learning:** Background tokio tasks using `mpsc` channels for UI updates continue to consume resources (CPU/Memory) if the UI receiver drops during application shutdown and the sender's error is ignored.
 **Action:** When using `tokio::sync::mpsc` channels, explicitly handle `tx.send().await` errors (e.g., `if tx.send(...).await.is_err() { return; }`) to gracefully terminate the task when the channel is closed. Avoid this pattern with `try_send()`, as it errors on full channels (`TrySendError::Full`), which can unintentionally abort tasks during traffic spikes.
 ## 2024-05-19 - Zero-allocation list length counting
 **Learning:** In Ratatui-based TUIs, determining list item counts using methods that allocate and clone elements into new `Vec`s (e.g. `app.filtered_items().len()`) causes massive memory allocation overhead and Garbage Collection pressure during the frequent render loop.
 **Action:** Implement and use iterator-based `_count()` methods (e.g., `.filter(...).count()`) instead of `.len()` on collected `Vec`s to perform zero-allocation counting directly inside rendering loops.
 ## 2024-05-19 - Cache local sets for O(N+M) TUI filtering
-**Learning:** In Ratatui-based TUIs, comparing remote items against local items during the render loop using nested `O(N*M)` iterator scans (e.g. `!self.local_items.iter().any(...)`) creates massive frame latency as collections grow, and dynamically allocating a `HashSet` inside the method adds memory overhead per frame.
+**Learning:** In Ratatui-based TUIs, comparing remote items against local items during the render loop using nested `O(N*M)` iterator scans (e.g. !self.local_items.iter().any(...)) creates massive frame latency as collections grow, and dynamically allocating a `HashSet` inside the method adds memory overhead per frame.
 **Action:** To optimize O(N*M) lookups in TUI render loops (e.g., matching remote themes against local themes), cache a pre-computed `HashSet` of identifiers directly on the application state (`App` struct) and update it via message handlers. Do not dynamically allocate the `HashSet` inside the frequently called render/filter methods to avoid unnecessary heap allocations.
 ## 2024-04-27 - Unnecessary Allocation in TUI Navigation
 **Learning:** In Ratatui-based TUI event handlers within this codebase, full list allocation methods (e.g., `filtered_fonts()`) were being called purely to check `.len()` for keyboard navigation boundaries, discarding the heavy `Vec` immediately after.

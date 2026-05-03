@@ -129,8 +129,8 @@ pub async fn setup_app_task_with_urls(
         .send()
         .await;
 
-    if let Ok(r) = resp {
-        if let Ok(json) = r.json::<serde_json::Value>().await {
+    if let Ok(r) = resp
+        && let Ok(json) = r.json::<serde_json::Value>().await {
             // Processing JSON response to extract filenames and download URLs
             let themes: Vec<RemoteTheme> = json
                 .as_array()
@@ -161,7 +161,6 @@ pub async fn setup_app_task_with_urls(
                 return;
             }
         }
-    }
 
     // 2. Fetching Nerd Fonts metadata from the Nerd Fonts repository (patched fonts list)
     let resp_fonts = client
@@ -170,8 +169,8 @@ pub async fn setup_app_task_with_urls(
         .send()
         .await;
 
-    if let Ok(r) = resp_fonts {
-        if let Ok(json) = r.json::<serde_json::Value>().await {
+    if let Ok(r) = resp_fonts
+        && let Ok(json) = r.json::<serde_json::Value>().await {
             // Filtering for directories that represent different font families
             let fonts: Vec<FontAsset> = json
                 .as_array()
@@ -188,7 +187,6 @@ pub async fn setup_app_task_with_urls(
             // Sending the font metadata back to the main UI loop
             if tx.send(AppMessage::FontsLoaded(fonts)).await.is_err() {}
         }
-    }
 }
 
 #[cfg(test)]

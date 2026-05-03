@@ -17,8 +17,8 @@ impl App {
         };
 
         let mut active = HashSet::new();
-        if let Ok(content) = fs::read_to_string(path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+        if let Ok(content) = fs::read_to_string(path)
+            && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
                 // Look in top-level segments
                 if let Some(segments) = json.get("segments").and_then(|v| v.as_array()) {
                     for s in segments {
@@ -41,7 +41,6 @@ impl App {
                     }
                 }
             }
-        }
         self.active_segments = active;
     }
 
@@ -162,11 +161,10 @@ impl App {
 
     /// Heuristic to check if a Nerd Font is likely being used by the system
     pub fn check_nerd_font() -> bool {
-        if let Ok(term_prog) = std::env::var("TERM_PROGRAM") {
-            if term_prog == "vscode" {
+        if let Ok(term_prog) = std::env::var("TERM_PROGRAM")
+            && term_prog == "vscode" {
                 return true;
             }
-        }
 
         let cmd = if cfg!(windows) {
             "powershell"
@@ -811,14 +809,13 @@ impl App {
             if !profile.exists() {
                 continue;
             }
-            if let Ok(content) = fs::read_to_string(profile) {
-                if content
+            if let Ok(content) = fs::read_to_string(profile)
+                && content
                     .lines()
                     .any(|line| Self::is_plugin_line(line, plugin))
                 {
                     return true;
                 }
-            }
         }
         false
     }
@@ -1238,14 +1235,13 @@ impl App {
         let mut errors = Vec::new();
         for profile in &self.detected_profiles {
             // Manual backup for existing profiles
-            if profile.exists() {
-                if let Err(e) = self
+            if profile.exists()
+                && let Err(e) = self
                     .backup_manager
                     .backup_profile(profile, "Manual backup from PoshBuddy")
                 {
                     errors.push(format!("{}: {}", profile.display(), e));
                 }
-            }
         }
 
         // Refresh count after backup

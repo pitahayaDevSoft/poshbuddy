@@ -175,13 +175,11 @@ async fn run_tui() -> Result<(), Box<dyn Error>> {
         app.spinner_tick += 1;
         terminal.draw(|f| crate::ui::ui(f, &mut app))?;
 
-        if event::poll(Duration::from_millis(30))? {
-            if let Event::Key(key) = event::read()? {
-                if app.handle_input(key, tx.clone())? {
+        if event::poll(Duration::from_millis(30))?
+            && let Event::Key(key) = event::read()?
+                && app.handle_input(key, tx.clone())? {
                     break;
                 }
-            }
-        }
     }
 
     // 6. Cleanup terminal state on exit
