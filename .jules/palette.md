@@ -17,3 +17,6 @@
 ## 2024-04-28 - Hide Dismiss Hints on Non-Interactive States
 **Learning:** Progress dialogs or loading states should not prompt users with misleading dismiss hints like "Press please wait to dismiss" when the action is non-interactive. It increases cognitive load and causes confusion.
 **Action:** Always make dismiss hints optional in shared modal components. Only show interactive keyboard hints (like "Press any key to dismiss") when the user actually can interact with the dialog.
+## 2024-05-19 - Maintain Context During Progress Modals
+**Learning:** In TUI applications, intercepting progress or loading states at the top-level UI render loop replaces the main view, causing a jarring visual context switch (leaving the user with a floating modal on a blank screen).
+**Action:** Allow the main UI to render as the background and overlay the progress modal within the main view's rendering function to prevent context loss.
