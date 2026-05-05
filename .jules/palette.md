@@ -20,3 +20,6 @@
 ## 2024-05-19 - Maintain Context During Progress Modals
 **Learning:** In TUI applications, intercepting progress or loading states at the top-level UI render loop replaces the main view, causing a jarring visual context switch (leaving the user with a floating modal on a blank screen).
 **Action:** Allow the main UI to render as the background and overlay the progress modal within the main view's rendering function to prevent context loss.
+## 2024-11-20 - Actionable Empty States
+**Learning:** For TUI lists with empty fallback states (e.g. after searching/filtering), users might not realize a filter is active and think the application failed to load data. The empty state message needs to be helpful.
+**Action:** When creating empty states, provide explicit inline guidance on how to recover or clear the current state (e.g., '(Press Esc to clear search)').
