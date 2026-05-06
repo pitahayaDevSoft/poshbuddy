@@ -25,14 +25,12 @@ pub fn get_client() -> reqwest::Client {
         .clone()
 }
 
-/// Checks if the system has an active internet connection by attempting a fast resolve
-pub fn check_internet_connectivity() -> bool {
-    // Attempting to resolve a reliable host or connecting to a public DNS
+/// Internal helper to check connectivity against a specific address
+fn check_internet_connectivity_with_address(address: &str) -> bool {
     use std::net::{TcpStream, ToSocketAddrs};
     let timeout = std::time::Duration::from_millis(1500);
 
-    // We try to connect to a public DNS (Cloudflare) on port 53
-    match "1.1.1.1:53".to_socket_addrs() {
+    match address.to_socket_addrs() {
         Ok(mut addrs) => {
             if let Some(addr) = addrs.next() {
                 return TcpStream::connect_timeout(&addr, timeout).is_ok();
@@ -41,6 +39,13 @@ pub fn check_internet_connectivity() -> bool {
         Err(_) => return false,
     }
     false
+}
+
+/// Checks if the system has an active internet connection by attempting a fast resolve
+pub fn check_internet_connectivity() -> bool {
+    // Attempting to resolve a reliable host or connecting to a public DNS
+    // We try to connect to a public DNS (Cloudflare) on port 53
+    check_internet_connectivity_with_address("1.1.1.1:53")
 }
 
 /// Downloads a remote theme file to the local themes directory
@@ -408,6 +413,24 @@ mod tests {
 
         // Channel should be dropped without sending any messages
         assert!(rx.recv().await.is_none());
+    }
+
+    #[test]
+    fn test_check_internet_connectivity_success() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("Failed to bind to local port");
+        let addr = listener.local_addr().expect("Failed to get local address");
+        assert!(check_internet_connectivity_with_address(&addr.to_string()));
+    }
+
+    #[test]
+    fn test_check_internet_connectivity_failure_unbound() {
+        // Attempt to connect to an unused port locally (may fail if coincidentally used, but highly unlikely for specific test port)
+        assert!(!check_internet_connectivity_with_address("127.0.0.1:54321"));
+    }
+
+    #[test]
+    fn test_check_internet_connectivity_failure_invalid_address() {
+        assert!(!check_internet_connectivity_with_address("invalid:address"));
     }
 }
 
