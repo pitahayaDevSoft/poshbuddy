@@ -337,19 +337,24 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.filter, "Themes");
 
-    let themes = app.filtered_themes();
-    let mut items: Vec<ListItem> = themes
+    let filter = &app.filter;
+    let mut items: Vec<ListItem> = app.themes
         .iter()
+        .filter(|t| crate::app::contains_ignore_ascii_case(&t.name, filter))
         .map(|t| {
-            let label = if t.is_local { "[Local]" } else { "[Remote]" };
-            let style = if t.is_local {
-                Style::default().fg(C_LOCAL)
-            } else {
-                Style::default().fg(C_REMOTE)
-            };
-            ListItem::new(format!("  {} {}", t.name, label)).style(style)
+            let style = Style::default().fg(C_LOCAL);
+            ListItem::new(format!("  {} [Local]", t.name)).style(style)
         })
         .collect();
+
+    for rt in &app.remote_themes {
+        if crate::app::contains_ignore_ascii_case(&rt.name, filter)
+            && app.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
+        {
+            let style = Style::default().fg(C_REMOTE);
+            items.push(ListItem::new(format!("  {} [Remote]", rt.name)).style(style));
+        }
+    }
 
     let is_empty = items.is_empty();
     let title = if app.filter.is_empty() {
@@ -445,9 +450,9 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
 
-    let fonts = app.filtered_fonts();
-    let mut items: Vec<ListItem> = fonts
+    let mut items: Vec<ListItem> = app.fonts
         .iter()
+        .filter(|f| crate::app::contains_ignore_ascii_case(&f.name, &app.fonts_filter))
         .map(|font| ListItem::new(format!("  {}", font.name)).style(Style::default().fg(C_WHITE)))
         .collect();
 
@@ -488,7 +493,7 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_stateful_widget(list, left[1], &mut app.fonts_list_state);
 
     // Right: detail panel
-    let selected = app.fonts_list_state.selected().and_then(|i| fonts.get(i));
+    let selected = app.fonts_list_state.selected().and_then(|i| app.filtered_font_at(i));
     let detail_block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(C_DIM))
@@ -561,9 +566,13 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.segments_filter, "Segments");
 
-    let segments = app.filtered_segments();
-    let mut items: Vec<ListItem> = segments
+    let mut items: Vec<ListItem> = app.segments
         .iter()
+        .filter(|p| {
+            crate::app::contains_ignore_ascii_case(&p.name, &app.segments_filter)
+                || crate::app::contains_ignore_ascii_case(&p.description, &app.segments_filter)
+                || crate::app::contains_ignore_ascii_case(&p.category, &app.segments_filter)
+        })
         .map(|s| {
             let active = app.is_segment_active(s);
             let dot = if active { "●" } else { "○" };
@@ -616,13 +625,13 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
     let selected = app
         .segments_list_state
         .selected()
-        .and_then(|i| segments.get(i));
+        .and_then(|i| app.filtered_segment_at(i));
     let detail_block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(C_DIM))
         .title(" Information ");
 
-    if let Some(seg) = selected {
+    if let Some(ref seg) = selected {
         let active = app.is_segment_active(seg);
         let lines = vec![
             Line::from(""),

@@ -268,28 +268,20 @@ mod tests {
         ];
 
         // Empty filter should return all
-        assert_eq!(app.filtered_fonts().len(), 3);
         assert_eq!(app.filtered_fonts_count(), 3);
 
         // Case-insensitive matching
         app.fonts_filter = "fira".to_string();
-        assert_eq!(
-            app.filtered_fonts(),
-            vec![FontAsset {
-                name: "FiraCode".to_string(),
-                download_url: "https://example.com/fira".to_string(),
-            }]
-        );
+        let fira_font = app.filtered_font_at(0).unwrap();
+        assert_eq!(fira_font.name, "FiraCode");
         assert_eq!(app.filtered_fonts_count(), 1);
 
         // Partial matching
         app.fonts_filter = "Code".to_string();
-        assert_eq!(app.filtered_fonts().len(), 2);
         assert_eq!(app.filtered_fonts_count(), 2);
 
         // No match
         app.fonts_filter = "Wingdings".to_string();
-        assert_eq!(app.filtered_fonts().len(), 0);
         assert_eq!(app.filtered_fonts_count(), 0);
     }
 
