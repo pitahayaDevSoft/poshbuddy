@@ -22,3 +22,6 @@
 ## 2024-05-30 - O(log N) deduplication over HashSet for small/medium collections
 **Learning:** For application states maintaining collections like `themes`, using a separate `HashSet` for quick duplicate lookups doubles the memory overhead and forces string allocations during insertion.
 **Action:** Instead of pairing a `Vec` and a `HashSet`, maintain the primary `Vec` sorted via `sort_by(...)` upon insertion, and use `binary_search_by(...)` for fast `O(log N)` lookups. This achieves near-instantaneous `O(log N)` lookups for hundreds of items with strictly zero extra heap allocation.
+## 2024-05-31 - Zero-allocation list generation in TUI render loops
+**Learning:** Returning a `Vec` of cloned domain objects from filtering methods (like `app.filtered_themes()`) and iterating over it in Ratatui render loops causes massive, unnecessary heap allocation (O(N) `Vec` + deep `String` clones) per frame (60fps).
+**Action:** Inline the filtering logic using iterators directly within the `ui.rs` render functions to map application state to Ratatui `ListItem` widgets, completely avoiding intermediate collection allocations and object cloning.

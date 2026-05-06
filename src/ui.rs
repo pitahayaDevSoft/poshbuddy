@@ -22,7 +22,7 @@ const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧
 
 // ── Root dispatcher ────────────────────────────────────────────────────────────
 pub fn ui(f: &mut Frame, app: &mut App) {
-    match app.state.clone() {
+    match &app.state {
         AppState::Welcome => render_welcome(f, f.area(), app),
         AppState::DependencyMissing => render_dep_missing(f, f.area()),
         AppState::Loading => render_loading(f, f.area(), app),
@@ -322,19 +322,21 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.filter, "Themes");
 
-    let themes = app.filtered_themes();
-    let mut items: Vec<ListItem> = themes
-        .iter()
-        .map(|t| {
-            let label = if t.is_local { "[Local]" } else { "[Remote]" };
-            let style = if t.is_local {
-                Style::default().fg(C_LOCAL)
-            } else {
-                Style::default().fg(C_REMOTE)
-            };
-            ListItem::new(format!("  {} {}", t.name, label)).style(style)
-        })
-        .collect();
+    // ⚡ Bolt Optimization: Avoid intermediate O(N) Vec allocation and deep String clones
+    // by using zero-allocation iterator pipelines directly to generate the TUI ListItems.
+    let mut items = Vec::with_capacity(app.themes.len());
+    for t in &app.themes {
+        if crate::app::contains_ignore_ascii_case(&t.name, &app.filter) {
+            items.push(ListItem::new(format!("  {} [Local]", t.name)).style(Style::default().fg(C_LOCAL)));
+        }
+    }
+    for rt in &app.remote_themes {
+        if crate::app::contains_ignore_ascii_case(&rt.name, &app.filter)
+            && app.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
+        {
+            items.push(ListItem::new(format!("  {} [Remote]", rt.name)).style(Style::default().fg(C_REMOTE)));
+        }
+    }
 
     let is_empty = items.is_empty();
     let title = if app.filter.is_empty() {
@@ -430,9 +432,10 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
 
-    let fonts = app.filtered_fonts();
-    let mut items: Vec<ListItem> = fonts
+    // ⚡ Bolt Optimization: Inline filtering to avoid intermediate `Vec<FontAsset>` allocation.
+    let mut items: Vec<ListItem> = app.fonts
         .iter()
+        .filter(|f| crate::app::contains_ignore_ascii_case(&f.name, &app.fonts_filter))
         .map(|font| ListItem::new(format!("  {}", font.name)).style(Style::default().fg(C_WHITE)))
         .collect();
 
@@ -473,13 +476,13 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_stateful_widget(list, left[1], &mut app.fonts_list_state);
 
     // Right: detail panel
-    let selected = app.fonts_list_state.selected().and_then(|i| fonts.get(i));
+    let selected_font = app.fonts_list_state.selected().and_then(|i| app.filtered_font_at(i));
     let detail_block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(C_DIM))
         .title(" Font Details ");
 
-    if let Some(font) = selected {
+    if let Some(font) = &selected_font {
         let lines = vec![
             Line::from(""),
             Line::from(vec![Span::styled(
@@ -546,9 +549,14 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.segments_filter, "Segments");
 
-    let segments = app.filtered_segments();
-    let mut items: Vec<ListItem> = segments
+    // ⚡ Bolt Optimization: Inline filtering to avoid intermediate `Vec<SegmentAsset>` allocation.
+    let mut items: Vec<ListItem> = app.segments
         .iter()
+        .filter(|p| {
+            crate::app::contains_ignore_ascii_case(&p.name, &app.segments_filter)
+                || crate::app::contains_ignore_ascii_case(&p.description, &app.segments_filter)
+                || crate::app::contains_ignore_ascii_case(&p.category, &app.segments_filter)
+        })
         .map(|s| {
             let active = app.is_segment_active(s);
             let dot = if active { "●" } else { "○" };
@@ -598,16 +606,16 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_stateful_widget(list, left[1], &mut app.segments_list_state);
 
     // Right: detail
-    let selected = app
+    let selected_segment = app
         .segments_list_state
         .selected()
-        .and_then(|i| segments.get(i));
+        .and_then(|i| app.filtered_segment_at(i));
     let detail_block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(C_DIM))
         .title(" Information ");
 
-    if let Some(seg) = selected {
+    if let Some(seg) = &selected_segment {
         let active = app.is_segment_active(seg);
         let lines = vec![
             Line::from(""),

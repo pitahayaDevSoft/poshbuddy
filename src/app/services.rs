@@ -315,6 +315,7 @@ impl App {
     }
 
     /// Returns a filtered list of fonts based on search criteria
+    #[cfg(test)]
     pub fn filtered_fonts(&self) -> Vec<FontAsset> {
         self.fonts
             .iter()
@@ -323,20 +324,6 @@ impl App {
             .collect()
     }
 
-    /// Returns a filtered list of segments based on search criteria
-    pub fn filtered_segments(&self) -> Vec<SegmentAsset> {
-        self.segments
-            .iter()
-            .filter(|p| {
-                contains_ignore_ascii_case(&p.name, &self.segments_filter)
-                    || contains_ignore_ascii_case(&p.description, &self.segments_filter)
-                    || contains_ignore_ascii_case(&p.category, &self.segments_filter)
-            })
-            .cloned()
-            .collect()
-    }
-
-    /// Returns the count of filtered segments without allocating a new Vec
     pub fn filtered_segments_count(&self) -> usize {
         self.segments
             .iter()
