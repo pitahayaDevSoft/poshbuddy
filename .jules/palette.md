@@ -23,3 +23,6 @@
 ## 2024-05-20 - Visual Progress over Plain Text
 **Learning:** For long-running operations in TUI applications, representing progress as raw text percentages (e.g. "Progress: 50%") provides inferior feedback compared to visual representations.
 **Action:** When working on Ratatui TUIs, use visual widgets like `ratatui::widgets::Gauge` for progress states to improve user perception of speed and completion, making sure to render them as overlays.
+## 2024-11-20 - Actionable Empty States
+**Learning:** For TUI lists with empty fallback states (e.g. after searching/filtering), users might not realize a filter is active and think the application failed to load data. The empty state message needs to be helpful.
+**Action:** When creating empty states, provide explicit inline guidance on how to recover or clear the current state (e.g., '(Press Esc to clear search)').
