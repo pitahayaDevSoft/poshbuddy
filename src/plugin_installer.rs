@@ -51,16 +51,6 @@ impl Default for PreCheckResult {
 pub struct PluginInstaller;
 
 impl PluginInstaller {
-    /// Validates if a module name is safe to use in commands
-    pub fn is_valid_module_name(name: &str) -> bool {
-        if name.is_empty() {
-            return false;
-        }
-        // Only allow alphanumeric characters, dots, underscores, and dashes
-        name.chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
-    }
-
     /// Creates a new installer
     pub fn new() -> Self {
         Self
@@ -70,8 +60,12 @@ impl PluginInstaller {
     pub fn pre_check(&self, module_name: &str) -> PreCheckResult {
         let mut result = PreCheckResult::new();
 
+        // 0. Validate module name
         if !Self::is_valid_module_name(module_name) {
-            result.errors.push(format!("Invalid module name: '{}'. Only alphanumeric characters, dots, underscores, and dashes are allowed.", module_name));
+            result.errors.push(format!(
+                "Invalid module name: '{}'. Only alphanumeric characters, dots, underscores, and dashes are allowed.",
+                module_name
+            ));
             result.can_install = false;
             return result;
         }
@@ -372,6 +366,14 @@ impl PluginInstaller {
             Err(io::Error::other("Failed to get module info"))
         }
     }
+
+    /// Validates if a module name is safe to use in a PowerShell command
+    fn is_valid_module_name(module_name: &str) -> bool {
+        !module_name.is_empty()
+            && module_name
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '-')
+    }
 }
 
 impl Default for PluginInstaller {
@@ -391,21 +393,6 @@ pub struct ModuleInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_is_valid_module_name() {
-        assert!(PluginInstaller::is_valid_module_name("posh-git"));
-        assert!(PluginInstaller::is_valid_module_name("Terminal-Icons"));
-        assert!(PluginInstaller::is_valid_module_name("zoxide.powershell"));
-        assert!(PluginInstaller::is_valid_module_name("My_Module_123"));
-
-        assert!(!PluginInstaller::is_valid_module_name(""));
-        assert!(!PluginInstaller::is_valid_module_name("my module"));
-        assert!(!PluginInstaller::is_valid_module_name("module; rm -rf /"));
-        assert!(!PluginInstaller::is_valid_module_name("module|iex"));
-        assert!(!PluginInstaller::is_valid_module_name("$env:USERNAME"));
-        assert!(!PluginInstaller::is_valid_module_name("module&echo test"));
-    }
 
     #[test]
     fn test_pre_check_result() {
@@ -450,5 +437,30 @@ mod tests {
         let installer = PluginInstaller::new();
         let result = installer.pre_check("Pester");
         assert!(result.has_powershell);
+    }
+
+    #[test]
+    fn test_module_name_validation() {
+        assert!(PluginInstaller::is_valid_module_name("Terminal-Icons"));
+        assert!(PluginInstaller::is_valid_module_name("PSReadLine"));
+        assert!(PluginInstaller::is_valid_module_name("My.Module_123"));
+
+        assert!(!PluginInstaller::is_valid_module_name(""));
+        assert!(!PluginInstaller::is_valid_module_name("Module; ls"));
+        assert!(!PluginInstaller::is_valid_module_name("Module | rm"));
+        assert!(!PluginInstaller::is_valid_module_name("Module $(whoami)"));
+        assert!(!PluginInstaller::is_valid_module_name("Module > file.txt"));
+        assert!(!PluginInstaller::is_valid_module_name("../traversal"));
+    }
+
+    #[test]
+    fn test_pre_check_invalid_name() {
+        let installer = PluginInstaller::new();
+        let result = installer.pre_check("Invalid; Name");
+        assert!(!result.can_install);
+        assert!(result
+            .errors
+            .iter()
+            .any(|e| e.contains("Invalid module name")));
     }
 }

@@ -71,3 +71,30 @@ pub fn get_default_segments() -> Vec<SegmentAsset> {
         },
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_default_plugins() {
+        let plugins = get_default_plugins();
+        assert_eq!(plugins.len(), 3);
+        assert_eq!(plugins[0].name, "Terminal-Icons");
+        assert_eq!(plugins[1].name, "zoxide (z Explorer)");
+        assert_eq!(plugins[2].name, "PSReadLine Mastery");
+    }
+
+    #[test]
+    fn test_get_default_segments() {
+        let segments = get_default_segments();
+        assert_eq!(segments.len(), 7);
+        assert_eq!(segments[0].name, "Git Status");
+        assert_eq!(segments[1].name, "Path");
+        assert_eq!(segments[2].name, "Session (User)");
+        assert_eq!(segments[3].name, "Battery");
+        assert_eq!(segments[4].name, "Execution Time");
+        assert_eq!(segments[5].name, "Node.js info");
+        assert_eq!(segments[6].name, "Docker");
+    }
+}

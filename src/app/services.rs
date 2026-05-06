@@ -314,28 +314,6 @@ impl App {
             .count()
     }
 
-    /// Returns a filtered list of fonts based on search criteria
-    pub fn filtered_fonts(&self) -> Vec<FontAsset> {
-        self.fonts
-            .iter()
-            .filter(|f| contains_ignore_ascii_case(&f.name, &self.fonts_filter))
-            .cloned()
-            .collect()
-    }
-
-    /// Returns a filtered list of segments based on search criteria
-    pub fn filtered_segments(&self) -> Vec<SegmentAsset> {
-        self.segments
-            .iter()
-            .filter(|p| {
-                contains_ignore_ascii_case(&p.name, &self.segments_filter)
-                    || contains_ignore_ascii_case(&p.description, &self.segments_filter)
-                    || contains_ignore_ascii_case(&p.category, &self.segments_filter)
-            })
-            .cloned()
-            .collect()
-    }
-
     /// Returns the count of filtered segments without allocating a new Vec
     pub fn filtered_segments_count(&self) -> usize {
         self.segments
@@ -500,6 +478,14 @@ impl App {
 
     /// Triggers an asynchronous font installation via Oh My Posh CLI
     pub fn install_font(&self, font_name: String, tx: mpsc::Sender<AppMessage>) {
+        if !self.fonts.iter().any(|f| f.name == font_name) {
+            let _ = tx.try_send(AppMessage::Error(format!(
+                "Invalid font name: {}",
+                font_name
+            )));
+            return;
+        }
+
         let cmd = OMP_BINARY;
 
         let font_name_cloned = font_name.clone();
@@ -866,6 +852,105 @@ impl App {
     }
 
     /// Advanced 4-stage theme application flow: Download -> Verify -> Backup -> Apply
+    async fn download_or_locate_theme(theme: &ThemeAsset, themes_dir: &std::path::Path) -> Result<PathBuf, String> {
+        if theme.is_local {
+            let name_clean = theme.name.replace(".omp.json", "");
+            Ok(themes_dir.join(format!("{}.omp.json", name_clean)))
+        } else {
+            if !crate::api::check_internet_connectivity() {
+                return Err("No internet connection detected. Check your network.".to_string());
+            }
+
+            if let Some(url) = &theme.download_url {
+                let temp_dir = std::env::temp_dir();
+                match crate::api::download_theme_file(&theme.name, url, &temp_dir).await {
+                    Ok(p) => Ok(p),
+                    Err(e) => Err(format!("Download failed: {}", e)),
+                }
+            } else {
+                Err("Missing download URL for remote theme".to_string())
+            }
+        }
+    }
+
+    async fn verify_theme_json(source_path: &std::path::Path) -> Result<(), String> {
+        match tokio::fs::read_to_string(source_path).await {
+            Ok(content) => {
+                if serde_json::from_str::<serde_json::Value>(&content).is_err() {
+                    Err("Invalid theme JSON format".to_string())
+                } else {
+                    Ok(())
+                }
+            }
+            Err(e) => Err(format!("Could not read theme file: {}", e)),
+        }
+    }
+
+    fn backup_profiles(
+        profiles: &[PathBuf],
+        backup_manager: &crate::backup::BackupManager,
+        theme_name: &str,
+    ) -> Result<(), String> {
+        for profile in profiles {
+            if let Err(e) = backup_manager.backup_profile(profile, &format!("Apply Theme Advanced: {}", theme_name)) {
+                return Err(format!("Backup failed: {}", e));
+            }
+        }
+        Ok(())
+    }
+
+    async fn update_profiles_with_theme(
+        profiles: &[PathBuf],
+        theme_name: &str,
+        config_line: &str,
+    ) -> Result<(), String> {
+        let start_marker = "## POSHBUDDY AUTO-GENERATED CONFIG - START (THEME)";
+        let end_marker = "## POSHBUDDY AUTO-GENERATED CONFIG - END (THEME)";
+        let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
+
+        for profile in profiles {
+            let existing_content = tokio::fs::read_to_string(profile).await.unwrap_or_default();
+            let mut new_lines = Vec::new();
+            let mut inside_block = false;
+            let mut found = false;
+
+            for line in existing_content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("# <PoshBuddy: START") || trimmed.starts_with("# <PoshBuddy: END") {
+                    continue;
+                }
+
+                if trimmed.starts_with(start_marker) {
+                    inside_block = true;
+                    found = true;
+                    new_lines.push(start_marker.to_string());
+                    new_lines.push(format!("## Description: Apply Oh My Posh theme: {}", theme_name));
+                    new_lines.push(config_line.to_string());
+                } else if trimmed.starts_with(end_marker) {
+                    inside_block = false;
+                    new_lines.push(end_marker.to_string());
+                } else if !inside_block {
+                    new_lines.push(line.to_string());
+                }
+            }
+
+            if !found {
+                if !existing_content.is_empty() && !existing_content.ends_with('\n') {
+                    new_lines.push(String::new());
+                }
+                new_lines.push(start_marker.to_string());
+                new_lines.push(format!("## Description: Apply Oh My Posh theme: {}", theme_name));
+                new_lines.push(config_line.to_string());
+                new_lines.push(end_marker.to_string());
+            }
+
+            if let Err(e) = tokio::fs::write(profile, new_lines.join(line_ending)).await {
+                return Err(format!("Profile update failed: {}", e));
+            }
+        }
+        Ok(())
+    }
+
     pub fn apply_theme_advanced(&mut self, theme: ThemeAsset, tx: mpsc::Sender<AppMessage>) {
         let name = theme.name.clone();
         let themes_dir = self.themes_dir.clone();
@@ -881,151 +966,44 @@ impl App {
 
         tokio::spawn(async move {
             // Stage 0: Download/Locate
-            if tx_cloned
-                .send(AppMessage::InstallUpdate {
-                    stage: 0,
-                    percentage: 25.0,
-                })
-                .await
-                .is_err()
-            {
+            if tx_cloned.send(AppMessage::InstallUpdate { stage: 0, percentage: 25.0 }).await.is_err() {
                 return;
             }
-
-            let source_path = if theme.is_local {
-                let name_clean = theme.name.replace(".omp.json", "");
-                themes_dir.join(format!("{}.omp.json", name_clean))
-            } else {
-                if !crate::api::check_internet_connectivity() {
-                    if tx_cloned
-                        .send(AppMessage::Error(
-                            "No internet connection detected. Check your network.".to_string(),
-                        ))
-                        .await
-                        .is_err()
-                    {
-                        return;
-                    }
-                    return;
-                }
-
-                if let Some(url) = theme.download_url {
-                    // Download to a temporary location first for verification
-                    let temp_dir = std::env::temp_dir();
-                    match crate::api::download_theme_file(&theme.name, &url, &temp_dir).await {
-                        Ok(p) => p,
-                        Err(e) => {
-                            if tx_cloned
-                                .send(AppMessage::Error(format!("Download failed: {}", e)))
-                                .await
-                                .is_err()
-                            {
-                                return;
-                            }
-                            return;
-                        }
-                    }
-                } else {
-                    if tx_cloned
-                        .send(AppMessage::Error(
-                            "Missing download URL for remote theme".to_string(),
-                        ))
-                        .await
-                        .is_err()
-                    {
-                        return;
-                    }
+            let source_path = match Self::download_or_locate_theme(&theme, &themes_dir).await {
+                Ok(path) => path,
+                Err(e) => {
+                    let _ = tx_cloned.send(AppMessage::Error(e)).await;
                     return;
                 }
             };
 
             // Stage 1: Verify (Try to parse as JSON)
-            if tx_cloned
-                .send(AppMessage::InstallUpdate {
-                    stage: 1,
-                    percentage: 50.0,
-                })
-                .await
-                .is_err()
-            {
+            if tx_cloned.send(AppMessage::InstallUpdate { stage: 1, percentage: 50.0 }).await.is_err() {
                 return;
             }
-            match tokio::fs::read_to_string(&source_path).await {
-                Ok(content) => {
-                    if serde_json::from_str::<serde_json::Value>(&content).is_err() {
-                        if tx_cloned
-                            .send(AppMessage::Error("Invalid theme JSON format".to_string()))
-                            .await
-                            .is_err()
-                        {
-                            return;
-                        }
-                        return;
-                    }
-                }
-                Err(e) => {
-                    if tx_cloned
-                        .send(AppMessage::Error(format!(
-                            "Could not read theme file: {}",
-                            e
-                        )))
-                        .await
-                        .is_err()
-                    {
-                        return;
-                    }
-                    return;
-                }
+            if let Err(e) = Self::verify_theme_json(&source_path).await {
+                let _ = tx_cloned.send(AppMessage::Error(e)).await;
+                return;
             }
 
             // Stage 2: Backup
-            if tx_cloned
-                .send(AppMessage::InstallUpdate {
-                    stage: 2,
-                    percentage: 75.0,
-                })
-                .await
-                .is_err()
-            {
+            if tx_cloned.send(AppMessage::InstallUpdate { stage: 2, percentage: 75.0 }).await.is_err() {
                 return;
             }
-            for profile in &profiles {
-                if let Err(e) = backup_manager
-                    .backup_profile(profile, &format!("Apply Theme Advanced: {}", name))
-                {
-                    if tx_cloned
-                        .send(AppMessage::Error(format!("Backup failed: {}", e)))
-                        .await
-                        .is_err()
-                    {
-                        return;
-                    }
-                    return;
-                }
+            if let Err(e) = Self::backup_profiles(&profiles, &backup_manager, &name) {
+                let _ = tx_cloned.send(AppMessage::Error(e)).await;
+                return;
             }
 
             // Stage 3: Apply
-            if tx_cloned
-                .send(AppMessage::InstallUpdate {
-                    stage: 3,
-                    percentage: 90.0,
-                })
-                .await
-                .is_err()
-            {
+            if tx_cloned.send(AppMessage::InstallUpdate { stage: 3, percentage: 90.0 }).await.is_err() {
                 return;
             }
 
             let final_theme_path = if !theme.is_local {
                 let dest = themes_dir.join(format!("{}.omp.json", theme.name));
                 if let Err(e) = tokio::fs::copy(&source_path, &dest).await {
-                    if tx_cloned
-                        .send(AppMessage::Error(format!("Failed to save theme: {}", e)))
-                        .await
-                        .is_err()
-                    {
-                        return;
-                    }
+                    let _ = tx_cloned.send(AppMessage::Error(format!("Failed to save theme: {}", e))).await;
                     return;
                 }
                 dest
@@ -1038,75 +1016,15 @@ impl App {
                 final_theme_path.to_string_lossy()
             );
 
-            let start_marker = "## POSHBUDDY AUTO-GENERATED CONFIG - START (THEME)";
-            let end_marker = "## POSHBUDDY AUTO-GENERATED CONFIG - END (THEME)";
-            let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
-
-            for profile in &profiles {
-                let existing_content = tokio::fs::read_to_string(profile).await.unwrap_or_default();
-                let mut new_lines = Vec::new();
-                let mut inside_block = false;
-                let mut found = false;
-
-                for line in existing_content.lines() {
-                    let trimmed = line.trim();
-                    if trimmed.starts_with("# <PoshBuddy: START")
-                        || trimmed.starts_with("# <PoshBuddy: END")
-                    {
-                        continue;
-                    }
-
-                    if trimmed.starts_with(start_marker) {
-                        inside_block = true;
-                        found = true;
-                        new_lines.push(start_marker.to_string());
-                        new_lines.push(format!("## Description: Apply Oh My Posh theme: {}", name));
-                        new_lines.push(config_line.clone());
-                    } else if trimmed.starts_with(end_marker) {
-                        inside_block = false;
-                        new_lines.push(end_marker.to_string());
-                    } else if !inside_block {
-                        new_lines.push(line.to_string());
-                    }
-                }
-
-                if !found {
-                    if !existing_content.is_empty() && !existing_content.ends_with('\n') {
-                        new_lines.push(String::new());
-                    }
-                    new_lines.push(start_marker.to_string());
-                    new_lines.push(format!("## Description: Apply Oh My Posh theme: {}", name));
-                    new_lines.push(config_line.clone());
-                    new_lines.push(end_marker.to_string());
-                }
-
-                if let Err(e) = tokio::fs::write(profile, new_lines.join(line_ending)).await {
-                    if tx_cloned
-                        .send(AppMessage::Error(format!("Profile update failed: {}", e)))
-                        .await
-                        .is_err()
-                    {
-                        return;
-                    }
-                    return;
-                }
-            }
-
-            if tx_cloned
-                .send(AppMessage::Success(format!(
-                    "Theme '{}' applied successfully!",
-                    name
-                )))
-                .await
-                .is_err()
-            {
+            if let Err(e) = Self::update_profiles_with_theme(&profiles, &name, &config_line).await {
+                let _ = tx_cloned.send(AppMessage::Error(e)).await;
                 return;
             }
-            if tx_cloned
-                .send(AppMessage::ThemeDownloaded(final_theme_path))
-                .await
-                .is_err()
-            {}
+
+            if tx_cloned.send(AppMessage::Success(format!("Theme '{}' applied successfully!", name))).await.is_err() {
+                return;
+            }
+            let _ = tx_cloned.send(AppMessage::ThemeDownloaded(final_theme_path)).await;
         });
     }
 

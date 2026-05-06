@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 /// Metadata for a PowerShell module/extension (Legacy Plugins)
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PluginAsset {
     pub name: String,
     pub description: String,
@@ -12,7 +12,7 @@ pub struct PluginAsset {
 }
 
 /// Metadata for an Oh My Posh Segment
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SegmentAsset {
     pub name: String,
     pub segment_type: String,
