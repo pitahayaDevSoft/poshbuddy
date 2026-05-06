@@ -347,7 +347,7 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         let msg = if app.filter.is_empty() {
             "  No themes available.".to_string()
         } else {
-            format!("  No themes matching '{}'", app.filter)
+            format!("  No themes matching '{}' (Press Esc to clear search)", app.filter)
         };
         items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
     }
@@ -447,7 +447,7 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         let msg = if app.fonts_filter.is_empty() {
             "  No fonts available.".to_string()
         } else {
-            format!("  No fonts matching '{}'", app.fonts_filter)
+            format!("  No fonts matching '{}' (Press Esc to clear search)", app.fonts_filter)
         };
         items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
     }
@@ -572,7 +572,7 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         let msg = if app.segments_filter.is_empty() {
             "  No components available.".to_string()
         } else {
-            format!("  No components matching '{}'", app.segments_filter)
+            format!("  No components matching '{}' (Press Esc to clear search)", app.segments_filter)
         };
         items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
     }
