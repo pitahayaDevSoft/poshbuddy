@@ -60,6 +60,16 @@ impl PluginInstaller {
     pub fn pre_check(&self, module_name: &str) -> PreCheckResult {
         let mut result = PreCheckResult::new();
 
+        // 0. Validate module name
+        if !Self::is_valid_module_name(module_name) {
+            result.errors.push(format!(
+                "Invalid module name: '{}'. Only alphanumeric characters, dots, underscores, and dashes are allowed.",
+                module_name
+            ));
+            result.can_install = false;
+            return result;
+        }
+
         // 1. Verify PowerShell is available
         result.has_powershell = Self::check_powershell_available();
         if !result.has_powershell {
@@ -189,6 +199,10 @@ impl PluginInstaller {
 
     /// Installs a PowerShell module
     async fn install_module(&self, module_name: &str) -> Result<Option<String>, io::Error> {
+        if !Self::is_valid_module_name(module_name) {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid module name"));
+        }
+
         let output = tokio::process::Command::new("pwsh")
             .env("POSHBUDDY_MODULE_NAME", module_name)
             .args([
@@ -231,6 +245,10 @@ impl PluginInstaller {
 
     /// Checks if a module is already installed
     fn check_module_installed(module_name: &str) -> Result<bool, io::Error> {
+        if !Self::is_valid_module_name(module_name) {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid module name"));
+        }
+
         let output = Command::new("pwsh")
             .env("POSHBUDDY_MODULE_NAME", module_name)
             .args([
@@ -283,6 +301,10 @@ impl PluginInstaller {
 
     /// Uninstalls a module
     pub async fn uninstall_module(&self, module_name: &str) -> Result<(), io::Error> {
+        if !Self::is_valid_module_name(module_name) {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid module name"));
+        }
+
         let output = tokio::process::Command::new("pwsh")
             .env("POSHBUDDY_MODULE_NAME", module_name)
             .args([
@@ -302,6 +324,10 @@ impl PluginInstaller {
 
     /// Gets information about an installed module
     pub fn get_module_info(&self, module_name: &str) -> Result<Option<ModuleInfo>, io::Error> {
+        if !Self::is_valid_module_name(module_name) {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid module name"));
+        }
+
         let output = Command::new("pwsh")
             .env("POSHBUDDY_MODULE_NAME", module_name)
             .args([
@@ -339,6 +365,14 @@ impl PluginInstaller {
         } else {
             Err(io::Error::other("Failed to get module info"))
         }
+    }
+
+    /// Validates if a module name is safe to use in a PowerShell command
+    fn is_valid_module_name(module_name: &str) -> bool {
+        !module_name.is_empty()
+            && module_name
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '-')
     }
 }
 
@@ -403,5 +437,30 @@ mod tests {
         let installer = PluginInstaller::new();
         let result = installer.pre_check("Pester");
         assert!(result.has_powershell);
+    }
+
+    #[test]
+    fn test_module_name_validation() {
+        assert!(PluginInstaller::is_valid_module_name("Terminal-Icons"));
+        assert!(PluginInstaller::is_valid_module_name("PSReadLine"));
+        assert!(PluginInstaller::is_valid_module_name("My.Module_123"));
+
+        assert!(!PluginInstaller::is_valid_module_name(""));
+        assert!(!PluginInstaller::is_valid_module_name("Module; ls"));
+        assert!(!PluginInstaller::is_valid_module_name("Module | rm"));
+        assert!(!PluginInstaller::is_valid_module_name("Module $(whoami)"));
+        assert!(!PluginInstaller::is_valid_module_name("Module > file.txt"));
+        assert!(!PluginInstaller::is_valid_module_name("../traversal"));
+    }
+
+    #[test]
+    fn test_pre_check_invalid_name() {
+        let installer = PluginInstaller::new();
+        let result = installer.pre_check("Invalid; Name");
+        assert!(!result.can_install);
+        assert!(result
+            .errors
+            .iter()
+            .any(|e| e.contains("Invalid module name")));
     }
 }
