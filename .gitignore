@@ -29,3 +29,5 @@ poshbuddy.code-workspace
 .trunk/build-cache/*
 qp_audit.md
 
+
+gha-creds-*.json
