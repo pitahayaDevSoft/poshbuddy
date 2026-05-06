@@ -136,6 +136,41 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::Mutex;
 
+    #[test]
+    fn test_contains_ignore_ascii_case() {
+        // Empty string cases
+        assert!(contains_ignore_ascii_case("haystack", ""));
+        assert!(!contains_ignore_ascii_case("", "needle"));
+        assert!(contains_ignore_ascii_case("", ""));
+
+        // Exact matches
+        assert!(contains_ignore_ascii_case("hello world", "world"));
+        assert!(contains_ignore_ascii_case("world", "world"));
+
+        // Case-insensitive matches
+        assert!(contains_ignore_ascii_case("Hello World", "WORLD"));
+        assert!(contains_ignore_ascii_case("hello world", "WORLD"));
+        assert!(contains_ignore_ascii_case("HELLO WORLD", "world"));
+        assert!(contains_ignore_ascii_case("HeLlO wOrLd", "wOrLd"));
+
+        // Partial matches
+        assert!(contains_ignore_ascii_case("HelloWorld", "lowor"));
+        assert!(contains_ignore_ascii_case("HelloWorld", "Owo"));
+
+        // No match
+        assert!(!contains_ignore_ascii_case("Hello World", "planet"));
+        assert!(!contains_ignore_ascii_case("Hello World", "worlds"));
+
+        // Needle longer than haystack
+        assert!(!contains_ignore_ascii_case("hi", "hello"));
+        assert!(!contains_ignore_ascii_case("", "a"));
+
+        // Special characters
+        assert!(contains_ignore_ascii_case("hello-world_123", "-WORLD_"));
+        assert!(contains_ignore_ascii_case("test@#$%", "@#$%"));
+        assert!(!contains_ignore_ascii_case("test@#$%", "^&*"));
+    }
+
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     struct EnvGuard {
