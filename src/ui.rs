@@ -102,21 +102,6 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
         AppState::Error(msg) => {
             render_modal(f, area, " ✗ Error ", msg, C_ERROR, Some("any key"));
         }
-        AppState::ApplyingProgress {
-            name,
-            stage,
-            progress,
-        } => {
-            let title = match stage {
-                0 => " ⬇ Downloading ",
-                1 => " 🔍 Verifying ",
-                2 => " 💾 Backing up ",
-                3 => " ⚡ Applying ",
-                _ => " ⏳ Working ",
-            };
-            let msg = format!("Theme: {}\n\nProgress: {}%\n\nPlease wait...", name, progress);
-            render_modal(f, area, title, &msg, C_ACCENT, None);
-        }
         _ => {}
     }
 }
@@ -1054,6 +1039,54 @@ fn render_overlays(f: &mut Frame, app: &App) {
                 Span::raw("  Current: "),
                 Span::styled(
                     current_font,
+                    Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+                ),
+            ])]),
+            layout[0],
+        );
+        f.render_widget(gauge, layout[1]);
+    }
+
+    // 3. Theme Applying Progress Gauge
+    if let AppState::ApplyingProgress {
+        name,
+        stage,
+        progress,
+    } = &app.state
+    {
+        let modal_area = centered_rect(60, 20, area);
+        f.render_widget(Clear, modal_area);
+
+        let title = match stage {
+            0 => " ⬇ Downloading ",
+            1 => " 🔍 Verifying ",
+            2 => " 💾 Backing up ",
+            3 => " ⚡ Applying ",
+            _ => " ⏳ Working ",
+        };
+
+        let block = Block::default()
+            .title(title)
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(C_ACCENT));
+
+        let gauge = ratatui::widgets::Gauge::default()
+            .block(Block::default().padding(Padding::new(2, 2, 1, 1)))
+            .gauge_style(Style::default().fg(C_ACCENT).bg(C_DIM))
+            .percent(*progress as u16)
+            .label(format!("{:.1}%", progress));
+
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Length(3)])
+            .split(block.inner(modal_area));
+
+        f.render_widget(block, modal_area);
+        f.render_widget(
+            Paragraph::new(vec![Line::from(vec![
+                Span::raw("  Theme: "),
+                Span::styled(
+                    name,
                     Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
                 ),
             ])]),
