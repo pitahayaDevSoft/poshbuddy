@@ -308,41 +308,46 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
     render_search_bar(f, left[0], &app.filter, "Themes");
 
     let filter = &app.filter;
-    let mut items: Vec<ListItem> = app.themes
+
+    let local_iter = app.themes
         .iter()
         .filter(|t| crate::app::contains_ignore_ascii_case(&t.name, filter))
         .map(|t| {
             let style = Style::default().fg(C_LOCAL);
             ListItem::new(format!("  {} [Local]", t.name)).style(style)
-        })
-        .collect();
+        });
 
-    for rt in &app.remote_themes {
-        if crate::app::contains_ignore_ascii_case(&rt.name, filter)
-            && app.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
-        {
+    let remote_iter = app.remote_themes
+        .iter()
+        .filter(|rt| crate::app::contains_ignore_ascii_case(&rt.name, filter)
+            && app.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err())
+        .map(|rt| {
             let style = Style::default().fg(C_REMOTE);
-            items.push(ListItem::new(format!("  {} [Remote]", rt.name)).style(style));
-        }
-    }
+            ListItem::new(format!("  {} [Remote]", rt.name)).style(style)
+        });
 
-    let is_empty = items.is_empty();
+    let is_empty = app.filtered_themes_count() == 0;
+
+    let empty_msg_iter = if is_empty {
+        let msg = if app.filter.is_empty() {
+            "  No themes available.".to_string()
+        } else {
+            format!("  No themes matching '{}' (Press Esc to clear search)", app.filter)
+        };
+        Some(ListItem::new(msg).style(Style::default().fg(C_DIM)))
+    } else {
+        None
+    }.into_iter();
+
     let title = if app.filter.is_empty() {
         " Themes List "
     } else {
         " Themes List (Filtered) "
     };
 
-    if is_empty {
-        let msg = if app.filter.is_empty() {
-            "  No themes available.".to_string()
-        } else {
-            format!("  No themes matching '{}' (Press Esc to clear search)", app.filter)
-        };
-        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
-    }
+    let items_iter = local_iter.chain(remote_iter).chain(empty_msg_iter);
 
-    let mut list = List::new(items).block(
+    let mut list = List::new(items_iter).block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(C_ACCENT))
@@ -369,8 +374,13 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         .title(" ANSI Preview ");
 
     if app.theme_preview.is_empty() {
+        let msg = if is_empty && !app.filter.is_empty() {
+            "\n  No results. Press Esc to clear filter."
+        } else {
+            "\n  Select a theme to see preview..."
+        };
         f.render_widget(
-            Paragraph::new("\n  Select a theme to see preview...")
+            Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(preview_block),
             cols[1],
@@ -420,29 +430,33 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
 
-    let mut items: Vec<ListItem> = app.fonts
+    let font_iter = app.fonts
         .iter()
         .filter(|f| crate::app::contains_ignore_ascii_case(&f.name, &app.fonts_filter))
-        .map(|font| ListItem::new(format!("  {}", font.name)).style(Style::default().fg(C_WHITE)))
-        .collect();
+        .map(|font| ListItem::new(format!("  {}", font.name)).style(Style::default().fg(C_WHITE)));
 
-    let is_empty = items.is_empty();
+    let is_empty = app.filtered_fonts_count() == 0;
+
+    let empty_msg_iter = if is_empty {
+        let msg = if app.fonts_filter.is_empty() {
+            "  No fonts available.".to_string()
+        } else {
+            format!("  No fonts matching '{}' (Press Esc to clear search)", app.fonts_filter)
+        };
+        Some(ListItem::new(msg).style(Style::default().fg(C_DIM)))
+    } else {
+        None
+    }.into_iter();
+
     let title = if app.fonts_filter.is_empty() {
         " Available Fonts "
     } else {
         " Available Fonts (Filtered) "
     };
 
-    if is_empty {
-        let msg = if app.fonts_filter.is_empty() {
-            "  No fonts available.".to_string()
-        } else {
-            format!("  No fonts matching '{}' (Press Esc to clear search)", app.fonts_filter)
-        };
-        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
-    }
+    let items_iter = font_iter.chain(empty_msg_iter);
 
-    let mut list = List::new(items).block(
+    let mut list = List::new(items_iter).block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(C_ACCENT))
@@ -493,8 +507,13 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         ];
         f.render_widget(Paragraph::new(lines).block(detail_block), cols[1]);
     } else {
+        let msg = if is_empty && !app.fonts_filter.is_empty() {
+            "\n  No results. Press Esc to clear filter."
+        } else {
+            "\n  Select a font to continue..."
+        };
         f.render_widget(
-            Paragraph::new("\n  Select a font to continue...")
+            Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(detail_block),
             cols[1],
@@ -536,7 +555,7 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.segments_filter, "Segments");
 
-    let mut items: Vec<ListItem> = app.segments
+    let segments_iter = app.segments
         .iter()
         .filter(|p| {
             crate::app::contains_ignore_ascii_case(&p.name, &app.segments_filter)
@@ -552,26 +571,30 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
                 Style::default().fg(C_WHITE)
             };
             ListItem::new(format!("  {} {}", dot, s.name)).style(style)
-        })
-        .collect();
+        });
 
-    let is_empty = items.is_empty();
+    let is_empty = app.filtered_segments_count() == 0;
+
+    let empty_msg_iter = if is_empty {
+        let msg = if app.segments_filter.is_empty() {
+            "  No components available.".to_string()
+        } else {
+            format!("  No components matching '{}' (Press Esc to clear search)", app.segments_filter)
+        };
+        Some(ListItem::new(msg).style(Style::default().fg(C_DIM)))
+    } else {
+        None
+    }.into_iter();
+
     let title = if app.segments_filter.is_empty() {
         " Components "
     } else {
         " Components (Filtered) "
     };
 
-    if is_empty {
-        let msg = if app.segments_filter.is_empty() {
-            "  No components available.".to_string()
-        } else {
-            format!("  No components matching '{}' (Press Esc to clear search)", app.segments_filter)
-        };
-        items.push(ListItem::new(msg).style(Style::default().fg(C_DIM)));
-    }
+    let items_iter = segments_iter.chain(empty_msg_iter);
 
-    let mut list = List::new(items).block(
+    let mut list = List::new(items_iter).block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(C_ACCENT))
@@ -639,8 +662,13 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             cols[1],
         );
     } else {
+        let msg = if is_empty && !app.segments_filter.is_empty() {
+            "\n  No results. Press Esc to clear filter."
+        } else {
+            "\n  Select a component to toggle..."
+        };
         f.render_widget(
-            Paragraph::new("\n  Select a component to toggle...")
+            Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(detail_block),
             cols[1],

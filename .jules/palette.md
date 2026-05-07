@@ -26,3 +26,6 @@
 ## 2024-11-20 - Actionable Empty States
 **Learning:** For TUI lists with empty fallback states (e.g. after searching/filtering), users might not realize a filter is active and think the application failed to load data. The empty state message needs to be helpful.
 **Action:** When creating empty states, provide explicit inline guidance on how to recover or clear the current state (e.g., '(Press Esc to clear search)').
+## 2024-05-21 - Contextual Empty States in Detail Panels
+**Learning:** When a master-detail view has an active filter that yields zero results, the detail panel should not prompt the user to "Select an item to continue". This is confusing because there are no items to select.
+**Action:** Always update detail/preview panels to contextually acknowledge the empty state of the master list (e.g., "No results match your search. Press Esc to clear filter.").

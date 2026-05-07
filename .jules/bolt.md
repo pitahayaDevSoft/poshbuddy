@@ -25,3 +25,6 @@
 ## 2025-01-20 - Avoid Vector Allocations in TUI Render Loops
 **Learning:** Calling methods that map, filter, and allocate intermediate `Vec` collections (e.g. `app.filtered_themes()`) before mapping to Ratatui `ListItem` objects causes unnecessary string cloning and memory pressure during frequent render cycles.
 **Action:** Iterate directly over the source application state collections, apply filters lazily, and construct `ListItem`s directly to prevent creating an intermediate, discarded collection during every frame.
+## 2025-02-12 - Conditional Empty State Iterators for Ratatui Lists
+**Learning:** To conditionally render an empty state message in a Ratatui `List` without breaking iterator chains or allocating a `Vec`, you can chain an `Option` mapped to `.into_iter()`. If the main list filtering relies on iterators, calling `.count()` on the source iterator might consume it.
+**Action:** In Ratatui, `List::new()` accepts an iterator directly. To conditionally render an empty state message without allocating a `Vec` of `ListItem`s, use `.chain()` to append an optional 'empty message' iterator, relying on a separate `_count()` check to determine if the collection is empty.
