@@ -369,8 +369,13 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         .title(" ANSI Preview ");
 
     if app.theme_preview.is_empty() {
+        let msg = if is_empty && !app.filter.is_empty() {
+            "\n  No results. Press Esc to clear filter."
+        } else {
+            "\n  Select a theme to see preview..."
+        };
         f.render_widget(
-            Paragraph::new("\n  Select a theme to see preview...")
+            Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(preview_block),
             cols[1],
@@ -493,8 +498,13 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         ];
         f.render_widget(Paragraph::new(lines).block(detail_block), cols[1]);
     } else {
+        let msg = if is_empty && !app.fonts_filter.is_empty() {
+            "\n  No results. Press Esc to clear filter."
+        } else {
+            "\n  Select a font to continue..."
+        };
         f.render_widget(
-            Paragraph::new("\n  Select a font to continue...")
+            Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(detail_block),
             cols[1],
@@ -639,8 +649,13 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             cols[1],
         );
     } else {
+        let msg = if is_empty && !app.segments_filter.is_empty() {
+            "\n  No results. Press Esc to clear filter."
+        } else {
+            "\n  Select a component to toggle..."
+        };
         f.render_widget(
-            Paragraph::new("\n  Select a component to toggle...")
+            Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(detail_block),
             cols[1],
