@@ -32,3 +32,7 @@
 ## 2024-11-23 - Synchronize Master-Detail Views During Search
 **Learning:** In master-detail TUI layouts, changing the search filter updates the master list's content and selection index. If the detail/preview panel is not explicitly synchronized during this live search input, it will display orphaned or stale data from the previous state, confusing the user.
 **Action:** When handling keystrokes (e.g., `Backspace`, character inputs) that modify active filters in a master-detail view, always re-trigger the detail loading logic (e.g., `load_theme_preview`) for the newly highlighted item to maintain UI consistency.
+
+## 2024-11-25 - Explicit Text for Disabled Menu Items
+**Learning:** While dimming the color of disabled menu items provides a visual cue, it doesn't explain *why* the item is disabled. Users might think it's a bug or that they need to enable a prerequisite setting, rather than realizing the feature is simply "Coming Soon".
+**Action:** When rendering disabled items in a TUI menu, always append an explicit textual explanation (like `[Coming Soon]`) to the label to manage user expectations.
