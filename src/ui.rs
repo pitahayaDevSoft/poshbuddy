@@ -314,7 +314,12 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         .filter(|t| crate::app::contains_ignore_ascii_case(&t.name, filter))
         .map(|t| {
             let style = Style::default().fg(C_LOCAL);
-            ListItem::new(format!("  {} [Local]", t.name)).style(style)
+            let line = Line::from(vec![
+                Span::raw("  "),
+                Span::raw(t.name.as_str()),
+                Span::raw(" [Local]"),
+            ]);
+            ListItem::new(line).style(style)
         });
 
     let remote_iter = app.remote_themes
@@ -323,7 +328,12 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
             && app.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err())
         .map(|rt| {
             let style = Style::default().fg(C_REMOTE);
-            ListItem::new(format!("  {} [Remote]", rt.name)).style(style)
+            let line = Line::from(vec![
+                Span::raw("  "),
+                Span::raw(rt.name.as_str()),
+                Span::raw(" [Remote]"),
+            ]);
+            ListItem::new(line).style(style)
         });
 
     let is_empty = app.filtered_themes_count() == 0;
@@ -433,7 +443,13 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
     let font_iter = app.fonts
         .iter()
         .filter(|f| crate::app::contains_ignore_ascii_case(&f.name, &app.fonts_filter))
-        .map(|font| ListItem::new(format!("  {}", font.name)).style(Style::default().fg(C_WHITE)));
+        .map(|font| {
+            let line = Line::from(vec![
+                Span::raw("  "),
+                Span::raw(font.name.as_str()),
+            ]);
+            ListItem::new(line).style(Style::default().fg(C_WHITE))
+        });
 
     let is_empty = app.filtered_fonts_count() == 0;
 
@@ -564,13 +580,18 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         })
         .map(|s| {
             let active = app.is_segment_active(s);
-            let dot = if active { "●" } else { "○" };
+            let dot = if active { "● " } else { "○ " };
             let style = if active {
                 Style::default().fg(C_ACTIVE)
             } else {
                 Style::default().fg(C_WHITE)
             };
-            ListItem::new(format!("  {} {}", dot, s.name)).style(style)
+            let line = Line::from(vec![
+                Span::raw("  "),
+                Span::raw(dot),
+                Span::raw(s.name.as_str()),
+            ]);
+            ListItem::new(line).style(style)
         });
 
     let is_empty = app.filtered_segments_count() == 0;
