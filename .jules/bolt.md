@@ -28,3 +28,6 @@
 ## 2025-02-12 - Conditional Empty State Iterators for Ratatui Lists
 **Learning:** To conditionally render an empty state message in a Ratatui `List` without breaking iterator chains or allocating a `Vec`, you can chain an `Option` mapped to `.into_iter()`. If the main list filtering relies on iterators, calling `.count()` on the source iterator might consume it.
 **Action:** In Ratatui, `List::new()` accepts an iterator directly. To conditionally render an empty state message without allocating a `Vec` of `ListItem`s, use `.chain()` to append an optional 'empty message' iterator, relying on a separate `_count()` check to determine if the collection is empty.
+## 2024-05-31 - Zero-allocation ListItem strings via Line/Span composition
+**Learning:** Using the `format!` macro within iterative `.map()` closures to construct text for Ratatui `ListItem` objects causes unnecessary, severe heap allocation per item, per frame during the main TUI render loop.
+**Action:** In Ratatui TUI render loops, avoid using the `format!` macro to construct strings for `ListItem` widgets. Instead, compose zero-allocation UI elements using `Line::from` and `Span::raw` by passing string slices (`&str`).
