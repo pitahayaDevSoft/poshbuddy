@@ -563,11 +563,17 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
         .split(chunks[1]);
 
-    // Left: search + list
+    let is_empty = app.filtered_segments_count() == 0;
+
+    render_segments_list(f, cols[0], app, is_empty);
+    render_segments_detail(f, cols[1], app, is_empty);
+}
+
+fn render_segments_list(f: &mut Frame, area: Rect, app: &mut App, is_empty: bool) {
     let left = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(cols[0]);
+        .split(area);
 
     render_search_bar(f, left[0], &app.segments_filter, "Segments");
 
@@ -594,8 +600,6 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             ]);
             ListItem::new(line).style(style)
         });
-
-    let is_empty = app.filtered_segments_count() == 0;
 
     let empty_msg_iter = if is_empty {
         let msg = if app.segments_filter.is_empty() {
@@ -635,8 +639,9 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     f.render_stateful_widget(list, left[1], &mut app.segments_list_state);
+}
 
-    // Right: detail
+fn render_segments_detail(f: &mut Frame, area: Rect, app: &mut App, is_empty: bool) {
     let selected = app
         .segments_list_state
         .selected()
@@ -681,7 +686,7 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             Paragraph::new(lines)
                 .block(detail_block)
                 .wrap(Wrap { trim: true }),
-            cols[1],
+            area,
         );
     } else {
         let msg = if is_empty && !app.segments_filter.is_empty() {
@@ -693,7 +698,7 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
             Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(detail_block),
-            cols[1],
+            area,
         );
     }
 }
