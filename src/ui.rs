@@ -108,14 +108,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
 
 // ── Title bar (1 line, no border) ─────────────────────────────────────────────
 fn render_title_bar(f: &mut Frame, area: Rect, app: &App) {
-    let cols = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(33),
-            Constraint::Percentage(34),
-            Constraint::Percentage(33),
-        ])
-        .split(area);
+    let cols = layout_three_columns(area);
 
     // Left: brand
     f.render_widget(
@@ -157,14 +150,7 @@ fn render_tab_bar(f: &mut Frame, area: Rect, app: &App) {
         ("  [3] Segments", ActiveView::Segments),
     ];
 
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(33),
-            Constraint::Percentage(34),
-            Constraint::Percentage(33),
-        ])
-        .split(area);
+    let chunks = layout_three_columns(area);
 
     for (i, (label, view)) in tabs.iter().enumerate() {
         let is_active = app.active_view == *view;
@@ -278,13 +264,7 @@ fn render_modal(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(0),    // Content
-        ])
-        .split(area);
+    let chunks = layout_header_content(area);
 
     // 1. Clean Header
     f.render_widget(
@@ -294,16 +274,10 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         chunks[0],
     );
 
-    let cols = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
-        .split(chunks[1]);
+    let cols = layout_two_columns(chunks[1], 40);
 
     // 2. Left column: search + list
-    let left = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(cols[0]);
+    let left = layout_header_content(cols[0]);
 
     render_search_bar(f, left[0], &app.filter, "Themes");
 
@@ -411,13 +385,7 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(0),    // Content
-        ])
-        .split(area);
+    let chunks = layout_header_content(area);
 
     // Header
     f.render_widget(
@@ -427,16 +395,10 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         chunks[0],
     );
 
-    let cols = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
-        .split(chunks[1]);
+    let cols = layout_two_columns(chunks[1], 40);
 
     // Left: search + list
-    let left = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(cols[0]);
+    let left = layout_header_content(cols[0]);
 
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
 
@@ -542,13 +504,7 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(0),    // Content
-        ])
-        .split(area);
+    let chunks = layout_header_content(area);
 
     // Header
     f.render_widget(
@@ -558,16 +514,10 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         chunks[0],
     );
 
-    let cols = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
-        .split(chunks[1]);
+    let cols = layout_two_columns(chunks[1], 45);
 
     // Left: search + list
-    let left = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(cols[0]);
+    let left = layout_header_content(cols[0]);
 
     render_search_bar(f, left[0], &app.segments_filter, "Segments");
 
@@ -1287,10 +1237,7 @@ fn render_dep_missing(f: &mut Frame, area: Rect) {
 }
 
 fn render_installing_dep(f: &mut Frame, area: Rect, log: &[String], current: &str) {
-    let root = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(area);
+    let root = layout_header_content(area);
 
     f.render_widget(
         Paragraph::new(format!("  {}", current))
@@ -1349,6 +1296,37 @@ fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context: &str) {
         ),
         area,
     );
+}
+
+/// Layout helper for a common vertical split: Header (3) + Content (Min 0)
+fn layout_header_content(area: Rect) -> std::rc::Rc<[Rect]> {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(area)
+}
+
+/// Layout helper for a common horizontal split into two columns
+fn layout_two_columns(area: Rect, left_pct: u16) -> std::rc::Rc<[Rect]> {
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(left_pct),
+            Constraint::Percentage(100 - left_pct),
+        ])
+        .split(area)
+}
+
+/// Layout helper for a common horizontal split into three equal-ish columns (33/34/33)
+fn layout_three_columns(area: Rect) -> std::rc::Rc<[Rect]> {
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(33),
+            Constraint::Percentage(34),
+            Constraint::Percentage(33),
+        ])
+        .split(area)
 }
 
 /// Centers a rect of given percentage within parent
