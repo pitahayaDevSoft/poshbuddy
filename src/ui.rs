@@ -1,11 +1,11 @@
 use crate::app::{ActiveView, App, AppState};
 use ansi_to_tui::IntoText as _;
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, Padding, Paragraph, Wrap},
-    Frame,
 };
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -227,12 +227,18 @@ fn render_main_footer(f: &mut Frame, area: Rect, app: &App) {
     };
 
     let hint = match app.active_view {
-        ActiveView::Themes =>
-            format!("  ↑↓ Navigate  │  Enter Apply  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit", esc_action),
-        ActiveView::Fonts =>
-            format!("  ↑↓ Navigate  │  Enter Install  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit", esc_action),
-        ActiveView::Segments =>
-            format!("  ↑↓ Navigate  │  Enter Toggle  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit", esc_action),
+        ActiveView::Themes => format!(
+            "  ↑↓ Navigate  │  Enter Apply  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit",
+            esc_action
+        ),
+        ActiveView::Fonts => format!(
+            "  ↑↓ Navigate  │  Enter Install  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit",
+            esc_action
+        ),
+        ActiveView::Segments => format!(
+            "  ↑↓ Navigate  │  Enter Toggle  │  Type Search  │  {}  │  Tab Next Tab  │  Ctrl+R Restore  │  Q Quit",
+            esc_action
+        ),
     };
     f.render_widget(Paragraph::new(hint).style(Style::default().fg(C_DIM)), area);
 }
@@ -309,7 +315,8 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 
     let filter = &app.filter;
 
-    let local_iter = app.themes
+    let local_iter = app
+        .themes
         .iter()
         .filter(|t| crate::app::contains_ignore_ascii_case(&t.name, filter))
         .map(|t| {
@@ -322,10 +329,16 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
             ListItem::new(line).style(style)
         });
 
-    let remote_iter = app.remote_themes
+    let remote_iter = app
+        .remote_themes
         .iter()
-        .filter(|rt| crate::app::contains_ignore_ascii_case(&rt.name, filter)
-            && app.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err())
+        .filter(|rt| {
+            crate::app::contains_ignore_ascii_case(&rt.name, filter)
+                && app
+                    .themes
+                    .binary_search_by(|t| t.name.cmp(&rt.name))
+                    .is_err()
+        })
         .map(|rt| {
             let style = Style::default().fg(C_REMOTE);
             let line = Line::from(vec![
@@ -342,12 +355,16 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
         let msg = if app.filter.is_empty() {
             "  No themes available.".to_string()
         } else {
-            format!("  No themes matching '{}' (Press Esc to clear search)", app.filter)
+            format!(
+                "  No themes matching '{}' (Press Esc to clear search)",
+                app.filter
+            )
         };
         Some(ListItem::new(msg).style(Style::default().fg(C_DIM)))
     } else {
         None
-    }.into_iter();
+    }
+    .into_iter();
 
     let title = if app.filter.is_empty() {
         " Themes List "
@@ -411,13 +428,7 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(0),    // Content
-        ])
-        .split(area);
+    let chunks = layout_header_content(area);
 
     // Header
     f.render_widget(
@@ -427,27 +438,24 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         chunks[0],
     );
 
-    let cols = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
-        .split(chunks[1]);
+    let cols = layout_two_columns(chunks[1], 40, 60);
 
     // Left: search + list
-    let left = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(cols[0]);
-
+    let left = layout_header_content(cols[0]);
     render_search_bar(f, left[0], &app.fonts_filter, "Fonts");
+    render_font_list(f, left[1], app);
 
-    let font_iter = app.fonts
+    // Right: detail panel
+    render_font_detail(f, cols[1], app);
+}
+
+fn render_font_list(f: &mut Frame, area: Rect, app: &mut App) {
+    let font_iter = app
+        .fonts
         .iter()
-        .filter(|f| crate::app::contains_ignore_ascii_case(&f.name, &app.fonts_filter))
+        .filter(|font| crate::app::contains_ignore_ascii_case(&font.name, &app.fonts_filter))
         .map(|font| {
-            let line = Line::from(vec![
-                Span::raw("  "),
-                Span::raw(font.name.as_str()),
-            ]);
+            let line = Line::from(vec![Span::raw("  "), Span::raw(font.name.as_str())]);
             ListItem::new(line).style(Style::default().fg(C_WHITE))
         });
 
@@ -457,12 +465,16 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         let msg = if app.fonts_filter.is_empty() {
             "  No fonts available.".to_string()
         } else {
-            format!("  No fonts matching '{}' (Press Esc to clear search)", app.fonts_filter)
+            format!(
+                "  No fonts matching '{}' (Press Esc to clear search)",
+                app.fonts_filter
+            )
         };
         Some(ListItem::new(msg).style(Style::default().fg(C_DIM)))
     } else {
         None
-    }.into_iter();
+    }
+    .into_iter();
 
     let title = if app.fonts_filter.is_empty() {
         " Available Fonts "
@@ -490,10 +502,16 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
             .highlight_symbol(" ▶ ");
     }
 
-    f.render_stateful_widget(list, left[1], &mut app.fonts_list_state);
+    f.render_stateful_widget(list, area, &mut app.fonts_list_state);
+}
 
-    // Right: detail panel
-    let selected = app.fonts_list_state.selected().and_then(|i| app.filtered_font_at(i));
+fn render_font_detail(f: &mut Frame, area: Rect, app: &mut App) {
+    let selected = app
+        .fonts_list_state
+        .selected()
+        .and_then(|i| app.filtered_font_at(i));
+    let is_empty = app.filtered_fonts_count() == 0;
+
     let detail_block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(C_DIM))
@@ -521,7 +539,7 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
                 Style::default().fg(C_DIM),
             )]),
         ];
-        f.render_widget(Paragraph::new(lines).block(detail_block), cols[1]);
+        f.render_widget(Paragraph::new(lines).block(detail_block), area);
     } else {
         let msg = if is_empty && !app.fonts_filter.is_empty() {
             "\n  No results. Press Esc to clear filter."
@@ -532,7 +550,7 @@ fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
             Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(detail_block),
-            cols[1],
+            area,
         );
     }
 }
@@ -571,7 +589,8 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.segments_filter, "Segments");
 
-    let segments_iter = app.segments
+    let segments_iter = app
+        .segments
         .iter()
         .filter(|p| {
             crate::app::contains_ignore_ascii_case(&p.name, &app.segments_filter)
@@ -601,12 +620,16 @@ fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         let msg = if app.segments_filter.is_empty() {
             "  No components available.".to_string()
         } else {
-            format!("  No components matching '{}' (Press Esc to clear search)", app.segments_filter)
+            format!(
+                "  No components matching '{}' (Press Esc to clear search)",
+                app.segments_filter
+            )
         };
         Some(ListItem::new(msg).style(Style::default().fg(C_DIM)))
     } else {
         None
-    }.into_iter();
+    }
+    .into_iter();
 
     let title = if app.segments_filter.is_empty() {
         " Components "
@@ -720,10 +743,10 @@ fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
     let constraints = if has_space_for_logo {
         vec![
             Constraint::Length(14), // Logo
-            Constraint::Length(3), // Dashboard Title
-            Constraint::Fill(1),   // Stats & Actions
-            Constraint::Length(3), // Next Step Hint
-            Constraint::Length(1), // Footer
+            Constraint::Length(3),  // Dashboard Title
+            Constraint::Fill(1),    // Stats & Actions
+            Constraint::Length(3),  // Next Step Hint
+            Constraint::Length(1),  // Footer
         ]
     } else {
         vec![
@@ -879,10 +902,7 @@ fn render_welcome_logo(f: &mut Frame, area: Rect) {
         )));
     }
 
-    f.render_widget(
-        Paragraph::new(lines).alignment(Alignment::Center),
-        area,
-    );
+    f.render_widget(Paragraph::new(lines).alignment(Alignment::Center), area);
 }
 
 fn render_session_identity(f: &mut Frame, area: Rect, app: &App) {
@@ -1085,7 +1105,6 @@ fn render_quick_steps(f: &mut Frame, area: Rect, app: &App) {
         area,
     );
 }
-
 
 fn render_overlays(f: &mut Frame, app: &App) {
     let area = f.area();
@@ -1318,6 +1337,23 @@ fn render_installing_dep(f: &mut Frame, area: Rect, log: &[String], current: &st
 // ═══════════════════════════════════════════════════════════════════════════════
 //  SHARED HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
+
+pub fn layout_header_content(area: Rect) -> std::rc::Rc<[Rect]> {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(area)
+}
+
+pub fn layout_two_columns(area: Rect, left_pct: u16, right_pct: u16) -> std::rc::Rc<[Rect]> {
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(left_pct),
+            Constraint::Percentage(right_pct),
+        ])
+        .split(area)
+}
 
 /// Renders a search bar with visible cursor when filter is active
 fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context: &str) {

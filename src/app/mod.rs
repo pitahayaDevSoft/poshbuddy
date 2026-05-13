@@ -536,9 +536,13 @@ mod tests {
 
             // Use ONLY mock directory in PATH if we are mocking `where` as well
             #[cfg(unix)]
-            unsafe { env::set_var("PATH", &dir) };
+            unsafe {
+                env::set_var("PATH", &dir)
+            };
             #[cfg(windows)]
-            unsafe { env::set_var("PATH", format!("{};{}", dir.display(), original_path)) };
+            unsafe {
+                env::set_var("PATH", format!("{};{}", dir.display(), original_path))
+            };
 
             let specs = App::gather_system_specs(false);
 
