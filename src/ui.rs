@@ -307,6 +307,14 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 
     render_search_bar(f, left[0], &app.filter, "Themes");
 
+    let is_empty = app.filtered_themes_count() == 0;
+    render_themes_list(f, left[1], app, is_empty);
+
+    // 3. Right column: preview
+    render_themes_preview(f, cols[1], app, is_empty);
+}
+
+fn render_themes_list(f: &mut Frame, area: Rect, app: &mut App, is_empty: bool) {
     let filter = &app.filter;
 
     let local_iter = app.themes
@@ -335,8 +343,6 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
             ]);
             ListItem::new(line).style(style)
         });
-
-    let is_empty = app.filtered_themes_count() == 0;
 
     let empty_msg_iter = if is_empty {
         let msg = if app.filter.is_empty() {
@@ -375,9 +381,10 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
             .highlight_symbol(" ▶ ");
     }
 
-    f.render_stateful_widget(list, left[1], &mut app.list_state);
+    f.render_stateful_widget(list, area, &mut app.list_state);
+}
 
-    // 3. Right column: preview
+fn render_themes_preview(f: &mut Frame, area: Rect, app: &App, is_empty: bool) {
     let preview_block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(C_ACCENT))
@@ -393,7 +400,7 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
             Paragraph::new(msg)
                 .style(Style::default().fg(C_DIM))
                 .block(preview_block),
-            cols[1],
+            area,
         );
     } else {
         let preview_text = app.theme_preview.as_bytes().into_text().unwrap_or_default();
@@ -401,7 +408,7 @@ fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
             Paragraph::new(preview_text)
                 .block(preview_block)
                 .wrap(Wrap { trim: false }),
-            cols[1],
+            area,
         );
     }
 }
