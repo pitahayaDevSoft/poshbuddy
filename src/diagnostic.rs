@@ -329,10 +329,12 @@ mod tests {
             .validate_powershell_syntax("function test() { Write-Host 'ok'")
             .unwrap();
         assert!(!result.is_valid());
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| e.contains("Unbalanced braces")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("Unbalanced braces"))
+        );
     }
 
     #[test]
@@ -342,10 +344,12 @@ mod tests {
             "oh-my-posh init pwsh --config 'C:\\nonexistent\\theme.omp.json' | Invoke-Expression";
         let result = diag.validate_powershell_syntax(script).unwrap();
         // Should have a warning about nonexistent path
-        assert!(result
-            .warnings
-            .iter()
-            .any(|w| w.contains("Theme path does not exist")));
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("Theme path does not exist"))
+        );
     }
 
     #[test]
@@ -382,10 +386,12 @@ mod tests {
         let result = diag.check_profile(path).unwrap();
 
         assert!(result.is_valid());
-        assert!(result
-            .warnings
-            .iter()
-            .any(|w| w.contains("Profile does not exist")));
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("Profile does not exist"))
+        );
     }
 
     #[test]
@@ -409,10 +415,12 @@ mod tests {
 
         let result = diag.check_profile(temp_file.path()).unwrap();
         assert!(!result.is_valid());
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| e.contains("Unbalanced braces")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("Unbalanced braces"))
+        );
     }
 
     #[test]
@@ -426,10 +434,12 @@ mod tests {
 
         let result = diag.check_profile(temp_file.path()).unwrap();
         assert!(result.is_valid());
-        assert!(result
-            .suggestions
-            .iter()
-            .any(|s| s.contains("Profile has UTF-8 BOM")));
+        assert!(
+            result
+                .suggestions
+                .iter()
+                .any(|s| s.contains("Profile has UTF-8 BOM"))
+        );
     }
 
     #[cfg(unix)]
@@ -447,9 +457,11 @@ mod tests {
         std::fs::set_permissions(temp_file.path(), perms).unwrap();
 
         let result = diag.check_profile(temp_file.path()).unwrap();
-        assert!(result
-            .warnings
-            .iter()
-            .any(|w| w.contains("execution permissions")));
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("execution permissions"))
+        );
     }
 }

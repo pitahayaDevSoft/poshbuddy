@@ -1,5 +1,5 @@
-use crate::app::models::*;
 use crate::app::App;
+use crate::app::models::*;
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use tokio::sync::mpsc;
 
@@ -22,10 +22,11 @@ impl App {
                 } => {
                     if request_id == self.preview_request_id
                         && let Some(selected_index) = self.list_state.selected()
-                            && let Some(current_theme) = self.filtered_theme_at(selected_index)
-                                && current_theme.name == theme.name {
-                                    self.theme_preview = preview;
-                                }
+                        && let Some(current_theme) = self.filtered_theme_at(selected_index)
+                        && current_theme.name == theme.name
+                    {
+                        self.theme_preview = preview;
+                    }
                 }
                 AppMessage::RemoteThemesLoaded(themes) => {
                     self.remote_themes = themes;
@@ -39,7 +40,11 @@ impl App {
                             download_url: None,
                         };
 
-                        if self.themes.binary_search_by(|t| t.name.cmp(&theme_asset.name)).is_err() {
+                        if self
+                            .themes
+                            .binary_search_by(|t| t.name.cmp(&theme_asset.name))
+                            .is_err()
+                        {
                             self.themes.push(theme_asset.clone());
                             self.themes.sort_by(|a, b| a.name.cmp(&b.name));
                         }
@@ -538,17 +543,9 @@ impl App {
                 let i = match self.list_state.selected() {
                     Some(i) => {
                         if forward {
-                            if i >= count - 1 {
-                                0
-                            } else {
-                                i + 1
-                            }
+                            if i >= count - 1 { 0 } else { i + 1 }
                         } else {
-                            if i == 0 {
-                                count - 1
-                            } else {
-                                i - 1
-                            }
+                            if i == 0 { count - 1 } else { i - 1 }
                         }
                     }
                     None => 0,
@@ -567,17 +564,9 @@ impl App {
                 let i = match self.fonts_list_state.selected() {
                     Some(i) => {
                         if forward {
-                            if i >= count - 1 {
-                                0
-                            } else {
-                                i + 1
-                            }
+                            if i >= count - 1 { 0 } else { i + 1 }
                         } else {
-                            if i == 0 {
-                                count - 1
-                            } else {
-                                i - 1
-                            }
+                            if i == 0 { count - 1 } else { i - 1 }
                         }
                     }
                     None => 0,
@@ -592,17 +581,9 @@ impl App {
                 let i = match self.segments_list_state.selected() {
                     Some(i) => {
                         if forward {
-                            if i >= count - 1 {
-                                0
-                            } else {
-                                i + 1
-                            }
+                            if i >= count - 1 { 0 } else { i + 1 }
                         } else {
-                            if i == 0 {
-                                count - 1
-                            } else {
-                                i - 1
-                            }
+                            if i == 0 { count - 1 } else { i - 1 }
                         }
                     }
                     None => 0,
@@ -617,32 +598,34 @@ impl App {
         match self.active_view {
             ActiveView::Themes => {
                 if let Some(selected) = self.list_state.selected()
-                    && let Some(theme) = self.filtered_theme_at(selected) {
-                        if !theme.is_local && !crate::api::check_internet_connectivity() {
-                            self.state =
-                                AppState::Error("No internet connection detected.".to_string());
-                        } else {
-                            self.apply_theme_advanced(theme, tx);
-                        }
+                    && let Some(theme) = self.filtered_theme_at(selected)
+                {
+                    if !theme.is_local && !crate::api::check_internet_connectivity() {
+                        self.state =
+                            AppState::Error("No internet connection detected.".to_string());
+                    } else {
+                        self.apply_theme_advanced(theme, tx);
                     }
+                }
             }
             ActiveView::Fonts => {
                 if let Some(selected) = self.fonts_list_state.selected()
-                    && let Some(font) = self.filtered_font_at(selected) {
-                        self.state = AppState::Installing(font.name.clone());
-                        self.install_font(font.name.clone(), tx);
-                    }
+                    && let Some(font) = self.filtered_font_at(selected)
+                {
+                    self.state = AppState::Installing(font.name.clone());
+                    self.install_font(font.name.clone(), tx);
+                }
             }
             ActiveView::Segments => {
                 if let Some(selected) = self.segments_list_state.selected()
-                    && let Some(segment) = self.filtered_segment_at(selected) {
-                        if let Err(e) = self.toggle_segment(&segment) {
-                            self.state =
-                                AppState::Error(format!("Failed to toggle segment: {}", e));
-                        } else {
-                            self.state = AppState::SegmentSuccess(segment.name.clone());
-                        }
+                    && let Some(segment) = self.filtered_segment_at(selected)
+                {
+                    if let Err(e) = self.toggle_segment(&segment) {
+                        self.state = AppState::Error(format!("Failed to toggle segment: {}", e));
+                    } else {
+                        self.state = AppState::SegmentSuccess(segment.name.clone());
                     }
+                }
             }
         }
     }

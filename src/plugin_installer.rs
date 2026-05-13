@@ -200,7 +200,10 @@ impl PluginInstaller {
     /// Installs a PowerShell module
     async fn install_module(&self, module_name: &str) -> Result<Option<String>, io::Error> {
         if !Self::is_valid_module_name(module_name) {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid module name"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid module name",
+            ));
         }
 
         let output = tokio::process::Command::new("pwsh")
@@ -246,7 +249,10 @@ impl PluginInstaller {
     /// Checks if a module is already installed
     fn check_module_installed(module_name: &str) -> Result<bool, io::Error> {
         if !Self::is_valid_module_name(module_name) {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid module name"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid module name",
+            ));
         }
 
         let output = Command::new("pwsh")
@@ -302,7 +308,10 @@ impl PluginInstaller {
     /// Uninstalls a module
     pub async fn uninstall_module(&self, module_name: &str) -> Result<(), io::Error> {
         if !Self::is_valid_module_name(module_name) {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid module name"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid module name",
+            ));
         }
 
         let output = tokio::process::Command::new("pwsh")
@@ -325,7 +334,10 @@ impl PluginInstaller {
     /// Gets information about an installed module
     pub fn get_module_info(&self, module_name: &str) -> Result<Option<ModuleInfo>, io::Error> {
         if !Self::is_valid_module_name(module_name) {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid module name"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid module name",
+            ));
         }
 
         let output = Command::new("pwsh")
@@ -458,9 +470,11 @@ mod tests {
         let installer = PluginInstaller::new();
         let result = installer.pre_check("Invalid; Name");
         assert!(!result.can_install);
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| e.contains("Invalid module name")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("Invalid module name"))
+        );
     }
 }

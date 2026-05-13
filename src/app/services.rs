@@ -1,5 +1,5 @@
 use crate::app::models::*;
-use crate::app::{contains_ignore_ascii_case, OMP_BINARY, WHERE_CMD};
+use crate::app::{OMP_BINARY, WHERE_CMD, contains_ignore_ascii_case};
 use std::collections::HashSet;
 use std::fs;
 use std::io;
@@ -18,29 +18,30 @@ impl App {
 
         let mut active = HashSet::new();
         if let Ok(content) = fs::read_to_string(path)
-            && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                // Look in top-level segments
-                if let Some(segments) = json.get("segments").and_then(|v| v.as_array()) {
-                    for s in segments {
-                        if let Some(t) = s.get("type").and_then(|v| v.as_str()) {
-                            active.insert(t.to_string());
-                        }
+            && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content)
+        {
+            // Look in top-level segments
+            if let Some(segments) = json.get("segments").and_then(|v| v.as_array()) {
+                for s in segments {
+                    if let Some(t) = s.get("type").and_then(|v| v.as_str()) {
+                        active.insert(t.to_string());
                     }
                 }
+            }
 
-                // Look in blocks
-                if let Some(blocks) = json.get("blocks").and_then(|v| v.as_array()) {
-                    for block in blocks {
-                        if let Some(segments) = block.get("segments").and_then(|v| v.as_array()) {
-                            for s in segments {
-                                if let Some(t) = s.get("type").and_then(|v| v.as_str()) {
-                                    active.insert(t.to_string());
-                                }
+            // Look in blocks
+            if let Some(blocks) = json.get("blocks").and_then(|v| v.as_array()) {
+                for block in blocks {
+                    if let Some(segments) = block.get("segments").and_then(|v| v.as_array()) {
+                        for s in segments {
+                            if let Some(t) = s.get("type").and_then(|v| v.as_str()) {
+                                active.insert(t.to_string());
                             }
                         }
                     }
                 }
             }
+        }
         self.active_segments = active;
     }
 
@@ -162,9 +163,10 @@ impl App {
     /// Heuristic to check if a Nerd Font is likely being used by the system
     pub fn check_nerd_font() -> bool {
         if let Ok(term_prog) = std::env::var("TERM_PROGRAM")
-            && term_prog == "vscode" {
-                return true;
-            }
+            && term_prog == "vscode"
+        {
+            return true;
+        }
 
         let cmd = if cfg!(windows) {
             "powershell"
@@ -207,7 +209,10 @@ impl App {
             .iter()
             .filter(|rt| {
                 contains_ignore_ascii_case(&rt.name, filter)
-                    && self.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
+                    && self
+                        .themes
+                        .binary_search_by(|t| t.name.cmp(&rt.name))
+                        .is_err()
             })
             .count();
         local_count + remote_count
@@ -232,7 +237,10 @@ impl App {
         // Search Remote (only if not local)
         for rt in &self.remote_themes {
             if contains_ignore_ascii_case(&rt.name, filter)
-                && self.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
+                && self
+                    .themes
+                    .binary_search_by(|t| t.name.cmp(&rt.name))
+                    .is_err()
             {
                 if current_idx == index {
                     return Some(ThemeAsset {
@@ -285,7 +293,10 @@ impl App {
         // Add Remote (only if not local)
         for rt in &self.remote_themes {
             if contains_ignore_ascii_case(&rt.name, filter)
-                && self.themes.binary_search_by(|t| t.name.cmp(&rt.name)).is_err()
+                && self
+                    .themes
+                    .binary_search_by(|t| t.name.cmp(&rt.name))
+                    .is_err()
             {
                 unified.push(ThemeAsset {
                     name: rt.name.clone(),
@@ -799,9 +810,9 @@ impl App {
                 && content
                     .lines()
                     .any(|line| Self::is_plugin_line(line, plugin))
-                {
-                    return true;
-                }
+            {
+                return true;
+            }
         }
         false
     }
@@ -852,7 +863,10 @@ impl App {
     }
 
     /// Advanced 4-stage theme application flow: Download -> Verify -> Backup -> Apply
-    async fn download_or_locate_theme(theme: &ThemeAsset, themes_dir: &std::path::Path) -> Result<PathBuf, String> {
+    async fn download_or_locate_theme(
+        theme: &ThemeAsset,
+        themes_dir: &std::path::Path,
+    ) -> Result<PathBuf, String> {
         if theme.is_local {
             let name_clean = theme.name.replace(".omp.json", "");
             Ok(themes_dir.join(format!("{}.omp.json", name_clean)))
@@ -892,7 +906,9 @@ impl App {
         theme_name: &str,
     ) -> Result<(), String> {
         for profile in profiles {
-            if let Err(e) = backup_manager.backup_profile(profile, &format!("Apply Theme Advanced: {}", theme_name)) {
+            if let Err(e) = backup_manager
+                .backup_profile(profile, &format!("Apply Theme Advanced: {}", theme_name))
+            {
                 return Err(format!("Backup failed: {}", e));
             }
         }
@@ -916,7 +932,9 @@ impl App {
 
             for line in existing_content.lines() {
                 let trimmed = line.trim();
-                if trimmed.starts_with("# <PoshBuddy: START") || trimmed.starts_with("# <PoshBuddy: END") {
+                if trimmed.starts_with("# <PoshBuddy: START")
+                    || trimmed.starts_with("# <PoshBuddy: END")
+                {
                     continue;
                 }
 
@@ -924,7 +942,10 @@ impl App {
                     inside_block = true;
                     found = true;
                     new_lines.push(start_marker.to_string());
-                    new_lines.push(format!("## Description: Apply Oh My Posh theme: {}", theme_name));
+                    new_lines.push(format!(
+                        "## Description: Apply Oh My Posh theme: {}",
+                        theme_name
+                    ));
                     new_lines.push(config_line.to_string());
                 } else if trimmed.starts_with(end_marker) {
                     inside_block = false;
@@ -939,7 +960,10 @@ impl App {
                     new_lines.push(String::new());
                 }
                 new_lines.push(start_marker.to_string());
-                new_lines.push(format!("## Description: Apply Oh My Posh theme: {}", theme_name));
+                new_lines.push(format!(
+                    "## Description: Apply Oh My Posh theme: {}",
+                    theme_name
+                ));
                 new_lines.push(config_line.to_string());
                 new_lines.push(end_marker.to_string());
             }
@@ -966,7 +990,14 @@ impl App {
 
         tokio::spawn(async move {
             // Stage 0: Download/Locate
-            if tx_cloned.send(AppMessage::InstallUpdate { stage: 0, percentage: 25.0 }).await.is_err() {
+            if tx_cloned
+                .send(AppMessage::InstallUpdate {
+                    stage: 0,
+                    percentage: 25.0,
+                })
+                .await
+                .is_err()
+            {
                 return;
             }
             let source_path = match Self::download_or_locate_theme(&theme, &themes_dir).await {
@@ -978,7 +1009,14 @@ impl App {
             };
 
             // Stage 1: Verify (Try to parse as JSON)
-            if tx_cloned.send(AppMessage::InstallUpdate { stage: 1, percentage: 50.0 }).await.is_err() {
+            if tx_cloned
+                .send(AppMessage::InstallUpdate {
+                    stage: 1,
+                    percentage: 50.0,
+                })
+                .await
+                .is_err()
+            {
                 return;
             }
             if let Err(e) = Self::verify_theme_json(&source_path).await {
@@ -987,7 +1025,14 @@ impl App {
             }
 
             // Stage 2: Backup
-            if tx_cloned.send(AppMessage::InstallUpdate { stage: 2, percentage: 75.0 }).await.is_err() {
+            if tx_cloned
+                .send(AppMessage::InstallUpdate {
+                    stage: 2,
+                    percentage: 75.0,
+                })
+                .await
+                .is_err()
+            {
                 return;
             }
             if let Err(e) = Self::backup_profiles(&profiles, &backup_manager, &name) {
@@ -996,14 +1041,23 @@ impl App {
             }
 
             // Stage 3: Apply
-            if tx_cloned.send(AppMessage::InstallUpdate { stage: 3, percentage: 90.0 }).await.is_err() {
+            if tx_cloned
+                .send(AppMessage::InstallUpdate {
+                    stage: 3,
+                    percentage: 90.0,
+                })
+                .await
+                .is_err()
+            {
                 return;
             }
 
             let final_theme_path = if !theme.is_local {
                 let dest = themes_dir.join(format!("{}.omp.json", theme.name));
                 if let Err(e) = tokio::fs::copy(&source_path, &dest).await {
-                    let _ = tx_cloned.send(AppMessage::Error(format!("Failed to save theme: {}", e))).await;
+                    let _ = tx_cloned
+                        .send(AppMessage::Error(format!("Failed to save theme: {}", e)))
+                        .await;
                     return;
                 }
                 dest
@@ -1021,10 +1075,19 @@ impl App {
                 return;
             }
 
-            if tx_cloned.send(AppMessage::Success(format!("Theme '{}' applied successfully!", name))).await.is_err() {
+            if tx_cloned
+                .send(AppMessage::Success(format!(
+                    "Theme '{}' applied successfully!",
+                    name
+                )))
+                .await
+                .is_err()
+            {
                 return;
             }
-            let _ = tx_cloned.send(AppMessage::ThemeDownloaded(final_theme_path)).await;
+            let _ = tx_cloned
+                .send(AppMessage::ThemeDownloaded(final_theme_path))
+                .await;
         });
     }
 
@@ -1157,9 +1220,9 @@ impl App {
                 && let Err(e) = self
                     .backup_manager
                     .backup_profile(profile, "Manual backup from PoshBuddy")
-                {
-                    errors.push(format!("{}: {}", profile.display(), e));
-                }
+            {
+                errors.push(format!("{}: {}", profile.display(), e));
+            }
         }
 
         // Refresh count after backup
