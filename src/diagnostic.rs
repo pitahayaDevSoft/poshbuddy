@@ -152,13 +152,17 @@ impl Diagnostic {
             if let Some(theme_idx) = script.find("--config") {
                 let after_config = &script[theme_idx + 8..];
                 if let Some(quote_idx) = after_config.find(['"', '\'']) {
-                    let quote_char = after_config.chars().nth(quote_idx).unwrap();
-                    let path_end = after_config[quote_idx + 1..].find(quote_char).unwrap_or(0);
-                    if path_end > 0 {
-                        let theme_path = &after_config[quote_idx + 1..quote_idx + 1 + path_end];
-                        if !std::path::Path::new(theme_path).exists() {
-                            result
-                                .add_warning(format!("Theme path does not exist: {}", theme_path));
+                    let quote_char = &after_config[quote_idx..quote_idx + 1];
+                    let remaining = &after_config[quote_idx + 1..];
+                    if let Some(path_end) = remaining.find(quote_char) {
+                        if path_end > 0 {
+                            let theme_path = &remaining[..path_end];
+                            if !std::path::Path::new(theme_path).exists() {
+                                result.add_warning(format!(
+                                    "Theme path does not exist: {}",
+                                    theme_path
+                                ));
+                            }
                         }
                     }
                 }
@@ -451,5 +455,17 @@ mod tests {
             .warnings
             .iter()
             .any(|w| w.contains("execution permissions")));
+    }
+
+    #[test]
+    fn test_validate_multibyte_characters() {
+        let diag = Diagnostic::new();
+        // Multi-byte character 🚀 before --config to test index handling
+        let script = "oh-my-posh init pwsh 🚀 --config 'C:\\nonexistent.json'";
+        let result = diag.validate_powershell_syntax(script).unwrap();
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.contains("Theme path does not exist")));
     }
 }
