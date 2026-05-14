@@ -713,3 +713,223 @@ mod tests {
         assert_eq!(app.active_view, ActiveView::Themes);
     }
 }
+
+#[cfg(test)]
+mod handle_messages_tests {
+    use super::*;
+    use ratatui::widgets::ListState;
+    use std::collections::HashSet;
+
+    fn create_test_app() -> App {
+        App {
+            state: AppState::Main,
+            active_view: ActiveView::Themes,
+            themes: vec![],
+            remote_themes: vec![],
+            fonts: vec![],
+            filter: "".to_string(),
+            fonts_filter: "".to_string(),
+            themes_dir: std::path::PathBuf::from("/mock/themes/dir"),
+            version: "1.0.0".to_string(),
+            list_state: ListState::default(),
+            fonts_list_state: ListState::default(),
+            segments_list_state: ListState::default(),
+            plugins: vec![],
+            segments: vec![],
+            segments_filter: "".to_string(),
+            spinner_tick: 0,
+            has_nerd_font: false,
+            theme_preview: "".to_string(),
+            detected_profiles: vec![],
+            active_config_path: None,
+            backup_manager: crate::backup::BackupManager::new(Some(10)),
+            welcome_selected_action: 0,
+            system_specs: None,
+            total_backups: 0,
+            preview_request_id: 1,
+            active_preview_task: None,
+            active_segments: HashSet::new(),
+            theme_preview_cache: std::collections::HashMap::new(),
+        }
+    }
+
+    #[test]
+    fn test_handle_messages_fonts_loaded() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let fonts = vec![
+            FontAsset { name: "Zebra".to_string(), download_url: "url2".to_string() },
+            FontAsset { name: "Alpha".to_string(), download_url: "url1".to_string() },
+        ];
+
+        let _ = tx.try_send(AppMessage::FontsLoaded(fonts));
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.fonts.len(), 2);
+        assert_eq!(app.fonts[0].name, "Alpha");
+        assert_eq!(app.fonts[1].name, "Zebra");
+    }
+
+    #[test]
+    fn test_handle_messages_theme_preview_loaded() {
+        let mut app = create_test_app();
+        app.themes.push(ThemeAsset { name: "TestTheme".to_string(), is_local: true, download_url: None });
+        app.list_state.select(Some(0));
+        app.preview_request_id = 42;
+
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let msg = AppMessage::ThemePreviewLoaded {
+            theme: ThemeAsset { name: "TestTheme".to_string(), is_local: true, download_url: None },
+            preview: "Test Preview Data".to_string(),
+            request_id: 42,
+        };
+
+        let _ = tx.try_send(msg);
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.theme_preview, "Test Preview Data");
+    }
+
+    #[test]
+    fn test_handle_messages_remote_themes_loaded() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let remote_themes = vec![
+            RemoteTheme { name: "Remote1".to_string(), download_url: "http://example.com/1".to_string(), sha: "123".to_string() },
+        ];
+
+        let _ = tx.try_send(AppMessage::RemoteThemesLoaded(remote_themes));
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.remote_themes.len(), 1);
+        assert_eq!(app.remote_themes[0].name, "Remote1");
+    }
+
+    #[test]
+    fn test_handle_messages_theme_downloaded() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let path = std::path::PathBuf::from("/mock/themes/dir/new_theme.omp.json");
+
+        let _ = tx.try_send(AppMessage::ThemeDownloaded(path.clone()));
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.themes.len(), 1);
+        assert_eq!(app.themes[0].name, "new_theme");
+        assert_eq!(app.active_config_path, Some(path));
+    }
+
+    #[test]
+    fn test_handle_messages_install_update() {
+        let mut app = create_test_app();
+        app.state = AppState::ApplyingProgress { name: "test_update".to_string(), stage: 0, progress: 0.0 };
+
+        let (tx, mut rx) = mpsc::channel(1);
+        let _ = tx.try_send(AppMessage::InstallUpdate { stage: 2, percentage: 50.0 });
+        app.handle_messages(&mut rx, tx.clone());
+
+        if let AppState::ApplyingProgress { name, stage, progress } = app.state {
+            assert_eq!(name, "test_update");
+            assert_eq!(stage, 2);
+            assert_eq!(progress, 50.0);
+        } else {
+            panic!("Unexpected state");
+        }
+    }
+
+    #[test]
+    fn test_handle_messages_success() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let _ = tx.try_send(AppMessage::Success("All good".to_string()));
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.state, AppState::Success("All good".to_string()));
+    }
+
+    #[test]
+    fn test_handle_messages_font_installed() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let _ = tx.try_send(AppMessage::FontInstalled("Comic Sans".to_string()));
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.state, AppState::FontSuccess("Comic Sans".to_string()));
+        assert!(app.has_nerd_font);
+    }
+
+    #[test]
+    fn test_handle_messages_segment_toggled() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let _ = tx.try_send(AppMessage::SegmentToggled("git".to_string()));
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.state, AppState::SegmentSuccess("git".to_string()));
+    }
+
+    #[test]
+    fn test_handle_messages_install_progress() {
+        let mut app = create_test_app();
+        app.state = AppState::InstallingDependency { log: vec![], current_action: "".to_string() };
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let _ = tx.try_send(AppMessage::InstallProgress { line: "Installing step 1...".to_string() });
+        app.handle_messages(&mut rx, tx.clone());
+
+        if let AppState::InstallingDependency { log, current_action } = app.state {
+            assert_eq!(log.len(), 1);
+            assert_eq!(log[0], "Installing step 1...");
+            assert_eq!(current_action, "Installing step 1...");
+        } else {
+            panic!("Unexpected state");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_messages_install_finished() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let _ = tx.try_send(AppMessage::InstallFinished);
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.state, AppState::Loading);
+    }
+
+    #[test]
+    fn test_handle_messages_mass_font_progress() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let _ = tx.try_send(AppMessage::MassFontProgress { index: 1, total: 4, name: "FontA".to_string() });
+        app.handle_messages(&mut rx, tx.clone());
+
+        if let AppState::InstallingAllFonts { progress, current_font, index, total } = app.state {
+            assert_eq!(progress, 25.0);
+            assert_eq!(current_font, "FontA");
+            assert_eq!(index, 1);
+            assert_eq!(total, 4);
+        } else {
+            panic!("Unexpected state");
+        }
+    }
+
+    #[test]
+    fn test_handle_messages_error() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let _ = tx.try_send(AppMessage::Error("Something went wrong".to_string()));
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(app.state, AppState::Error("Something went wrong".to_string()));
+    }
+}
