@@ -20,6 +20,7 @@ impl App {
                     preview,
                     request_id,
                 } => {
+                    self.theme_preview_cache.insert(theme.name.clone(), preview.clone());
                     if request_id == self.preview_request_id
                         && let Some(selected_index) = self.list_state.selected()
                             && let Some(current_theme) = self.filtered_theme_at(selected_index)

@@ -148,4 +148,5 @@ pub struct App {
     pub preview_request_id: u64,        // ID to version and cancel obsolete previews
     pub active_preview_task: Option<tokio::task::JoinHandle<()>>, // Handle to abort preview tasks
     pub active_segments: HashSet<String>, // Cache of active segments to avoid repetitive I/O
+    pub theme_preview_cache: std::collections::HashMap<String, String>, // Cache for theme previews
 }

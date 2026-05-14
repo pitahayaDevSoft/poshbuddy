@@ -571,6 +571,15 @@ impl App {
 
     /// Asynchronously generates a real prompt preview for a theme using isolation
     pub fn load_theme_preview(&mut self, theme: ThemeAsset, tx: mpsc::Sender<AppMessage>) {
+        // 0. Check cache
+        if let Some(cached) = self.theme_preview_cache.get(&theme.name) {
+            self.theme_preview = cached.clone();
+            if let Some(handle) = self.active_preview_task.take() {
+                handle.abort();
+            }
+            return;
+        }
+
         // 1. Cancel previous task if active to avoid race conditions
         if let Some(handle) = self.active_preview_task.take() {
             handle.abort();
@@ -585,6 +594,9 @@ impl App {
         let cmd = OMP_BINARY;
 
         let handle = tokio::spawn(async move {
+            // Add a small debounce delay to avoid spamming requests when searching rapidly
+            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+
             let final_theme_path = if !theme_cloned.is_local {
                 if let Some(url) = &theme_cloned.download_url {
                     match crate::api::download_to_temp(&theme_cloned.name, url).await {

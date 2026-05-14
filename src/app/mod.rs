@@ -111,6 +111,7 @@ impl App {
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
+            theme_preview_cache: std::collections::HashMap::new(),
         };
 
         // Initialize active config path and segments cache
