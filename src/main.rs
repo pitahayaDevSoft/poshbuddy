@@ -38,50 +38,42 @@ async fn handle_cli_command(command: Commands) -> Result<(), Box<dyn Error>> {
     let (tx, mut rx) = mpsc::channel(64);
 
     match command {
-        Commands::Set { target } => match target {
-            SetTarget::Theme { name } => {
-                println!("🔍 Searching for theme: {}...", name);
-                app.fetch_official_themes(tx.clone());
+        Commands::Set { target } => handle_set_command(target, &mut app, tx, &mut rx).await?,
+        Commands::Install { target } => handle_install_command(target, &mut app, tx, &mut rx).await?,
+        Commands::List { target } => handle_list_command(target, &mut app, tx, &mut rx).await?,
+    }
 
-                while let Some(msg) = rx.recv().await {
-                    app.handle_messages(&mut rx, tx.clone());
-                    if let crate::app::AppMessage::RemoteThemesLoaded(_) = msg {
-                        break;
-                    }
-                }
+    Ok(())
+}
 
-                let theme = app.filtered_themes().into_iter().find(|t| t.name == name);
+async fn handle_set_command(
+    target: SetTarget,
+    app: &mut App,
+    tx: mpsc::Sender<crate::app::AppMessage>,
+    rx: &mut mpsc::Receiver<crate::app::AppMessage>,
+) -> Result<(), Box<dyn Error>> {
+    match target {
+        SetTarget::Theme { name } => {
+            println!("🔍 Searching for theme: {}...", name);
+            app.fetch_official_themes(tx.clone());
 
-                if let Some(theme) = theme {
-                    println!("🚀 Applying theme: {}...", theme.name);
-                    app.apply_theme_advanced(theme, tx.clone());
-
-                    while let Some(msg) = rx.recv().await {
-                        match msg {
-                            crate::app::AppMessage::Success(m) => {
-                                println!("✅ {}", m);
-                                return Ok(());
-                            }
-                            crate::app::AppMessage::Error(e) => {
-                                println!("❌ Error: {}", e);
-                                return Ok(());
-                            }
-                            _ => {}
-                        }
-                    }
-                } else {
-                    println!("❌ Error: Theme '{}' not found.", name);
+            while let Some(msg) = rx.recv().await {
+                app.handle_messages(rx, tx.clone());
+                if let crate::app::AppMessage::RemoteThemesLoaded(_) = msg {
+                    break;
                 }
             }
-        },
-        Commands::Install { target } => match target {
-            InstallTarget::Font { name } => {
-                println!("📥 Installing font: {}...", name);
-                app.install_font(name, tx.clone());
+
+            let theme = app.filtered_themes().into_iter().find(|t| t.name == name);
+
+            if let Some(theme) = theme {
+                println!("🚀 Applying theme: {}...", theme.name);
+                app.apply_theme_advanced(theme, tx.clone());
+
                 while let Some(msg) = rx.recv().await {
                     match msg {
-                        crate::app::AppMessage::FontInstalled(f) => {
-                            println!("✅ Font '{}' installed successfully!", f);
+                        crate::app::AppMessage::Success(m) => {
+                            println!("✅ {}", m);
                             return Ok(());
                         }
                         crate::app::AppMessage::Error(e) => {
@@ -91,60 +83,98 @@ async fn handle_cli_command(command: Commands) -> Result<(), Box<dyn Error>> {
                         _ => {}
                     }
                 }
+            } else {
+                println!("❌ Error: Theme '{}' not found.", name);
             }
-        },
-        Commands::List { target } => match target {
-            ListTarget::Themes { local, remote } => {
-                let show_all = !local && !remote;
-                
-                if remote || show_all {
-                    println!("🌐 Fetching remote themes catalogue...");
-                    app.fetch_official_themes(tx.clone());
-                    while let Some(msg) = rx.recv().await {
-                        app.handle_messages(&mut rx, tx.clone());
-                        if let crate::app::AppMessage::RemoteThemesLoaded(_) = msg {
-                            break;
-                        }
-                    }
-                }
+        }
+    }
+    Ok(())
+}
 
-                println!("\n{:<30} {:<10}", "THEME NAME", "STATUS");
-                println!("{:-<45}", "");
-                
-                let mut themes = app.filtered_themes();
-                themes.sort_by(|a, b| a.name.cmp(&b.name));
-
-                for theme in themes {
-                    let is_local = theme.is_local;
-                    let status = if is_local { "Local" } else { "Remote" };
-                    
-                    if (local && is_local) || (remote && !is_local) || show_all {
-                        println!("{:<30} {:<10}", theme.name, status);
+async fn handle_install_command(
+    target: InstallTarget,
+    app: &mut App,
+    tx: mpsc::Sender<crate::app::AppMessage>,
+    rx: &mut mpsc::Receiver<crate::app::AppMessage>,
+) -> Result<(), Box<dyn Error>> {
+    match target {
+        InstallTarget::Font { name } => {
+            println!("📥 Installing font: {}...", name);
+            app.install_font(name, tx.clone());
+            while let Some(msg) = rx.recv().await {
+                match msg {
+                    crate::app::AppMessage::FontInstalled(f) => {
+                        println!("✅ Font '{}' installed successfully!", f);
+                        return Ok(());
                     }
+                    crate::app::AppMessage::Error(e) => {
+                        println!("❌ Error: {}", e);
+                        return Ok(());
+                    }
+                    _ => {}
                 }
-                println!();
             }
-            ListTarget::Fonts => {
-                println!("🌐 Fetching available Nerd Fonts...");
-                let themes_dir = app.themes_dir.clone();
-                tokio::spawn(crate::api::setup_app_task(tx.clone(), themes_dir));
+        }
+    }
+    Ok(())
+}
 
+async fn handle_list_command(
+    target: ListTarget,
+    app: &mut App,
+    tx: mpsc::Sender<crate::app::AppMessage>,
+    rx: &mut mpsc::Receiver<crate::app::AppMessage>,
+) -> Result<(), Box<dyn Error>> {
+    match target {
+        ListTarget::Themes { local, remote } => {
+            let show_all = !local && !remote;
+
+            if remote || show_all {
+                println!("🌐 Fetching remote themes catalogue...");
+                app.fetch_official_themes(tx.clone());
                 while let Some(msg) = rx.recv().await {
-                    app.handle_messages(&mut rx, tx.clone());
-                    if let crate::app::AppMessage::FontsLoaded(fonts) = msg {
-                        println!("\n{:<40}", "AVAILABLE NERD FONTS");
-                        println!("{:-<40}", "");
-                        for font in fonts {
-                            println!("{}", font.name);
-                        }
-                        println!();
+                    app.handle_messages(rx, tx.clone());
+                    if let crate::app::AppMessage::RemoteThemesLoaded(_) = msg {
                         break;
                     }
                 }
             }
-        },
-    }
 
+            println!("\n{:<30} {:<10}", "THEME NAME", "STATUS");
+            println!("{:-<45}", "");
+
+            let mut themes = app.filtered_themes();
+            themes.sort_by(|a, b| a.name.cmp(&b.name));
+
+            for theme in themes {
+                let is_local = theme.is_local;
+                let status = if is_local { "Local" } else { "Remote" };
+
+                if (local && is_local) || (remote && !is_local) || show_all {
+                    println!("{:<30} {:<10}", theme.name, status);
+                }
+            }
+            println!();
+        }
+        ListTarget::Fonts => {
+            println!("🌐 Fetching available Nerd Fonts...");
+            let themes_dir = app.themes_dir.clone();
+            tokio::spawn(crate::api::setup_app_task(tx.clone(), themes_dir));
+
+            while let Some(msg) = rx.recv().await {
+                app.handle_messages(rx, tx.clone());
+                if let crate::app::AppMessage::FontsLoaded(fonts) = msg {
+                    println!("\n{:<40}", "AVAILABLE NERD FONTS");
+                    println!("{:-<40}", "");
+                    for font in fonts {
+                        println!("{}", font.name);
+                    }
+                    println!();
+                    break;
+                }
+            }
+        }
+    }
     Ok(())
 }
 
