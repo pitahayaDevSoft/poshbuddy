@@ -701,15 +701,24 @@ mod tests {
         let (tx, _rx) = mpsc::channel(1);
 
         // Press '2'
-        let _ = app.handle_input(KeyEvent::new(KeyCode::Char('2'), KeyModifiers::NONE), tx.clone());
+        let _ = app.handle_input(
+            KeyEvent::new(KeyCode::Char('2'), KeyModifiers::NONE),
+            tx.clone(),
+        );
         assert_eq!(app.active_view, ActiveView::Fonts);
 
         // Press '3'
-        let _ = app.handle_input(KeyEvent::new(KeyCode::Char('3'), KeyModifiers::NONE), tx.clone());
+        let _ = app.handle_input(
+            KeyEvent::new(KeyCode::Char('3'), KeyModifiers::NONE),
+            tx.clone(),
+        );
         assert_eq!(app.active_view, ActiveView::Segments);
 
         // Press '1'
-        let _ = app.handle_input(KeyEvent::new(KeyCode::Char('1'), KeyModifiers::NONE), tx.clone());
+        let _ = app.handle_input(
+            KeyEvent::new(KeyCode::Char('1'), KeyModifiers::NONE),
+            tx.clone(),
+        );
         assert_eq!(app.active_view, ActiveView::Themes);
     }
 }
@@ -759,8 +768,14 @@ mod handle_messages_tests {
         let (tx, mut rx) = mpsc::channel(1);
 
         let fonts = vec![
-            FontAsset { name: "Zebra".to_string(), download_url: "url2".to_string() },
-            FontAsset { name: "Alpha".to_string(), download_url: "url1".to_string() },
+            FontAsset {
+                name: "Zebra".to_string(),
+                download_url: "url2".to_string(),
+            },
+            FontAsset {
+                name: "Alpha".to_string(),
+                download_url: "url1".to_string(),
+            },
         ];
 
         let _ = tx.try_send(AppMessage::FontsLoaded(fonts));
@@ -774,14 +789,22 @@ mod handle_messages_tests {
     #[test]
     fn test_handle_messages_theme_preview_loaded() {
         let mut app = create_test_app();
-        app.themes.push(ThemeAsset { name: "TestTheme".to_string(), is_local: true, download_url: None });
+        app.themes.push(ThemeAsset {
+            name: "TestTheme".to_string(),
+            is_local: true,
+            download_url: None,
+        });
         app.list_state.select(Some(0));
         app.preview_request_id = 42;
 
         let (tx, mut rx) = mpsc::channel(1);
 
         let msg = AppMessage::ThemePreviewLoaded {
-            theme: ThemeAsset { name: "TestTheme".to_string(), is_local: true, download_url: None },
+            theme: ThemeAsset {
+                name: "TestTheme".to_string(),
+                is_local: true,
+                download_url: None,
+            },
             preview: "Test Preview Data".to_string(),
             request_id: 42,
         };
@@ -797,9 +820,11 @@ mod handle_messages_tests {
         let mut app = create_test_app();
         let (tx, mut rx) = mpsc::channel(1);
 
-        let remote_themes = vec![
-            RemoteTheme { name: "Remote1".to_string(), download_url: "http://example.com/1".to_string(), sha: "123".to_string() },
-        ];
+        let remote_themes = vec![RemoteTheme {
+            name: "Remote1".to_string(),
+            download_url: "http://example.com/1".to_string(),
+            sha: "123".to_string(),
+        }];
 
         let _ = tx.try_send(AppMessage::RemoteThemesLoaded(remote_themes));
         app.handle_messages(&mut rx, tx.clone());
@@ -826,13 +851,25 @@ mod handle_messages_tests {
     #[test]
     fn test_handle_messages_install_update() {
         let mut app = create_test_app();
-        app.state = AppState::ApplyingProgress { name: "test_update".to_string(), stage: 0, progress: 0.0 };
+        app.state = AppState::ApplyingProgress {
+            name: "test_update".to_string(),
+            stage: 0,
+            progress: 0.0,
+        };
 
         let (tx, mut rx) = mpsc::channel(1);
-        let _ = tx.try_send(AppMessage::InstallUpdate { stage: 2, percentage: 50.0 });
+        let _ = tx.try_send(AppMessage::InstallUpdate {
+            stage: 2,
+            percentage: 50.0,
+        });
         app.handle_messages(&mut rx, tx.clone());
 
-        if let AppState::ApplyingProgress { name, stage, progress } = app.state {
+        if let AppState::ApplyingProgress {
+            name,
+            stage,
+            progress,
+        } = app.state
+        {
             assert_eq!(name, "test_update");
             assert_eq!(stage, 2);
             assert_eq!(progress, 50.0);
@@ -878,13 +915,22 @@ mod handle_messages_tests {
     #[test]
     fn test_handle_messages_install_progress() {
         let mut app = create_test_app();
-        app.state = AppState::InstallingDependency { log: vec![], current_action: "".to_string() };
+        app.state = AppState::InstallingDependency {
+            log: vec![],
+            current_action: "".to_string(),
+        };
         let (tx, mut rx) = mpsc::channel(1);
 
-        let _ = tx.try_send(AppMessage::InstallProgress { line: "Installing step 1...".to_string() });
+        let _ = tx.try_send(AppMessage::InstallProgress {
+            line: "Installing step 1...".to_string(),
+        });
         app.handle_messages(&mut rx, tx.clone());
 
-        if let AppState::InstallingDependency { log, current_action } = app.state {
+        if let AppState::InstallingDependency {
+            log,
+            current_action,
+        } = app.state
+        {
             assert_eq!(log.len(), 1);
             assert_eq!(log[0], "Installing step 1...");
             assert_eq!(current_action, "Installing step 1...");
@@ -909,10 +955,20 @@ mod handle_messages_tests {
         let mut app = create_test_app();
         let (tx, mut rx) = mpsc::channel(1);
 
-        let _ = tx.try_send(AppMessage::MassFontProgress { index: 1, total: 4, name: "FontA".to_string() });
+        let _ = tx.try_send(AppMessage::MassFontProgress {
+            index: 1,
+            total: 4,
+            name: "FontA".to_string(),
+        });
         app.handle_messages(&mut rx, tx.clone());
 
-        if let AppState::InstallingAllFonts { progress, current_font, index, total } = app.state {
+        if let AppState::InstallingAllFonts {
+            progress,
+            current_font,
+            index,
+            total,
+        } = app.state
+        {
             assert_eq!(progress, 25.0);
             assert_eq!(current_font, "FontA");
             assert_eq!(index, 1);
@@ -930,6 +986,9 @@ mod handle_messages_tests {
         let _ = tx.try_send(AppMessage::Error("Something went wrong".to_string()));
         app.handle_messages(&mut rx, tx.clone());
 
-        assert_eq!(app.state, AppState::Error("Something went wrong".to_string()));
+        assert_eq!(
+            app.state,
+            AppState::Error("Something went wrong".to_string())
+        );
     }
 }

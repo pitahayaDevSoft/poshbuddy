@@ -17,10 +17,31 @@ pub fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
     if needle_bytes.is_empty() {
         return true;
     }
-    haystack
-        .as_bytes()
-        .windows(needle_bytes.len())
-        .any(|w| w.eq_ignore_ascii_case(needle_bytes))
+
+    let haystack_bytes = haystack.as_bytes();
+    let needle_len = needle_bytes.len();
+    if haystack_bytes.len() < needle_len {
+        return false;
+    }
+
+    let first_byte = needle_bytes[0];
+    let first_lower = first_byte.to_ascii_lowercase();
+    let first_upper = first_byte.to_ascii_uppercase();
+
+    let mut i = 0;
+    let end = haystack_bytes.len() - needle_len;
+
+    while i <= end {
+        let b = haystack_bytes[i];
+        if (b == first_lower || b == first_upper)
+            && haystack_bytes[i + 1..i + needle_len].eq_ignore_ascii_case(&needle_bytes[1..])
+        {
+            return true;
+        }
+        i += 1;
+    }
+
+    false
 }
 
 impl App {

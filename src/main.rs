@@ -13,9 +13,9 @@ use clap::Parser;
 use crossterm::{
     event::{self, Event},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::{Terminal, backend::CrosstermBackend};
 use std::error::Error;
 use std::io;
 use std::time::Duration;
@@ -96,7 +96,7 @@ async fn handle_cli_command(command: Commands) -> Result<(), Box<dyn Error>> {
         Commands::List { target } => match target {
             ListTarget::Themes { local, remote } => {
                 let show_all = !local && !remote;
-                
+
                 if remote || show_all {
                     println!("🌐 Fetching remote themes catalogue...");
                     app.fetch_official_themes(tx.clone());
@@ -110,14 +110,14 @@ async fn handle_cli_command(command: Commands) -> Result<(), Box<dyn Error>> {
 
                 println!("\n{:<30} {:<10}", "THEME NAME", "STATUS");
                 println!("{:-<45}", "");
-                
+
                 let mut themes = app.filtered_themes();
                 themes.sort_by(|a, b| a.name.cmp(&b.name));
 
                 for theme in themes {
                     let is_local = theme.is_local;
                     let status = if is_local { "Local" } else { "Remote" };
-                    
+
                     if (local && is_local) || (remote && !is_local) || show_all {
                         println!("{:<30} {:<10}", theme.name, status);
                     }
@@ -178,9 +178,10 @@ async fn run_tui() -> Result<(), Box<dyn Error>> {
 
         if event::poll(Duration::from_millis(30))?
             && let Event::Key(key) = event::read()?
-                && app.handle_input(key, tx.clone())? {
-                    break;
-                }
+            && app.handle_input(key, tx.clone())?
+        {
+            break;
+        }
     }
 
     // 6. Cleanup terminal state on exit

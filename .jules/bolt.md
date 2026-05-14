@@ -31,3 +31,7 @@
 ## 2024-05-31 - Zero-allocation ListItem strings via Line/Span composition
 **Learning:** Using the `format!` macro within iterative `.map()` closures to construct text for Ratatui `ListItem` objects causes unnecessary, severe heap allocation per item, per frame during the main TUI render loop.
 **Action:** In Ratatui TUI render loops, avoid using the `format!` macro to construct strings for `ListItem` widgets. Instead, compose zero-allocation UI elements using `Line::from` and `Span::raw` by passing string slices (`&str`).
+
+## 2024-05-18 - Optimized `contains_ignore_ascii_case`
+**Learning:** `haystack.as_bytes().windows().any(...)` is a high overhead O(N*M) check that can be significantly improved by implementing a fast path that manually iterates and checks if the first byte matches the needle's uppercase or lowercase equivalent before invoking `eq_ignore_ascii_case`.
+**Action:** When implementing custom string search operations, prioritize fast-path rejection on the first character to avoid the overhead of full slice equality checks and slice creations.
