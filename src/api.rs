@@ -108,11 +108,20 @@ pub async fn download_to_temp(name: &str, url: &str) -> Result<std::path::PathBu
         .await
         .map_err(|e| format!("Failed to read theme content: {}", e))?;
 
-    let temp_dir = std::env::temp_dir();
-    let temp_name = format!("poshbuddy_preview_{}.omp.json", name);
-    let temp_path = temp_dir.join(temp_name);
+    let temp_file = tempfile::Builder::new()
+        .prefix("poshbuddy_preview_")
+        .suffix(".omp.json")
+        .tempfile()
+        .map_err(|e| format!("Failed to create temporary file: {}", e))?;
 
-    tokio::fs::write(&temp_path, &bytes)
+    let (std_file, temp_path) = temp_file
+        .keep()
+        .map_err(|e| format!("Failed to keep temporary file: {}", e))?;
+
+    let mut tokio_file = tokio::fs::File::from_std(std_file);
+    use tokio::io::AsyncWriteExt;
+    tokio_file
+        .write_all(&bytes)
         .await
         .map_err(|e| format!("Failed to write preview file: {}", e))?;
 
@@ -135,37 +144,38 @@ pub async fn setup_app_task_with_urls(
         .await;
 
     if let Ok(r) = resp
-        && let Ok(json) = r.json::<serde_json::Value>().await {
-            // Processing JSON response to extract filenames and download URLs
-            let themes: Vec<RemoteTheme> = json
-                .as_array()
-                .unwrap_or(&vec![])
-                .iter()
-                .filter_map(|v| {
-                    let name = v["name"].as_str()?.to_string();
-                    if !name.ends_with(".omp.json") {
-                        return None;
-                    }
-                    let download_url = v["download_url"].as_str()?.to_string();
-                    let sha = v["sha"].as_str()?.to_string();
-                    let clean_name = name.replace(".omp.json", "");
-                    Some(RemoteTheme {
-                        name: clean_name,
-                        download_url,
-                        sha,
-                    })
+        && let Ok(json) = r.json::<serde_json::Value>().await
+    {
+        // Processing JSON response to extract filenames and download URLs
+        let themes: Vec<RemoteTheme> = json
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter_map(|v| {
+                let name = v["name"].as_str()?.to_string();
+                if !name.ends_with(".omp.json") {
+                    return None;
+                }
+                let download_url = v["download_url"].as_str()?.to_string();
+                let sha = v["sha"].as_str()?.to_string();
+                let clean_name = name.replace(".omp.json", "");
+                Some(RemoteTheme {
+                    name: clean_name,
+                    download_url,
+                    sha,
                 })
-                .collect();
+            })
+            .collect();
 
-            // Sending the remote themes metadata back to the main UI loop
-            if tx
-                .send(AppMessage::RemoteThemesLoaded(themes))
-                .await
-                .is_err()
-            {
-                return;
-            }
+        // Sending the remote themes metadata back to the main UI loop
+        if tx
+            .send(AppMessage::RemoteThemesLoaded(themes))
+            .await
+            .is_err()
+        {
+            return;
         }
+    }
 
     // 2. Fetching Nerd Fonts metadata from the Nerd Fonts repository (patched fonts list)
     let resp_fonts = client
@@ -175,23 +185,24 @@ pub async fn setup_app_task_with_urls(
         .await;
 
     if let Ok(r) = resp_fonts
-        && let Ok(json) = r.json::<serde_json::Value>().await {
-            // Filtering for directories that represent different font families
-            let fonts: Vec<FontAsset> = json
-                .as_array()
-                .unwrap_or(&vec![])
-                .iter()
-                .filter(|v| v["type"] == "dir")
-                .filter_map(|v| {
-                    let name = v["name"].as_str()?.to_string();
-                    let download_url = v["html_url"].as_str().unwrap_or("").to_string();
-                    Some(FontAsset { name, download_url })
-                })
-                .collect();
+        && let Ok(json) = r.json::<serde_json::Value>().await
+    {
+        // Filtering for directories that represent different font families
+        let fonts: Vec<FontAsset> = json
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter(|v| v["type"] == "dir")
+            .filter_map(|v| {
+                let name = v["name"].as_str()?.to_string();
+                let download_url = v["html_url"].as_str().unwrap_or("").to_string();
+                Some(FontAsset { name, download_url })
+            })
+            .collect();
 
-            // Sending the font metadata back to the main UI loop
-            if tx.send(AppMessage::FontsLoaded(fonts)).await.is_err() {}
-        }
+        // Sending the font metadata back to the main UI loop
+        if tx.send(AppMessage::FontsLoaded(fonts)).await.is_err() {}
+    }
 }
 
 #[cfg(test)]
@@ -417,7 +428,8 @@ mod tests {
 
     #[test]
     fn test_check_internet_connectivity_success() {
-        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("Failed to bind to local port");
+        let listener =
+            std::net::TcpListener::bind("127.0.0.1:0").expect("Failed to bind to local port");
         let addr = listener.local_addr().expect("Failed to get local address");
         assert!(check_internet_connectivity_with_address(&addr.to_string()));
     }

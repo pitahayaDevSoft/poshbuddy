@@ -60,13 +60,13 @@ impl App {
                         if parts.len() > 1 {
                             let path_part = parts[1].trim();
                             // Tomar el contenido entre comillas si existe
-                            let config_path =
-                                if path_part.starts_with('"') || path_part.starts_with('\'') {
-                                    let quote = path_part.chars().next().unwrap();
-                                    path_part.split(quote).nth(1).map(|s| s.to_string())
-                                } else {
-                                    path_part.split_whitespace().next().map(|s| s.to_string())
-                                };
+                            let config_path = if let Some(quote) =
+                                path_part.chars().next().filter(|c| *c == '"' || *c == '\'')
+                            {
+                                path_part.split(quote).nth(1).map(|s| s.to_string())
+                            } else {
+                                path_part.split_whitespace().next().map(|s| s.to_string())
+                            };
 
                             if let Some(p_str) = config_path {
                                 let path = PathBuf::from(p_str);
