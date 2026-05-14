@@ -1227,3 +1227,87 @@ impl App {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_refresh_active_segments_no_config() {
+        let mut app = App::default();
+        app.active_segments.insert("os".to_string());
+        app.active_config_path = None;
+
+        app.refresh_active_segments();
+
+        assert!(app.active_segments.is_empty());
+    }
+
+    #[test]
+    fn test_refresh_active_segments_invalid_json() {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(file, "invalid json data").unwrap();
+
+        let mut app = App::default();
+        app.active_segments.insert("os".to_string());
+        app.active_config_path = Some(file.path().to_path_buf());
+
+        app.refresh_active_segments();
+
+        // Should not modify segments if JSON is invalid
+        assert_eq!(app.active_segments.len(), 1);
+        assert!(app.active_segments.contains("os"));
+    }
+
+    #[test]
+    fn test_refresh_active_segments_top_level_segments() {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(file, r#"{{
+            "segments": [
+                {{ "type": "os" }},
+                {{ "type": "battery" }}
+            ]
+        }}"#).unwrap();
+
+        let mut app = App::default();
+        app.active_config_path = Some(file.path().to_path_buf());
+
+        app.refresh_active_segments();
+
+        assert_eq!(app.active_segments.len(), 2);
+        assert!(app.active_segments.contains("os"));
+        assert!(app.active_segments.contains("battery"));
+    }
+
+    #[test]
+    fn test_refresh_active_segments_blocks() {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(file, r#"{{
+            "blocks": [
+                {{
+                    "segments": [
+                        {{ "type": "path" }},
+                        {{ "type": "git" }}
+                    ]
+                }},
+                {{
+                    "segments": [
+                        {{ "type": "node" }}
+                    ]
+                }}
+            ]
+        }}"#).unwrap();
+
+        let mut app = App::default();
+        app.active_config_path = Some(file.path().to_path_buf());
+
+        app.refresh_active_segments();
+
+        assert_eq!(app.active_segments.len(), 3);
+        assert!(app.active_segments.contains("path"));
+        assert!(app.active_segments.contains("git"));
+        assert!(app.active_segments.contains("node"));
+    }
+}
