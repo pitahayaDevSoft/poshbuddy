@@ -632,3 +632,84 @@ impl App {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    fn create_test_app() -> App {
+        let mut app = App::new();
+        app.state = AppState::Main;
+        app.active_view = ActiveView::Themes;
+        app
+    }
+
+    #[tokio::test]
+    async fn test_handle_input_force_quit() {
+        let mut app = create_test_app();
+        let (tx, _rx) = mpsc::channel(1);
+
+        let key = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
+        let result = app.handle_input(key, tx);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), true);
+    }
+
+    #[tokio::test]
+    async fn test_handle_input_quit() {
+        let mut app = create_test_app();
+        let (tx, _rx) = mpsc::channel(1);
+
+        let key = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
+        let result = app.handle_input(key, tx);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), true);
+    }
+
+    #[tokio::test]
+    async fn test_handle_input_tab_navigation() {
+        let mut app = create_test_app();
+        app.state = AppState::Main;
+        app.active_view = ActiveView::Themes;
+        let (tx, _rx) = mpsc::channel(1);
+
+        let key = KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE);
+
+        // Tab from Themes -> Fonts
+        let result = app.handle_input(key.clone(), tx.clone());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), false);
+        assert_eq!(app.active_view, ActiveView::Fonts);
+
+        // Tab from Fonts -> Segments
+        let _ = app.handle_input(key.clone(), tx.clone());
+        assert_eq!(app.active_view, ActiveView::Segments);
+
+        // Tab from Segments -> Themes
+        let _ = app.handle_input(key.clone(), tx.clone());
+        assert_eq!(app.active_view, ActiveView::Themes);
+    }
+
+    #[tokio::test]
+    async fn test_handle_input_main_navigation_numbers() {
+        let mut app = create_test_app();
+        app.state = AppState::Main;
+        app.active_view = ActiveView::Themes;
+        let (tx, _rx) = mpsc::channel(1);
+
+        // Press '2'
+        let _ = app.handle_input(KeyEvent::new(KeyCode::Char('2'), KeyModifiers::NONE), tx.clone());
+        assert_eq!(app.active_view, ActiveView::Fonts);
+
+        // Press '3'
+        let _ = app.handle_input(KeyEvent::new(KeyCode::Char('3'), KeyModifiers::NONE), tx.clone());
+        assert_eq!(app.active_view, ActiveView::Segments);
+
+        // Press '1'
+        let _ = app.handle_input(KeyEvent::new(KeyCode::Char('1'), KeyModifiers::NONE), tx.clone());
+        assert_eq!(app.active_view, ActiveView::Themes);
+    }
+}
