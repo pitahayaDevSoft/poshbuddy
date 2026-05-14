@@ -175,6 +175,7 @@ impl BackupManager {
             .unwrap_or("unknown");
 
         let mut backups = Vec::new();
+        let search_prefix = format!("{}_", profile_name);
 
         for entry in fs::read_dir(&self.backup_dir)? {
             let entry = entry?;
@@ -182,12 +183,12 @@ impl BackupManager {
 
             if let Some(filename) = path.file_stem().and_then(|s| s.to_str()) {
                 // Look for backups matching the profile name
-                if filename.starts_with(&format!("{}_", profile_name))
+                if filename.starts_with(&search_prefix)
                     && filename.contains(".backup")
                     && (path.extension() == Some(std::ffi::OsStr::new("backup"))
                         || path.extension() == Some(std::ffi::OsStr::new("ps1")))
                 {
-                    let metadata = fs::metadata(&path)?;
+                    let metadata = entry.metadata()?;
                     let size_bytes = metadata.len();
 
                     // Extract timestamp from name
@@ -200,19 +201,15 @@ impl BackupManager {
 
                     // Read description from meta file
                     let meta_path = path.with_extension("meta");
-                    let description = if meta_path.exists() {
-                        fs::read_to_string(&meta_path)
-                            .ok()
-                            .and_then(|content| {
-                                content
-                                    .lines()
-                                    .find(|l| l.starts_with("description="))
-                                    .map(|l| l.trim_start_matches("description=").to_string())
-                            })
-                            .unwrap_or_else(|| "No description".to_string())
-                    } else {
-                        "No description".to_string()
-                    };
+                    let description = fs::read_to_string(&meta_path)
+                        .ok()
+                        .and_then(|content| {
+                            content
+                                .lines()
+                                .find(|l| l.starts_with("description="))
+                                .map(|l| l.trim_start_matches("description=").to_string())
+                        })
+                        .unwrap_or_else(|| "No description".to_string());
 
                     backups.push(BackupInfo {
                         path,
