@@ -569,6 +569,78 @@ impl App {
         });
     }
 
+    async fn resolve_theme_path(
+        theme: &ThemeAsset,
+        themes_dir: &std::path::Path,
+    ) -> Result<PathBuf, String> {
+        let final_theme_path = if !theme.is_local {
+            if let Some(url) = &theme.download_url {
+                match crate::api::download_to_temp(&theme.name, url).await {
+                    Ok(p) => p,
+                    Err(e) => return Err(format!("Error downloading preview: {}", e)),
+                }
+            } else {
+                return Err("No download URL provided for remote theme".to_string());
+            }
+        } else {
+            themes_dir.join(format!("{}.omp.json", theme.name))
+        };
+
+        match final_theme_path.canonicalize() {
+            Ok(p) => Ok(p),
+            Err(_) => {
+                if !final_theme_path.exists() {
+                    return Err("Error: Theme file not found locally".to_string());
+                }
+                Ok(final_theme_path)
+            }
+        }
+    }
+
+    async fn generate_theme_preview(final_theme_path: &std::path::Path, cmd: &str) -> Result<String, String> {
+        let mut cmd_obj = tokio::process::Command::new(cmd);
+
+        // Get current working directory for a more realistic preview
+        let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+
+        // IMPORTANT: Clear environment variables that might force OMP to use the current theme
+        cmd_obj
+            .env_remove("POSH_THEME")
+            .env_remove("OMP_CONFIG")
+            .env_remove("POSH_THEME_DIR")
+            .kill_on_drop(true)
+            .args([
+                "print",
+                "primary",
+                "--config",
+                &final_theme_path.to_string_lossy(),
+                "--shell",
+                "plain", // Using 'plain' avoids shell-specific fallback logic
+                "--force",
+                "--status",
+                "0",
+                "--pwd",
+                &current_dir.to_string_lossy(),
+                "--no-status",
+            ]);
+
+        // Set a strict timeout for the preview generation
+        let output = tokio::time::timeout(std::time::Duration::from_millis(1500), cmd_obj.output()).await;
+
+        match output {
+            Ok(Ok(out)) => {
+                let raw = String::from_utf8_lossy(&out.stdout).to_string();
+                if raw.trim().is_empty() {
+                    Err(" Error: Empty preview generated ".to_string())
+                } else {
+                    Ok(format!(" {}", raw.trim_end()))
+                }
+            }
+            Ok(Err(e)) => Err(format!(" Command error: {}", e)),
+            Err(_) => Err(" Timeout: Theme too complex for quick preview ".to_string()),
+        }
+    }
+
     /// Asynchronously generates a real prompt preview for a theme using isolation
     pub fn load_theme_preview(&mut self, theme: ThemeAsset, tx: mpsc::Sender<AppMessage>) {
         // 1. Cancel previous task if active to avoid race conditions
@@ -582,132 +654,31 @@ impl App {
 
         let theme_cloned = theme.clone();
         let themes_dir = self.themes_dir.clone();
-        let cmd = OMP_BINARY;
+        let cmd = OMP_BINARY.to_string(); // Need to clone as it's passed into async block
 
         let handle = tokio::spawn(async move {
-            let final_theme_path = if !theme_cloned.is_local {
-                if let Some(url) = &theme_cloned.download_url {
-                    match crate::api::download_to_temp(&theme_cloned.name, url).await {
-                        Ok(p) => p,
-                        Err(e) => {
-                            if tx
-                                .send(AppMessage::ThemePreviewLoaded {
-                                    theme: theme_cloned,
-                                    preview: format!(" Error downloading preview: {}", e),
-                                    request_id: current_id,
-                                })
-                                .await
-                                .is_err()
-                            {
-                                return;
-                            }
-                            return;
-                        }
-                    }
-                } else {
+            let final_theme_path = match Self::resolve_theme_path(&theme_cloned, &themes_dir).await {
+                Ok(p) => p,
+                Err(e) => {
+                    let _ = tx.send(AppMessage::ThemePreviewLoaded {
+                        theme: theme_cloned,
+                        preview: format!(" {}", e),
+                        request_id: current_id,
+                    }).await;
                     return;
                 }
-            } else {
-                // Ensure we use the clean name and append the proper extension
-                themes_dir.join(format!("{}.omp.json", theme_cloned.name))
             };
 
-            // Verify file exists and get absolute path
-            let final_theme_path = match final_theme_path.canonicalize() {
+            let preview = match Self::generate_theme_preview(&final_theme_path, &cmd).await {
                 Ok(p) => p,
-                Err(_) => {
-                    if !final_theme_path.exists() {
-                        if tx
-                            .send(AppMessage::ThemePreviewLoaded {
-                                theme: theme_cloned,
-                                preview: " Error: Theme file not found locally ".to_string(),
-                                request_id: current_id,
-                            })
-                            .await
-                            .is_err()
-                        {
-                            return;
-                        }
-                        return;
-                    }
-                    final_theme_path
-                }
+                Err(e) => e,
             };
 
-            let mut cmd_obj = tokio::process::Command::new(cmd);
-
-            // Get current working directory for a more realistic preview
-            let current_dir =
-                std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-
-            // IMPORTANT: Clear environment variables that might force OMP to use the current theme
-            cmd_obj
-                .env_remove("POSH_THEME")
-                .env_remove("OMP_CONFIG")
-                .env_remove("POSH_THEME_DIR")
-                .kill_on_drop(true)
-                .args([
-                    "print",
-                    "primary",
-                    "--config",
-                    &final_theme_path.to_string_lossy(),
-                    "--shell",
-                    "plain", // Using 'plain' avoids shell-specific fallback logic
-                    "--force",
-                    "--status",
-                    "0",
-                    "--pwd",
-                    &current_dir.to_string_lossy(),
-                    "--no-status",
-                ]);
-
-            // Set a strict timeout for the preview generation
-            let output =
-                tokio::time::timeout(std::time::Duration::from_millis(1500), cmd_obj.output())
-                    .await;
-
-            match output {
-                Ok(Ok(out)) => {
-                    let raw = String::from_utf8_lossy(&out.stdout).to_string();
-                    let preview = if raw.trim().is_empty() {
-                        " Error: Empty preview generated ".to_string()
-                    } else {
-                        format!(" {}", raw.trim_end())
-                    };
-
-                    if tx
-                        .send(AppMessage::ThemePreviewLoaded {
-                            theme: theme_cloned,
-                            preview,
-                            request_id: current_id,
-                        })
-                        .await
-                        .is_err()
-                    {}
-                }
-                Ok(Err(e)) => {
-                    if tx
-                        .send(AppMessage::ThemePreviewLoaded {
-                            theme: theme_cloned,
-                            preview: format!(" Command error: {}", e),
-                            request_id: current_id,
-                        })
-                        .await
-                        .is_err()
-                    {}
-                }
-                Err(_) => {
-                    if tx
-                        .send(AppMessage::ThemePreviewLoaded {
-                            theme: theme_cloned,
-                            preview: " Timeout: Theme too complex for quick preview ".to_string(),
-                            request_id: current_id,
-                        })
-                        .await
-                        .is_err()
-                    {}
-                }
-            }
+            let _ = tx.send(AppMessage::ThemePreviewLoaded {
+                theme: theme_cloned,
+                preview,
+                request_id: current_id,
+            }).await;
         });
 
         self.active_preview_task = Some(handle);
