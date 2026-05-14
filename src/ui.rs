@@ -1432,3 +1432,6 @@ fn centered_rect(pct_x: u16, pct_y: u16, area: Rect) -> Rect {
         ])
         .split(vert[1])[1]
 }
+
+#[cfg(test)]
+mod tests;
