@@ -1631,7 +1631,6 @@ except Exception:
 
         // Refresh count after backup
         self.refresh_backup_count();
-
         if errors.is_empty() {
             Ok(())
         } else {
@@ -1643,8 +1642,17 @@ except Exception:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
+    use std::fs;
     use std::io::Write;
-    use tempfile::NamedTempFile;
+    use std::path::PathBuf;
+    use tempfile::{tempdir, NamedTempFile};
+
+    fn create_dummy_app(profiles: Vec<PathBuf>) -> App {
+        let mut app = App::new();
+        app.detected_profiles = profiles;
+        app
+    }
 
     #[test]
     fn test_refresh_active_segments_no_config() {
@@ -1677,12 +1685,12 @@ mod tests {
         let mut file = NamedTempFile::new().unwrap();
         write!(
             file,
-            r#"{{
+            r#"{
             "segments": [
-                {{ "type": "os" }},
-                {{ "type": "battery" }}
+                { "type": "os" },
+                { "type": "battery" }
             ]
-        }}"#
+        }"#
         )
         .unwrap();
 
@@ -1701,21 +1709,21 @@ mod tests {
         let mut file = NamedTempFile::new().unwrap();
         write!(
             file,
-            r#"{{
+            r#"{
             "blocks": [
-                {{
+                {
                     "segments": [
-                        {{ "type": "path" }},
-                        {{ "type": "git" }}
+                        { "type": "path" },
+                        { "type": "git" }
                     ]
-                }},
-                {{
+                },
+                {
                     "segments": [
-                        {{ "type": "node" }}
+                        { "type": "node" }
                     ]
-                }}
+                }
             ]
-        }}"#
+        }"#
         )
         .unwrap();
 
@@ -1728,5 +1736,106 @@ mod tests {
         assert!(app.active_segments.contains("path"));
         assert!(app.active_segments.contains("git"));
         assert!(app.active_segments.contains("node"));
+    }
+
+    #[test]
+    fn test_find_active_config_path_no_profiles() {
+        let app = create_dummy_app(vec![]);
+        assert_eq!(app.find_active_config_path(), None);
+    }
+
+    #[test]
+    fn test_valid_unquoted() {
+        let temp_dir = tempdir().unwrap();
+        let dir = temp_dir.path();
+        let profile = dir.join("profile_unquoted.ps1");
+        let target = dir.join("target_unquoted.json");
+
+        fs::write(&target, "{}").unwrap();
+        fs::write(
+            &profile,
+            format!(
+                "oh-my-posh init powershell --config {} | Out-String | Invoke-Expression\n",
+                target.display()
+            ),
+        )
+        .unwrap();
+
+        let app = create_dummy_app(vec![profile.clone()]);
+        assert_eq!(app.find_active_config_path(), Some(target.clone()));
+    }
+
+    #[test]
+    fn test_valid_double_quoted() {
+        let temp_dir = tempdir().unwrap();
+        let dir = temp_dir.path();
+        let profile = dir.join("profile_quoted.ps1");
+        let target = dir.join("target quoted.json");
+
+        fs::write(&target, "{}").unwrap();
+        fs::write(
+            &profile,
+            format!(
+                "oh-my-posh init powershell --config \"{}\" | Out-String | Invoke-Expression\n",
+                target.display()
+            ),
+        )
+        .unwrap();
+
+        let app = create_dummy_app(vec![profile.clone()]);
+        assert_eq!(app.find_active_config_path(), Some(target.clone()));
+    }
+
+    #[test]
+    fn test_valid_single_quoted() {
+        let temp_dir = tempdir().unwrap();
+        let dir = temp_dir.path();
+        let profile = dir.join("profile_single.ps1");
+        let target = dir.join("target single.json");
+
+        fs::write(&target, "{}").unwrap();
+        fs::write(
+            &profile,
+            format!(
+                "oh-my-posh init powershell --config '{}' | Out-String | Invoke-Expression\n",
+                target.display()
+            ),
+        )
+        .unwrap();
+
+        let app = create_dummy_app(vec![profile.clone()]);
+        assert_eq!(app.find_active_config_path(), Some(target.clone()));
+    }
+
+    #[test]
+    fn test_file_not_exist() {
+        let temp_dir = tempdir().unwrap();
+        let dir = temp_dir.path();
+        let profile = dir.join("profile_missing.ps1");
+        let target = dir.join("target_missing.json");
+
+        fs::write(
+            &profile,
+            format!(
+                "oh-my-posh init powershell --config \"{}\" | Out-String | Invoke-Expression\n",
+                target.display()
+            ),
+        )
+        .unwrap();
+
+        let app = create_dummy_app(vec![profile.clone()]);
+        assert_eq!(app.find_active_config_path(), None);
+    }
+
+    #[test]
+    fn test_malformed_config() {
+        let temp_dir = tempdir().unwrap();
+        let dir = temp_dir.path();
+        let profile = dir.join("profile_malformed.ps1");
+
+        fs::write(&profile, "oh-my-posh init powershell --config\n").unwrap();
+
+        let app = create_dummy_app(vec![profile.clone()]);
+        assert_eq!(app.find_active_config_path(), None);
     }
 }
