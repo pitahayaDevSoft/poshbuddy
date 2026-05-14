@@ -241,6 +241,7 @@ mod tests {
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
+            theme_preview_cache: std::collections::HashMap::new(),
         }
     }
 
@@ -623,6 +624,7 @@ mod filtering_tests {
             preview_request_id: 0,
             active_preview_task: None,
             active_segments: HashSet::new(),
+            theme_preview_cache: std::collections::HashMap::new(),
         }
     }
 
