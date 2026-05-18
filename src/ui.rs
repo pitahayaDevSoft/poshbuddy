@@ -702,7 +702,7 @@ fn render_segment_detail(f: &mut Frame, area: Rect, app: &mut App) {
             ]),
             Line::from(vec![
                 Span::styled("  Category: ", Style::default().fg(C_DIM)),
-                Span::raw(seg.category.clone()),
+                Span::raw(seg.category.as_str()),
             ]),
             Line::from(""),
             Line::from(vec![Span::styled(
