@@ -1,6 +1,6 @@
 use super::*;
-use ratatui::backend::TestBackend;
 use ratatui::Terminal;
+use ratatui::backend::TestBackend;
 
 fn setup_test_app(state: AppState) -> App {
     let mut app = App::new();

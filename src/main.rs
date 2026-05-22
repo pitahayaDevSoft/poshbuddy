@@ -12,9 +12,9 @@ use clap::Parser;
 use crossterm::{
     event::{self, Event},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::{Terminal, backend::CrosstermBackend};
 use std::error::Error;
 use std::io;
 use std::time::Duration;
@@ -38,7 +38,9 @@ async fn handle_cli_command(command: Commands) -> Result<(), Box<dyn Error>> {
 
     match command {
         Commands::Set { target } => handle_set_command(target, &mut app, tx, &mut rx).await?,
-        Commands::Install { target } => handle_install_command(target, &mut app, tx, &mut rx).await?,
+        Commands::Install { target } => {
+            handle_install_command(target, &mut app, tx, &mut rx).await?
+        }
         Commands::List { target } => handle_list_command(target, &mut app, tx, &mut rx).await?,
     }
 
@@ -207,9 +209,10 @@ async fn run_tui() -> Result<(), Box<dyn Error>> {
 
         if event::poll(Duration::from_millis(30))?
             && let Event::Key(key) = event::read()?
-                && app.handle_input(key, tx.clone())? {
-                    break;
-                }
+            && app.handle_input(key, tx.clone())?
+        {
+            break;
+        }
     }
 
     // 6. Cleanup terminal state on exit

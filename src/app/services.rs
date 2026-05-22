@@ -1263,12 +1263,16 @@ mod tests {
     #[test]
     fn test_refresh_active_segments_top_level_segments() {
         let mut file = NamedTempFile::new().unwrap();
-        write!(file, r#"{{
+        write!(
+            file,
+            r#"{{
             "segments": [
                 {{ "type": "os" }},
                 {{ "type": "battery" }}
             ]
-        }}"#).unwrap();
+        }}"#
+        )
+        .unwrap();
 
         let mut app = App::new();
         app.active_config_path = Some(file.path().to_path_buf());
@@ -1283,7 +1287,9 @@ mod tests {
     #[test]
     fn test_refresh_active_segments_blocks() {
         let mut file = NamedTempFile::new().unwrap();
-        write!(file, r#"{{
+        write!(
+            file,
+            r#"{{
             "blocks": [
                 {{
                     "segments": [
@@ -1297,7 +1303,9 @@ mod tests {
                     ]
                 }}
             ]
-        }}"#).unwrap();
+        }}"#
+        )
+        .unwrap();
 
         let mut app = App::new();
         app.active_config_path = Some(file.path().to_path_buf());
