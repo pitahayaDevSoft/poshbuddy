@@ -2,57 +2,55 @@
 
 ![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.4.7-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Rust](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml) [![Security Scan](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml)
 
-PoshBuddy is a TUI tool for Oh My Posh configurations. It provides a modernized, responsive terminal user interface (TUI) designed for high-density information display, surgical theme manipulation, and seamless Nerd Font management.
+PoshBuddy manages Oh My Posh configurations. It provides a terminal user interface (TUI) for theme manipulation and Nerd Font management.
 
 <p align="center">
   <img src="assets/demo.webp" alt="PoshBuddy TUI Demo" width="90%">
 </p>
 
-Developed in Rust, PoshBuddy prioritizes safety and performance, ensuring that your PowerShell environment remains stable and your configuration files remain auditable at all times.
+Developed in Rust, PoshBuddy handles PowerShell environment stabilization and configuration file auditing.
 
-## Core Pillars
+## Features
 
-### Unified Theme Management
+### Theme Management
 
-PoshBuddy bridges the gap between your local setup and the extensive Oh My Posh ecosystem. Our ThemeAsset engine unifies local files and remote GitHub repositories, allowing you to discover, preview, and install the entire official theme collection with a single action.
+PoshBuddy manages local and remote Oh My Posh themes. The ThemeAsset engine interfaces with local files and GitHub repositories to discover and install themes.
 
-### Surgical Segment Manipulation
+### Segment Manipulation
 
-Unlike traditional theme managers that overwrite your entire configuration, PoshBuddy performs precise edits. You can toggle specific segments—such as Git status, battery indicators, or execution time—directly into your active theme without disturbing your custom styles or layout.
+The tool performs targeted edits on active themes. It toggles segments such as Git status, battery indicators, and execution time without modifying other theme components.
 
-### Non-Destructive Profile Injection
+### Profile Injection
 
-Environment stability is critical. PoshBuddy manages your PowerShell profile using an injection system based on secure markers. This ensures that any change made by the tool is fully reversible and localized, preventing corruption of your existing scripts.
+PoshBuddy manages PowerShell profiles using a marker-based injection system. This ensures modifications are reversible and localized within the script.
 
-## Why PoshBuddy?
+## Capabilities
 
-Customizing a PowerShell prompt should not be a repetitive or manual task. PoshBuddy eliminates the friction of editing profiles and configuration files, bringing a modern interface to your developer workflow.
-
-- **Unstuck Guarantee**: Integrated network timeouts and OMP binary guard to prevent TUI hangs in any condition.
-- **Zero-Config Profile Sync**: Automatically detects and updates both PowerShell 5.1 and 7 profiles.
-- **Accurate Previews**: Environment isolation and corrected extension handling ensure that theme previews are unaffected by your current shell state.
-- **Diagnostic Intelligence**: Automated checks for Nerd Fonts, shell versions, and terminal compatibility (Windows Terminal recommended).
+- **Stability**: Includes network timeouts and OMP binary verification to prevent interface hangs.
+- **Profile Sync**: Detects and updates PowerShell 5.1 and 7 profiles.
+- **Previews**: Isolated environments provide theme previews independent of the current shell state.
+- **Diagnostics**: Checks for Nerd Fonts, shell versions, and terminal compatibility.
 
 ## Technical Architecture
 
-PoshBuddy is built for performance and reliability using modern systems programming patterns:
+PoshBuddy uses modern systems programming patterns:
 
-- **Rust**: Core language for memory safety and execution speed.
-- **Tokio**: Asynchronous runtime for non-blocking network operations, installers, and file I/O.
-- **Ratatui**: State-of-the-art framework for the TUI rendering loop.
-- **Serde**: High-performance serialization for JSON configuration manipulation.
+- **Rust**: Core logic and memory safety.
+- **Tokio**: Asynchronous runtime for network operations and file I/O.
+- **Ratatui**: TUI rendering loop.
+- **Serde**: Serialization for JSON configuration processing.
 
 ## Installation
 
-The easiest way to install PoshBuddy is via [crates.io](https://crates.io/crates/poshbuddy):
+Install via [crates.io](https://crates.io/crates/poshbuddy):
 
 ```powershell
 cargo install poshbuddy
 ```
 
-### Building from Source
+### Build from Source
 
-If you prefer to build from source, ensure you have the [Rust toolchain](https://rustup.rs/) installed.
+Requires the [Rust toolchain](https://rustup.rs/).
 
 ```powershell
 git clone https://github.com/julesklord/poshbuddy.git
@@ -60,63 +58,57 @@ cd poshbuddy
 cargo install --path .
 ```
 
-_Note: This tool requires the Oh My Posh binary to be present in your system PATH._
+*Note: Requires the Oh My Posh binary in the system PATH.*
 
-## CLI Mode (Headless)
+## CLI Mode
 
-PoshBuddy includes a robust command-line interface for quick actions without launching the full TUI.
+PoshBuddy includes a command-line interface for headless operations.
 
 ### Theme Commands
 
 - **Set Theme**: `poshbuddy set theme <name>`
-  - Automatically searches local themes and the official remote catalogue.
+  - Searches local and official remote catalogues.
 - **List Themes**: `poshbuddy list themes [--local] [--remote]`
-  - Displays a formatted table of all available themes.
+  - Displays available themes in a table.
 
 ### Font Commands
 
 - **Install Font**: `poshbuddy install font <name>`
-  - Installs the specified Nerd Font directly to your system.
+  - Installs Nerd Fonts to the system.
 - **List Fonts**: `poshbuddy list fonts`
-  - Lists all available Nerd Fonts in the official collection.
+  - Lists official Nerd Fonts.
 
-### Usage Examples
+### Examples
 
 ```powershell
-# Set a specific theme by name
 poshbuddy set theme bubbles
-
-# List all local themes only
 poshbuddy list themes --local
-
-# Install FiraCode Nerd Font
 poshbuddy install font FiraCode
 ```
 
-## Controls and Navigation
+## Navigation
 
 | Key         | Action                                                         |
 | :---------- | :------------------------------------------------------------- |
-| **1**       | **Themes Explorer** — Browse local and official remote themes. |
-| **2**       | **Font Manager** — Install and manage Nerd Fonts.              |
-| **3**       | **Segment Manager** — Toggle theme components in real-time.    |
-| **Esc / H** | **Dashboard** — Return to the main welcome screen.             |
+| **1**       | **Themes Explorer** — Browse local and remote themes.          |
+| **2**       | **Font Manager** — Manage Nerd Fonts.                          |
+| **3**       | **Segment Manager** — Toggle theme components.                 |
+| **Esc / H** | **Dashboard** — Return to the main screen.                     |
 | **Enter**   | Apply theme, toggle segment, or start installation.            |
-| **Q**       | Exit the application.                                          |
+| **Q**       | Exit.                                                          |
 
-### Dashboard Quick Actions
+### Dashboard Actions
 
 | Key   | Action                                |
 | :---- | :------------------------------------ |
-| **R** | Apply a **Random Theme** immediately. |
+| **R** | Apply a **Random Theme**.             |
 | **N** | Install **All Nerd Fonts**.           |
 | **I** | Toggle **Terminal Icons**.            |
-| **D** | Run System **Diagnostics**.           |
+| **D** | Run **Diagnostics**.                  |
 | **V** | View and restore **Backups**.         |
-| **B** | Create **Manual Backup** of profiles. |
+| **B** | Create **Manual Backup**.             |
 
-### Graphic Structure
-
+## Architecture Diagram
 
 ```mermaid
 flowchart TD
@@ -172,21 +164,6 @@ node_services -->|"edits"| node_profilefs
 node_services -->|"guards"| node_powershell
 node_githubci -->|"runs"| node_tests
 
-click node_main "https://github.com/julesklord/poshbuddy/blob/main/src/main.rs"
-click node_cli "https://github.com/julesklord/poshbuddy/blob/main/src/cli.rs"
-click node_ui "https://github.com/julesklord/poshbuddy/blob/main/src/ui.rs"
-click node_appmod "https://github.com/julesklord/poshbuddy/blob/main/src/app/mod.rs"
-click node_handlers "https://github.com/julesklord/poshbuddy/blob/main/src/app/handlers.rs"
-click node_services "https://github.com/julesklord/poshbuddy/blob/main/src/app/services.rs"
-click node_models "https://github.com/julesklord/poshbuddy/blob/main/src/app/models.rs"
-click node_api "https://github.com/julesklord/poshbuddy/blob/main/src/api.rs"
-click node_assets "https://github.com/julesklord/poshbuddy/blob/main/src/assets.rs"
-click node_backup "https://github.com/julesklord/poshbuddy/blob/main/src/backup.rs"
-click node_installer "https://github.com/julesklord/poshbuddy/blob/main/src/plugin_installer.rs"
-click node_diagnostic "https://github.com/julesklord/poshbuddy/blob/main/src/diagnostic.rs"
-click node_githubci "https://github.com/julesklord/poshbuddy/blob/main/.github/workflows"
-click node_tests "https://github.com/julesklord/poshbuddy/blob/main/tests/example.spec.ts"
-
 classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
 classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
 classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
@@ -197,20 +174,10 @@ classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
 class node_main,node_cli,node_ui,node_appmod,node_handlers,node_services,node_models,node_api,node_assets,node_backup,node_installer,node_diagnostic toneBlue
 class node_profilefs,node_ompremote,node_fonts,node_powershell toneAmber
 class node_githubci,node_tests toneMint
-
 ```
 
-## Community and Support
+## Resources
 
-Contributions to PoshBuddy are welcome. For technical details, troubleshooting, or feature requests, please refer to the following resources:
-
-- [Wiki](docs/wiki/index.md) - Technical deep dive and architectural overview.
-- [GitHub repository](https://github.com/julesklord/poshbuddy) - Source code and issue tracker.
-- [Changelog](CHANGELOG.md) - Detailed version history.
-
----
-
-Developed for terminal perfectionists.
-**Your prompt. Your rules. Zero friction.**
-
-[GitHub](https://github.com/julesklord/poshbuddy) · [Documentation](./docs) · [Changelog](./CHANGELOG.md)
+- [Wiki](docs/wiki/index.md) - Architecture overview.
+- [GitHub repository](https://github.com/julesklord/poshbuddy) - Source code.
+- [Changelog](CHANGELOG.md) - Version history.
