@@ -19,4 +19,6 @@
 
 ## Notes
 - *2026-05-18:* Jules Dev Standard v1.0 applied. Documentation consolidated in `docs/`. Previous root-level `AGENTS.md` and `DESIGN.md` integrated and scheduled for removal.
+- *2026-06-03:* Completed full redesign of PoshBuddy website (`docs/index.html` and `docs/index.css`) into an interactive riced tiling window manager desktop.
+- *2026-06-03:* Added profile detection and theme injection formatting compatibility for Bash, Zsh, and Fish shells alongside PowerShell.
 - The project uses a message-passing architecture between the UI/CLI and the App Core.

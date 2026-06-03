@@ -2,13 +2,13 @@
 
 ![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.4.7-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Rust](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml) [![Security Scan](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml)
 
-PoshBuddy manages Oh My Posh configurations. It provides a terminal user interface (TUI) for theme manipulation and Nerd Font management.
+PoshBuddy manages Oh My Posh configurations. It provides a terminal user interface (TUI) and a command-line interface (CLI) to configure themes and install Nerd Fonts on Windows, Linux, and macOS. It supports PowerShell, Bash, Zsh, and Fish shells.
 
 <p align="center">
   <img src="assets/demo.webp" alt="PoshBuddy TUI Demo" width="90%">
 </p>
 
-Developed in Rust, PoshBuddy handles PowerShell environment stabilization and configuration file auditing.
+Developed in Rust, PoshBuddy handles shell environment stabilization and configuration file auditing.
 
 ## Features
 
@@ -22,13 +22,13 @@ The tool performs targeted edits on active themes. It toggles segments such as G
 
 ### Profile Injection
 
-PoshBuddy manages PowerShell profiles using a marker-based injection system. This ensures modifications are reversible and localized within the script.
+PoshBuddy configures shell profiles using a marker-based injection system. This keeps modifications reversible and isolated within the scripts.
 
 ## Capabilities
 
-- **Stability**: Includes network timeouts and OMP binary verification to prevent interface hangs.
-- **Profile Sync**: Detects and updates PowerShell 5.1 and 7 profiles.
-- **Previews**: Isolated environments provide theme previews independent of the current shell state.
+- **Stability**: Implements network timeouts and Oh My Posh binary checks to prevent interface freezes.
+- **Multi-Shell Profile Sync**: Detects and updates PowerShell, Bash, Zsh, and Fish profiles.
+- **Previews**: Generates isolated theme previews independent of active shell states.
 - **Diagnostics**: Checks for Nerd Fonts, shell versions, and terminal compatibility.
 
 ## Technical Architecture
@@ -44,7 +44,7 @@ PoshBuddy uses modern systems programming patterns:
 
 Install via [crates.io](https://crates.io/crates/poshbuddy):
 
-```powershell
+```sh
 cargo install poshbuddy
 ```
 
@@ -52,7 +52,7 @@ cargo install poshbuddy
 
 Requires the [Rust toolchain](https://rustup.rs/).
 
-```powershell
+```sh
 git clone https://github.com/julesklord/poshbuddy.git
 cd poshbuddy
 cargo install --path .

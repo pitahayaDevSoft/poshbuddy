@@ -6,133 +6,98 @@
     <title>poshbuddy ~ unixporn/ricing</title>
     <meta name="description" content="poshbuddy: a terminal management engine for OMP. btw i use arch.">
     
-    <!-- Fonts: TRUE MONOSPACE FOR ARCH USERS -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Link to our CSS system -->
+    <link rel="stylesheet" href="./index.css">
     
-    <!-- Asciinema Player -->
+    <!-- Asciinema Player CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/asciinema-player@3.6.3/dist/bundle/asciinema-player.css" />
-
-    <style>
-        :root {
-            --bg: #0a0a12;
-            --fg: #e8e0f0;
-            --primary: #ff2d78; /* Pink */
-            --secondary: #00ffcc; /* Cyan */
-            --tertiary: #ffe04a; /* Yellow */
-            --black: #1a1a2e;
-            --border-dim: #333344;
-            --font-mono: 'JetBrains Mono', monospace;
-        }
-
-        * {
-            margin: 0; padding: 0; box-sizing: border-box; cursor: crosshair;
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--fg);
-            font-family: var(--font-mono);
-            padding: 20px;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        body::before {
-            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: linear-gradient(rgba(255, 45, 120, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 45, 120, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px; z-index: -1;
-        }
-
-        a { color: var(--secondary); text-decoration: none; }
-        a:hover { color: var(--primary); text-decoration: underline; }
-
-        .wm-container {
-            max-width: 1100px; margin: 0 auto;
-            display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px;
-        }
-
-        .window {
-            background: var(--bg); border: 2px solid var(--border-dim); padding: 15px; position: relative;
-            box-shadow: 8px 8px 0px rgba(0,0,0,0.4);
-        }
-
-        .window-header {
-            position: absolute; top: -12px; left: 10px; background: var(--bg); padding: 0 8px;
-            font-weight: 700; font-size: 11px; color: var(--primary); text-transform: lowercase; border: 1px solid var(--border-dim);
-        }
-
-        .window:hover { border-color: var(--primary); }
-
-        .hero { grid-column: span 12; padding: 50px 20px; text-align: center; border-color: var(--primary); }
-        pre.ascii-art { color: var(--primary); font-size: 9px; line-height: 1.1; margin-bottom: 25px; display: inline-block; text-align: left; }
-
-        .info-block { grid-column: span 4; }
-        .info-key { color: var(--primary); font-weight: 700; }
-        .colors { display: flex; gap: 10px; margin-top: 20px; }
-        .color-dot { width: 18px; height: 18px; background: currentColor; border: 1px solid rgba(255,255,255,0.1); }
-
-        .features { grid-column: span 8; }
-        .features li { margin-bottom: 20px; padding-left: 25px; position: relative; list-style: none; }
-        .features li::before { content: "[*]"; position: absolute; left: 0; color: var(--secondary); font-weight: 700; }
-        .features h3 { color: var(--secondary); margin-bottom: 8px; font-size: 15px; }
-
-        /* Documentation / Wiki Section */
-        .manual { grid-column: span 12; padding: 35px; }
-        .man-header { border-bottom: 1px solid var(--border-dim); padding-bottom: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; color: var(--tertiary); font-size: 11px; font-weight: 700; }
-        .man-section { margin-bottom: 40px; }
-        .man-section h4 { color: var(--primary); margin-bottom: 15px; text-transform: uppercase; font-weight: 700; font-size: 13px; letter-spacing: 1px; }
-        .man-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
-        .man-table td, .man-table th { padding: 10px; border: 1px solid var(--border-dim); text-align: left; }
-        .man-table th { background: var(--black); color: var(--secondary); }
-        .key-badge { background: var(--primary); color: var(--bg); padding: 2px 8px; font-weight: 700; }
-
-        /* Asciinema Player Styling */
-        #demo-player { margin: 20px 0 40px 0; border: 1px solid var(--border-dim); }
-
-        .install-block { grid-column: span 12; background: var(--black); border-color: var(--secondary); }
-        .terminal-text { color: #00ff00; }
-
-        .footer { grid-column: span 12; text-align: center; padding: 50px; font-size: 12px; color: var(--border-dim); }
-
-        .top-bar {
-            position: fixed; top: 0; left: 0; width: 100%; height: 26px; background: var(--black); border-bottom: 1px solid var(--border-dim);
-            z-index: 1000; display: flex; align-items: center; padding: 0 15px; font-size: 11px; font-weight: 600;
-        }
-        .bar-item { margin-right: 25px; color: var(--border-dim); }
-        .bar-item span { color: var(--secondary); }
-        .bar-active { color: var(--primary) !important; border-bottom: 2px solid var(--primary); padding-top: 2px; }
-
-        @media (max-width: 850px) {
-            .wm-container { display: flex; flex-direction: column; }
-            .info-block, .features, .manual, .hero, .install-block { grid-column: span 12; }
-            pre.ascii-art { font-size: 6px; }
-            .hero { padding: 30px 10px; }
-        }
-
-        body { padding-top: 60px; }
-
-    </style>
 </head>
-<body>
+<body class="theme-catppuccin">
 
-    <div class="top-bar">
-        <div class="bar-item bar-active">1:www</div>
-        <div class="bar-item">2:term</div>
-        <div class="bar-item">3:code</div>
-        <div class="bar-item">4:chat</div>
-        <div style="flex-grow: 1;"></div>
-        <div class="bar-item">CPU: <span>14%</span></div>
-        <div class="bar-item">RAM: <span>2.7GiB</span></div>
-        <div class="bar-item">OS: <span>Windows</span></div>
-        <div class="bar-item" style="margin-right:0;">2026-04-23 07:15</div>
+    <!-- CRT Screen effect overlay -->
+    <div class="crt-overlay crt-flickering" id="crt-fx"></div>
+
+    <!-- Background grid & light mesh -->
+    <div class="desktop-bg-grid"></div>
+    <div class="desktop-bg-mesh" id="bg-mesh"></div>
+
+    <!-- ==========================================
+       1. POLYBAR / WAYBAR SIMULATOR (STATUS BAR)
+       ========================================== -->
+    <div class="status-bar">
+        <div class="status-bar-section">
+            <!-- Workspaces -->
+            <div class="bar-workspaces">
+                <button class="workspace-btn active" data-ws="1" onclick="switchWorkspace(1)" title="Dashboard (Alt+1)">1:www</button>
+                <button class="workspace-btn" data-ws="2" onclick="switchWorkspace(2)" title="Term & Player (Alt+2)">2:term</button>
+                <button class="workspace-btn" data-ws="3" onclick="switchWorkspace(3)" title="Dev Core (Alt+3)">3:code</button>
+                <button class="workspace-btn" data-ws="4" onclick="switchWorkspace(4)" title="poshbuddy(1) Man (Alt+4)">4:man</button>
+            </div>
+            
+            <!-- Layout Switcher -->
+            <button class="bar-control-btn" id="layout-toggle" onclick="cycleLayout()" title="Cycle tiling layouts">layout: tiled</button>
+        </div>
+
+        <div class="status-bar-section" style="flex-grow:1; justify-content:center;">
+            <!-- Active Focused Window Title -->
+            <div class="bar-window-title" id="bar-active-win">winfetch</div>
+        </div>
+
+        <div class="status-bar-section">
+            <!-- Closed Windows Tray -->
+            <div class="closed-windows-tray" id="closed-tray"></div>
+
+            <!-- CPU Metric -->
+            <div class="bar-widget">cpu: <span id="metric-cpu">12%</span></div>
+            <!-- RAM Metric -->
+            <div class="bar-widget">ram: <span id="metric-ram">2.6GiB</span></div>
+            <!-- OS Badge -->
+            <div class="bar-widget" id="os-widget">os: <span>linux</span></div>
+            
+            <!-- CRT Mode Toggle -->
+            <button class="bar-control-btn" id="crt-toggle" onclick="toggleCRT()" title="Toggle retro CRT display filter">crt: off</button>
+            
+            <!-- Theme dropdown toggle -->
+            <div class="theme-picker-wrapper">
+                <button class="bar-control-btn active" onclick="toggleThemeDropdown()" id="theme-btn">theme: mocha</button>
+                <div class="theme-dropdown" id="theme-drop">
+                    <button class="theme-opt active" onclick="setTheme('catppuccin', 'mocha')">mocha</button>
+                    <button class="theme-opt" onclick="setTheme('tokyonight', 'tokyonight')">tokyonight</button>
+                    <button class="theme-opt" onclick="setTheme('dracula', 'dracula')">dracula</button>
+                    <button class="theme-opt" onclick="setTheme('gruvbox', 'gruvbox')">gruvbox</button>
+                    <button class="theme-opt" onclick="setTheme('nord', 'nord')">nord</button>
+                </div>
+            </div>
+            
+            <!-- Date/Time -->
+            <div class="bar-widget" style="margin-right: 0;" id="clock-widget">2026-06-03 07:28</div>
+        </div>
     </div>
 
-    <div class="wm-container">
-        
-        <div class="window hero">
-            <div class="window-header">poshbuddy.c</div>
-            <pre class="ascii-art">
+    <!-- ==========================================
+       2. DESKTOP WORKSPACE AREA
+       ========================================== -->
+    <div class="desktop-area">
+        <div class="workspace-wrapper">
+
+            <!-- ==========================================
+               WORKSPACE 1: www (DASHBOARD)
+               ========================================== -->
+            <div class="workspace active workspace-tiled" data-workspace="1" id="workspace-1">
+                <div class="window-grid" id="grid-ws1">
+                    
+                    <!-- Hero Block -->
+                    <div class="window win-hero active-focus enter-animation" id="win-hero" onclick="focusWindow('win-hero')" style="animation-delay: 0.05s;">
+                        <div class="window-header">
+                            <div class="window-title">poshbuddy.c</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-hero', 1)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-hero')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-hero', 1)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <div class="neofetch-ascii">
   _____           _     ____            _     _       
  |  __ \         | |   |  _ \          | |   | |      
  | |__) |__  ___ | |__ | |_) |_   _  __| | __| |_   _ 
@@ -140,163 +105,1106 @@
  | |  | (_) \__ \| | | | |_) | |_| | (_| | (_| | |_| |
  |_|   \___/|___/|_| |_|____/ \__,_|\__,_|\__,_|\__, |
                                                  __/ |
-                                                |___/ 
-            </pre>
-            <div class="tagline">surgical management for oh-my-posh config files</div>
-        </div>
+                                                |___/ </div>
+                            <div class="tagline">surgical management for oh-my-posh configurations</div>
+                        </div>
+                    </div>
 
-    <div class="window info-block">
-        <div class="window-header">winfetch</div>
-        <div class="info-line"><span class="info-key">Project</span>: <span class="info-val">poshbuddy v0.4.1</span></div>
-        <div class="info-line"><span class="info-key">Engine</span>: <span class="info-val">Rust (Standard ISO)</span></div>
-        <div class="info-line"><span class="info-key">TUI-Lib</span>: <span class="info-val">Ratatui 0.26+</span></div>
-        <div class="info-line"><span class="info-key">Network</span>: <span class="info-val">Tokio / Reqwest</span></div>
-        <div class="info-line"><span class="info-key">Parser</span>: <span class="info-val">Serde-JSON (Surgical)</span></div>
-        <div class="info-line"><span class="info-key">Host</span>: <span class="info-val">Windows Terminal / Pwsh</span></div>
-        <div class="info-line"><span class="info-key">License</span>: <span class="info-val">MIT (Open Source)</span></div>
+                    <!-- Winfetch Block -->
+                    <div class="window win-neofetch enter-animation" id="win-neofetch" onclick="focusWindow('win-neofetch')" style="animation-delay: 0.15s;">
+                        <div class="window-header">
+                            <div class="window-title">winfetch</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-neofetch', 1)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-neofetch')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-neofetch', 1)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <div class="neofetch-container">
+                                <div class="neofetch-line"><span class="neofetch-key">Project</span>: <span class="neofetch-val">poshbuddy v0.4.7</span></div>
+                                <div class="neofetch-line"><span class="neofetch-key">Engine</span>: <span class="neofetch-val">Rust (Standard ISO - 2024 Edition)</span></div>
+                                <div class="neofetch-line"><span class="neofetch-key">TUI-Lib</span>: <span class="neofetch-val">Ratatui v0.30</span></div>
+                                <div class="neofetch-line"><span class="neofetch-key">Network</span>: <span class="neofetch-val">Tokio / Reqwest</span></div>
+                                <div class="neofetch-line"><span class="neofetch-key">Parser</span>: <span class="neofetch-val">Serde-JSON (Surgical Editing)</span></div>
+                                <div class="neofetch-line"><span class="neofetch-key">Host</span>: <span class="neofetch-val">Windows Terminal / PowerShell</span></div>
+                                <div class="neofetch-line"><span class="neofetch-key">License</span>: <span class="neofetch-val">MIT</span></div>
+                                <div class="neofetch-line"><span class="neofetch-key">System</span>: <span class="neofetch-val">btw i use arch / linux</span></div>
+                                
+                                <div class="neofetch-colors">
+                                    <div class="neofetch-color-block" style="background-color: var(--red);"></div>
+                                    <div class="neofetch-color-block" style="background-color: var(--green);"></div>
+                                    <div class="neofetch-color-block" style="background-color: var(--yellow);"></div>
+                                    <div class="neofetch-color-block" style="background-color: var(--secondary);"></div>
+                                    <div class="neofetch-color-block" style="background-color: var(--primary);"></div>
+                                    <div class="neofetch-color-block" style="background-color: var(--text-muted);"></div>
+                                </div>
+                                <div style="margin-top: 15px; font-size: 11px; color: var(--text-muted); font-style: italic; text-align: center;">
+                                    "btw i use windows terminal"
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Features Block -->
+                    <div class="window win-features enter-animation" id="win-features" onclick="focusWindow('win-features')" style="animation-delay: 0.25s;">
+                        <div class="window-header">
+                            <div class="window-title">architecture.txt</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-features', 1)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-features')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-features', 1)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <ul class="features-list">
+                                <li class="feature-item">
+                                    <div class="feature-title">surgical json manipulation</div>
+                                    <div class="feature-desc">Powered by Serde, PoshBuddy performs precise edits to your Oh My Posh configuration files. Toggle specific segments without corrupting custom structures or color sets.</div>
+                                </li>
+                                <li class="feature-item">
+                                    <div class="feature-title">async theme discovery</div>
+                                    <div class="feature-desc">Built with Tokio for fast, non-blocking network requests. Access, download, and configure over 240+ themes with complete security.</div>
+                                </li>
+                                <li class="feature-item">
+                                    <div class="feature-title">safe profile injection</div>
+                                    <div class="feature-desc">Uses a non-destructive, marker-based injection algorithm wrapped in comment blocks to alter your PowerShell profiles. Reversible, secure, and auditable.</div>
+                                </li>
+                                <li class="feature-item">
+                                    <div class="feature-title">responsive tui engine</div>
+                                    <div class="feature-desc">A professional TUI layout built on Ratatui that adapts seamlessly to desktop sizes and small panels. Keeps terminal operations responsive.</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Installation Block -->
+                    <div class="window win-install enter-animation" id="win-install" onclick="focusWindow('win-install')" style="animation-delay: 0.35s;">
+                        <div class="window-header">
+                            <div class="window-title">install.sh</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-install', 1)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-install')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-install', 1)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <div class="install-block-content">
+                                <div class="install-command" id="cmd-string">cargo install --path .</div>
+                                <button class="install-copy-btn" id="copy-btn" onclick="copyInstallCmd()">[copy]</button>
+                            </div>
+                            <div style="font-size: 11px; margin-top: 8px; color: var(--text-muted); font-family: var(--font-mono);">
+                                Or download binaries directly from GitHub releases for Windows, macOS, or Linux.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Links Block -->
+                    <div class="window win-links enter-animation" id="win-links" onclick="focusWindow('win-links')" style="animation-delay: 0.45s;">
+                        <div class="window-header">
+                            <div class="window-title">links.txt</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-links', 1)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-links')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-links', 1)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <div class="links-grid">
+                                <a href="https://github.com/julesklord/poshbuddy" target="_blank" class="link-card">
+                                    <strong>[github]</strong>
+                                    <span>source & codebase</span>
+                                </a>
+                                <a href="https://github.com/julesklord/poshbuddy/wiki" target="_blank" class="link-card">
+                                    <strong>[wiki]</strong>
+                                    <span>full documentation</span>
+                                </a>
+                                <a href="https://aur.archlinux.org/packages/poshbuddy-bin" target="_blank" class="link-card">
+                                    <strong>[aur]</strong>
+                                    <span>btw i use arch</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ==========================================
+               WORKSPACE 2: term (PLAYGROUND & DEMO)
+               ========================================== -->
+            <div class="workspace workspace-tiled" data-workspace="2" id="workspace-2">
+                <div class="window-grid" id="grid-ws2">
+                    
+                    <!-- Terminal Asciinema window -->
+                    <div class="window win-asciinema" id="win-asciinema" onclick="focusWindow('win-asciinema')">
+                        <div class="window-header">
+                            <div class="window-title">demo.cast</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-asciinema', 2)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-asciinema')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-asciinema', 2)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <!-- Player Container -->
+                            <div id="demo-player"></div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Shell Mock window -->
+                    <div class="window win-mockterm" id="win-mockterm" onclick="focusWindow('win-mockterm')">
+                        <div class="window-header">
+                            <div class="window-title">interactive_shell</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-mockterm', 2)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-mockterm')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-mockterm', 2)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <div class="terminal-scrollback" id="term-history">
+                                <div class="terminal-line term-output">PoshBuddy Interactive Terminal Simulator [v0.4.7]</div>
+                                <div class="terminal-line term-output">Type 'help' to see list of valid commands. Try the clickable preset commands below!</div>
+                            </div>
+                            
+                            <div class="terminal-input-line">
+                                <span class="terminal-input-prompt">poshbuddy ~&gt;</span>
+                                <input type="text" class="terminal-input-field" id="term-input" autocomplete="off" placeholder="Type a command..." autofocus>
+                            </div>
+
+                            <div class="term-presets-bar">
+                                <button class="term-preset-chip" onclick="runPresetCmd('help')">help</button>
+                                <button class="term-preset-chip" onclick="runPresetCmd('poshbuddy list themes')">list themes</button>
+                                <button class="term-preset-chip" onclick="runPresetCmd('poshbuddy set theme bubbles')">set theme bubbles</button>
+                                <button class="term-preset-chip" onclick="runPresetCmd('poshbuddy list fonts')">list fonts</button>
+                                <button class="term-preset-chip" onclick="runPresetCmd('neofetch')">neofetch</button>
+                                <button class="term-preset-chip" onclick="runPresetCmd('clear')">clear</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ==========================================
+               WORKSPACE 3: code (ARCHITECTURE & RUST)
+               ========================================== -->
+            <div class="workspace workspace-tiled" data-workspace="3" id="workspace-3">
+                <div class="window-grid" id="grid-ws3">
+                    
+                    <!-- Architecture diagram window -->
+                    <div class="window win-architecture" id="win-architecture" onclick="focusWindow('win-architecture')">
+                        <div class="window-header">
+                            <div class="window-title">architecture.mermaid</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-architecture', 3)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-architecture')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-architecture', 3)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <div class="architecture-container">
+                                <div style="font-size: 13px; color: var(--text-muted); font-family: var(--font-display); border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+                                    ASYNCHRONOUS EVENT-DRIVEN CHANNEL PIPELINE
+                                </div>
+                                
+                                <div class="arch-node-group">
+                                    <div class="arch-node" onclick="showArchInfo('crossterm')" title="Click for details">
+                                        <div class="arch-node-title">crossterm</div>
+                                        <div class="arch-node-subtitle">keyboard / resize</div>
+                                    </div>
+                                    <div class="arch-arrow">
+                                        <div class="arch-arrow-label">crossterm::Event</div>
+                                    </div>
+                                    <div class="arch-node" onclick="showArchInfo('tuiloop')" title="Click for details">
+                                        <div class="arch-node-title">tui loop (ratatui)</div>
+                                        <div class="arch-node-subtitle">ui thread</div>
+                                    </div>
+                                </div>
+
+                                <div class="arch-node-group" style="margin-top: 15px;">
+                                    <div class="arch-node" onclick="showArchInfo('appstate')" title="Click for details" style="margin-left: auto; margin-right: auto;">
+                                        <div class="arch-node-title">app state engine</div>
+                                        <div class="arch-node-subtitle">app/handlers.rs</div>
+                                    </div>
+                                </div>
+
+                                <div class="arch-node-group" style="margin-top: 15px;">
+                                    <div class="arch-node" onclick="showArchInfo('tokioserv')" title="Click for details">
+                                        <div class="arch-node-title">tokio service task</div>
+                                        <div class="arch-node-subtitle">reqwest theme sync</div>
+                                    </div>
+                                    <div class="arch-arrow" style="transform: scaleX(-1);">
+                                        <div class="arch-arrow-label" style="transform: scaleX(-1); direction: rtl;">AppMessage</div>
+                                    </div>
+                                    <div class="arch-node" onclick="showArchInfo('tokiofont')" title="Click for details">
+                                        <div class="arch-node-title">tokio font installer</div>
+                                        <div class="arch-node-subtitle">plugin_installer.rs</div>
+                                    </div>
+                                </div>
+
+                                <div class="arch-loop-arrow"></div>
+                                
+                                <div id="arch-detail-panel" style="margin-top: 25px; padding: 12px; background: rgba(0,0,0,0.3); border: 1px dotted var(--border); border-radius: 4px; font-size: 12px;">
+                                    <span style="color: var(--primary); font-weight: bold;">Click any structural component node</span> above to investigate its architecture, task execution model, and communications channels.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Code Viewer window -->
+                    <div class="window win-codeviewer" id="win-codeviewer" onclick="focusWindow('win-codeviewer')">
+                        <div class="window-header">
+                            <div class="window-title">src/viewer</div>
+                            <div class="window-controls">
+                                <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-codeviewer', 3)" title="Minimize"></button>
+                                <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-codeviewer')" title="Maximize"></button>
+                                <button class="window-control-btn ctrl-close" onclick="closeWindow('win-codeviewer', 3)" title="Close"></button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <div class="code-viewer-container">
+                                <div class="code-tabs">
+                                    <button class="code-tab-btn active" onclick="switchCodeTab('main-rs')">main.rs</button>
+                                    <button class="code-tab-btn" onclick="switchCodeTab('app-mod-rs')">app/mod.rs</button>
+                                    <button class="code-tab-btn" onclick="switchCodeTab('services-rs')">app/services.rs</button>
+                                    <button class="code-tab-btn" onclick="switchCodeTab('backup-rs')">backup.rs</button>
+                                </div>
+
+                                <!-- main.rs panel -->
+                                <div class="code-panel active" id="code-main-rs">
+                                    <pre><code><span class="code-comment">#[tokio::main]</span>
+<span class="code-keyword">async fn</span> <span class="code-type">main</span>() -> Result&lt;(), Box&lt;<span class="code-keyword">dyn</span> std::error::Error&gt;&gt; {
+    <span class="code-keyword">let</span> args = Cli::parse();
+    
+    <span class="code-keyword">if let</span> Some(command) = args.command {
+        <span class="code-comment">// Run in Headless CLI Mode</span>
+        cli::handle_command(command).<span class="code-keyword">await</span>?;
+    } <span class="code-keyword">else</span> {
+        <span class="code-comment">// Initialize terminal raw mode and start Ratatui loop</span>
+        crossterm::terminal::enable_raw_mode()?;
+        <span class="code-keyword">let</span> stdout = std::io::stdout();
+        <span class="code-keyword">let</span> backend = RatatuiBackend::new(stdout);
+        <span class="code-keyword">let</span> <span class="code-keyword">mut</span> terminal = Terminal::new(backend)?;
         
-        <div class="colors">
-            <div class="color-dot" style="color: #ff2d78;"></div>
-            <div class="color-dot" style="color: #00ffcc;"></div>
-            <div class="color-dot" style="color: #ffe04a;"></div>
-            <div class="color-dot" style="color: #fff;"></div>
+        ui::run_tui_loop(&amp;<span class="code-keyword">mut</span> terminal).<span class="code-keyword">await</span>?;
+        crossterm::terminal::disable_raw_mode()?;
+    }
+    Ok(())
+}</code></pre>
+                                </div>
+
+                                <!-- app/mod.rs panel -->
+                                <div class="code-panel" id="code-app-mod-rs">
+                                    <pre><code><span class="code-comment">// Event loop processing service messages in background</span>
+<span class="code-keyword">pub async fn</span> <span class="code-type">start_event_loop</span>(
+    <span class="code-keyword">mut</span> rx: mpsc::Receiver&lt;AppMessage&gt;,
+    state: Arc&lt;Mutex&lt;AppState&gt;&gt;
+) {
+    <span class="code-keyword">while let</span> Some(msg) = rx.recv().<span class="code-keyword">await</span> {
+        <span class="code-keyword">match</span> msg {
+            AppMessage::ThemeApplied(name) => {
+                <span class="code-keyword">let</span> <span class="code-keyword">mut</span> s = state.lock().<span class="code-keyword">await</span>;
+                s.active_theme = name;
+                s.status = <span class="code-string">"Theme applied successfully"</span>.into();
+            }
+            AppMessage::NetworkTimeout => {
+                <span class="code-keyword">let</span> <span class="code-keyword">mut</span> s = state.lock().<span class="code-keyword">await</span>;
+                s.status = <span class="code-string">"Network request timed out (10s limit)"</span>.into();
+            }
+            <span class="code-comment">// Add diagnostics, fonts, and backup states here...</span>
+        }
+    }
+}</code></pre>
+                                </div>
+
+                                <!-- app/services.rs panel -->
+                                <div class="code-panel" id="code-services-rs">
+                                    <pre><code><span class="code-keyword">pub async fn</span> <span class="code-type">set_theme</span>(
+    theme_name: &amp;<span class="code-type">str</span>,
+    profile_path: &amp;Path
+) -> Result&lt;(), ServiceError&gt; {
+    <span class="code-comment">// Ensure backup is performed first before modifying profile!</span>
+    backup::create_snapshot(profile_path).<span class="code-keyword">await</span>?;
+    
+    <span class="code-keyword">let</span> theme_json = fetch_theme_catalog(theme_name).<span class="code-keyword">await</span>?;
+    <span class="code-keyword">let</span> marker_content = format!(
+        <span class="code-string">"# PoshBuddy Start\n$env:POSH_THEME = \"{}\"\n# PoshBuddy End"</span>,
+        theme_name
+    );
+    
+    inject_profile_markers(profile_path, &amp;marker_content).<span class="code-keyword">await</span>?;
+    Ok(())
+}</code></pre>
+                                </div>
+
+                                <!-- backup.rs panel -->
+                                <div class="code-panel" id="code-backup-rs">
+                                    <pre><code><span class="code-keyword">pub async fn</span> <span class="code-type">create_snapshot</span>(profile: &amp;Path) -> io::Result&lt;PathBuf&gt; {
+    <span class="code-keyword">if</span> !profile.exists() {
+        <span class="code-keyword">return</span> Ok(PathBuf::new());
+    }
+    <span class="code-keyword">let</span> timestamp = chrono::Local::now().format(<span class="code-string">"%Y%m%d%H%M%S"</span>);
+    <span class="code-keyword">let</span> backup_path = profile.with_extension(format!(<span class="code-string">"backup.{}"</span>, timestamp));
+    
+    tokio::fs::copy(profile, &amp;backup_path).<span class="code-keyword">await</span>?;
+    Ok(backup_path)
+}</code></pre>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ==========================================
+               WORKSPACE 4: man (MANUAL & REFERENCE)
+               ========================================== -->
+            <div class="workspace workspace-tiled" data-workspace="4" id="workspace-4">
+                <!-- Manual window wrapper -->
+                <div class="window win-manual active-focus" id="win-manual" onclick="focusWindow('win-manual')">
+                    <div class="window-header">
+                        <div class="window-title">poshbuddy(1)</div>
+                        <div class="window-controls">
+                            <button class="window-control-btn ctrl-min" onclick="minimizeWindow('win-manual', 4)" title="Minimize"></button>
+                            <button class="window-control-btn ctrl-max" onclick="maximizeWindow('win-manual')" title="Maximize"></button>
+                            <button class="window-control-btn ctrl-close" onclick="closeWindow('win-manual', 4)" title="Close"></button>
+                        </div>
+                    </div>
+                    <div class="window-body">
+                        <div class="man-container">
+                            
+                            <!-- Search filter bar -->
+                            <div class="man-search-bar">
+                                <input type="text" class="man-search-input" id="man-search" oninput="filterManual()" placeholder="Filter manual sections (e.g. Synopsis, Keybindings, CLI)..." autocomplete="off">
+                            </div>
+
+                            <div class="man-page">
+                                <div class="man-header-block">
+                                    <span>PoshBuddy Reference Manual</span>
+                                    <span>Section 1: Operations & UI</span>
+                                </div>
+
+                                <!-- Synopsis Section -->
+                                <div class="man-section" id="man-sec-synopsis">
+                                    <h3>Synopsis</h3>
+                                    <p><b>poshbuddy</b> [OPTION]...<br>
+                                    A high-performance system utility written in Rust to automate theme management, segment customization, and diagnostics for Oh My Posh environments.</p>
+                                </div>
+
+                                <!-- Description Section -->
+                                <div class="man-section" id="man-sec-description">
+                                    <h3>Description</h3>
+                                    <p><b>poshbuddy</b> acts as an abstraction controller for Oh My Posh. It automatically locates your shell profiles, verifies fonts, connects to the theme asset registries, and updates profile settings with zero manual scripting.</p>
+                                    <p>By default, executing <code>poshbuddy</code> with no arguments initializes the interactive <b>Terminal User Interface (TUI)</b>. Specifying commands runs PoshBuddy in <b>Headless CLI Mode</b> for quick scripting or configurations.</p>
+                                </div>
+
+                                <!-- Keybindings Section -->
+                                <div class="man-section" id="man-sec-keybindings">
+                                    <h3>Global TUI Keybindings</h3>
+                                    <p>When running inside the interactive Ratatui interface, the following keys control view routing and process actions:</p>
+                                    <div class="man-table-wrapper">
+                                        <table class="man-table">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 15%;">Key</th>
+                                                    <th>Description of Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><span class="man-key-badge">1</span></td>
+                                                    <td><b>Themes Explorer</b> — Browse, search, and live-preview 240+ themes.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="man-key-badge">2</span></td>
+                                                    <td><b>Font Manager</b> — List and install compatible Nerd Fonts.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="man-key-badge">3</span></td>
+                                                    <td><b>Segment Manager</b> — Toggle prompts segments (e.g. Git, CPU, Battery, Time) surgically.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="man-key-badge">B</span></td>
+                                                    <td><b>Backup Snapshots</b> — List and rollback PowerShell profile configurations.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="man-key-badge">D</span></td>
+                                                    <td><b>System Diagnostics</b> — Verify theme catalog versions, CLI versions, and font integrity.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="man-key-badge">H / Esc</span></td>
+                                                    <td>Return to main Dashboard.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="man-key-badge">Q</span></td>
+                                                    <td>Gracefully exit PoshBuddy.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- CLI reference Section -->
+                                <div class="man-section" id="man-sec-cli">
+                                    <h3>CLI Commands (Headless Mode)</h3>
+                                    <p>Automate prompt deployments using the standard command line arguments:</p>
+                                    <div class="man-table-wrapper">
+                                        <table class="man-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Command Structure</th>
+                                                    <th>Purpose & Output</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><code class="man-cmd-code">poshbuddy set theme &lt;theme&gt;</code></td>
+                                                    <td>Inject a specified theme into the profile, performing backups and writing marker blocks.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code class="man-cmd-code">poshbuddy install font &lt;font&gt;</code></td>
+                                                    <td>Fetch and install a Nerd Font archive from official repositories.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code class="man-cmd-code">poshbuddy list themes [--local | --remote]</code></td>
+                                                    <td>Format a dense list table of available local/remote OMP templates.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code class="man-cmd-code">poshbuddy list fonts</code></td>
+                                                    <td>Display a list of Nerd Fonts compatible with terminal renderings.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Procedures Section -->
+                                <div class="man-section" id="man-sec-procedures">
+                                    <h3>Operational Procedures</h3>
+                                    <p><b>1. Environmental Configuration:</b> It is highly recommended to run the Diagnostic view <code>[D]</code> on clean environments. If Nerd Fonts or Oh My Posh binaries are not detected, the installation interfaces will guide automated downloads.</p>
+                                    <p><b>2. Marker Verification:</b> PoshBuddy writes variables into shell profiles wrapped inside marker comment pairs. If you wish to uninstall or replace PoshBuddy's control, simply remove the blocks starting with <code># PoshBuddy Start</code> and ending with <code># PoshBuddy End</code>. The engine will safely ignore profiles lacking these markers.</p>
+                                    <p><b>3. Safeguard Snapshots:</b> Under the hood, any edit triggers an automatic backup inside `docs/olds/` or the profile directory with a timestamp suffix (e.g. <code>.backup.20260603072810</code>). You can list and restore these via the TUI backup manager screen at any point.</p>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        <br>
-        <p style="font-size: 11px; color: var(--border-dim); font-style: italic;">"btw i use windows terminal"</p>
     </div>
 
-    <div class="window features">
-        <div class="window-header">architecture.txt</div>
-        <ul>
-            <li>
-                <h3>surgical json manipulation</h3>
-                <p>Powered by <b>Serde</b>, PoshBuddy performs precise edits to your OMP JSON files. Toggle segments without breaking custom styles.</p>
-            </li>
-            <li>
-                <h3>async themeasset engine</h3>
-                <p>Built with <b>Tokio</b> for non-blocking theme discovery. Access 240+ themes with environment-isolated previews.</p>
-            </li>
-            <li>
-                <h3>safe profile injection</h3>
-                <p>Uses a marker-based system to manage your $PROFILE. Reversible, auditable, and won't touch your existing logic.</p>
-            </li>
-            <li>
-                <h3>responsive tui engine</h3>
-                <p>Dynamic 50/50 layout that adapts to your terminal size. Optimized for ultra-wide and mobile-style terminal views.</p>
-            </li>
-        </ul>
-    </div>
-
-        <!-- Documentation Window (The Manual) -->
-        <div class="window manual">
-            <div class="window-header">poshbuddy(1)</div>
-            <div class="man-header">
-                <span>PoshBuddy Manual</span>
-                <span>Section 1: UI & Operations</span>
-            </div>
-
-            <div class="man-section">
-                <h4>Synopsis</h4>
-                <p><b>poshbuddy</b> [OPTION]...<br>
-                A high-density terminal user interface designed to streamline theme customization and shell segment manipulation.</p>
-            </div>
-
-            <!-- Asciinema Player Section -->
-            <div class="man-section">
-                <h4>Visual Demonstration</h4>
-                <div id="demo-player"></div>
-            </div>
-
-            <div class="man-section">
-                <h4>Global Keybindings</h4>
-                <table class="man-table">
-                    <thead>
-                        <tr><th>Key</th><th>Action Description</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><span class="key-badge">1</span></td><td><b>Themes Explorer</b> — Browse 240+ official remote themes.</td></tr>
-                        <tr><td><span class="key-badge">2</span></td><td><b>Font Manager</b> — One-click Nerd Fonts installation.</td></tr>
-                        <tr><td><span class="key-badge">3</span></td><td><b>Segment Manager</b> — Toggle theme components in real-time.</td></tr>
-                        <tr><td><span class="key-badge">B</span></td><td><b>Backup Manager</b> — Manage and restore profile snapshots.</td></tr>
-                        <tr><td><span class="key-badge">D</span></td><td><b>Diagnostics</b> — Check for fonts, shell, and compatibility.</td></tr>
-                        <tr><td><span class="key-badge">H / Esc</span></td><td>Return to Dashboard / Home screen.</td></tr>
-                        <tr><td><span class="key-badge">Q</span></td><td>Exit the application safely.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="man-section">
-                <h4>CLI Direct Access (Headless Mode)</h4>
-                <p>For quick operations without launching the TUI, use the following command structure:</p>
-                <table class="man-table">
-                    <thead>
-                        <tr><th>Command</th><th>Purpose</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><code>poshbuddy set theme &lt;name&gt;</code></td><td>Search and apply a theme instantly.</td></tr>
-                        <tr><td><code>poshbuddy install font &lt;name&gt;</code></td><td>Atomic installation of a specific Nerd Font.</td></tr>
-                        <tr><td><code>poshbuddy list themes [--local | --remote]</code></td><td>Formatted table of all available configurations.</td></tr>
-                        <tr><td><code>poshbuddy list fonts</code></td><td>Enumerate all supported Nerd Fonts.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="man-section">
-                <h4>Operational Procedures</h4>
-                <p><b>1. Fresh Environment Setup</b><br>
-                Run <i>System Diagnostic [D]</i> first. If Oh My Posh is missing, PoshBuddy will initiate an atomic installation pipeline. Once verified, move to <i>Font Manager [2]</i> to install a Nerd Font (Windows Terminal recommended).</p>
-                
-                <p style="margin-top: 15px;"><b>2. Surgical Theme Discovery</b><br>
-                Navigate <i>Themes Explorer [1]</i>. Start typing to filter. PoshBuddy uses <i>env_clear</i> to ensure previews are unaffected by your current shell state. Apply with [ENTER].</p>
-
-                <p style="margin-top: 15px;"><b>3. Resilience & Security</b><br>
-                - <b>10s Network Guard</b>: Tokio aborts hung GitHub requests automatically.<br>
-                - <b>Marker Integrity</b>: All profile changes are wrapped in <i># PoshBuddy</i> tags for 100% reversible operations.</p>
-            </div>
-        </div>
-
-        <div class="window install-block">
-            <div class="window-header">install.sh</div>
-            <p class="terminal-text">$ git clone https://github.com/julesklord/poshbuddy.git</p>
-            <p class="terminal-text">$ cd poshbuddy && cargo install --path .</p>
-            <p class="terminal-text">$ poshbuddy set theme bubbles</p>
-        </div>
-
-        <div class="window" style="grid-column: span 12;">
-            <div class="window-header">links.txt</div>
-            <div style="display: flex; gap: 30px; justify-content: center;">
-                <a href="https://github.com/julesklord/poshbuddy">[github]</a>
-                <a href="https://github.com/julesklord/poshbuddy/wiki">[wiki]</a>
-                <a href="https://aur.archlinux.org/packages/poshbuddy-bin">[aur]</a>
-            </div>
-        </div>
-
-        <div class="footer">
-            ┌────────────────────────────────────────────────────────────┐<br>
-            │ managed by jules martins &middot; mit license &middot; 2026      │<br>
-            └────────────────────────────────────────────────────────────┘
-        </div>
-    </div>
-
+    <!-- ==========================================
+       3. INTERACTIVE DESKTOP JAVASCRIPT SYSTEM
+       ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.6.3/dist/bundle/asciinema-player.min.js"></script>
     <script>
-        // Asciinema Player initialization
-        AsciinemaPlayer.create('./demo.cast', document.getElementById('demo-player'), {
-            theme: 'tango',
-            fontSize: 'small',
-            autoPlay: true,
-            speed: 1.0,
-            idleTimeLimit: 2
+        // Init Asciinema Player
+        let player = null;
+        function initAsciinema() {
+            if (player) return;
+            const container = document.getElementById('demo-player');
+            if (container) {
+                player = AsciinemaPlayer.create('./demo.cast', container, {
+                    theme: 'tango',
+                    fontSize: 'small',
+                    autoPlay: true,
+                    speed: 1.0,
+                    idleTimeLimit: 2
+                });
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check OS and update polybar badge
+            detectOS();
+            // Start Clock
+            startClock();
+            // Start Metric Oscillation
+            startMetrics();
+            // Mouse mesh listener
+            window.addEventListener('mousemove', updateBgMesh);
+            
+            // Drag and drop setup for floating window mode
+            setupWindowDrag();
+            
+            // TUI Workspace keybindings setup (Alt+1, Alt+2, etc.)
+            setupKeybindings();
         });
 
-        // Window focus effect
-        document.querySelectorAll('.window').forEach(w => {
-            w.addEventListener('click', () => {
-                document.querySelectorAll('.window').forEach(win => win.style.borderColor = 'var(--border-dim)');
-                w.style.borderColor = 'var(--primary)';
+        // ── WORKSPACE CONTROLLER ──
+        let activeWorkspace = 1;
+        function switchWorkspace(wsNum) {
+            // Update workspace visual states
+            document.querySelectorAll('.workspace-btn').forEach(btn => {
+                btn.classList.remove('active');
             });
+            document.querySelector(`.workspace-btn[data-ws="${wsNum}"]`).classList.add('active');
+
+            document.querySelectorAll('.workspace').forEach(ws => {
+                ws.classList.remove('active');
+            });
+            const nextWs = document.getElementById(`workspace-${wsNum}`);
+            nextWs.classList.add('active');
+            
+            activeWorkspace = wsNum;
+            
+            // If changing to Workspace 2, ensure Asciinema is initialized
+            if (wsNum === 2) {
+                setTimeout(initAsciinema, 100);
+            }
+
+            // Sync focused window name in status bar
+            const focusedWin = nextWs.querySelector('.window.active-focus');
+            if (focusedWin) {
+                updateStatusBarFocused(focusedWin.querySelector('.window-title').textContent);
+            } else {
+                const firstWin = nextWs.querySelector('.window');
+                if (firstWin) {
+                    firstWin.classList.add('active-focus');
+                    updateStatusBarFocused(firstWin.querySelector('.window-title').textContent);
+                }
+            }
+        }
+
+        function updateStatusBarFocused(title) {
+            document.getElementById('bar-active-win').textContent = title.trim();
+        }
+
+        // ── WINDOW MANAGER INTERACTIONS (FOCUS, MIN, MAX, CLOSE) ──
+        let maximizedWindow = null;
+        let originalWindowStyles = {};
+        
+        function focusWindow(winId) {
+            // Remove active focus class from all windows in the current workspace
+            const currentWs = document.getElementById(`workspace-${activeWorkspace}`);
+            currentWs.querySelectorAll('.window').forEach(win => {
+                win.classList.remove('active-focus');
+            });
+            
+            const targetWin = document.getElementById(winId);
+            targetWin.classList.add('active-focus');
+            
+            // Update status bar
+            updateStatusBarFocused(targetWin.querySelector('.window-title').textContent);
+        }
+
+        function closeWindow(winId, wsNum) {
+            const win = document.getElementById(winId);
+            win.style.display = 'none';
+            
+            // Add to closed windows tray in status bar
+            const tray = document.getElementById('closed-tray');
+            
+            // Check if icon already exists in tray to prevent duplicates
+            if (!document.getElementById(`tray-restore-${winId}`)) {
+                const restoreBtn = document.createElement('button');
+                restoreBtn.id = `tray-restore-${winId}`;
+                restoreBtn.className = 'tray-icon';
+                restoreBtn.textContent = `+ ${winId.replace('win-', '')}`;
+                restoreBtn.title = `Click to restore window: ${winId.replace('win-', '')}`;
+                restoreBtn.onclick = () => restoreWindow(winId, wsNum);
+                tray.appendChild(restoreBtn);
+            }
+        }
+
+        function restoreWindow(winId, wsNum) {
+            const win = document.getElementById(winId);
+            win.style.display = 'flex';
+            
+            // Switch workspace to where the window belongs
+            switchWorkspace(wsNum);
+            focusWindow(winId);
+            
+            // Remove from tray
+            const restoreBtn = document.getElementById(`tray-restore-${winId}`);
+            if (restoreBtn) restoreBtn.remove();
+        }
+
+        function minimizeWindow(winId, wsNum) {
+            // Treat minimize similar to close for tiling window manager simulation
+            closeWindow(winId, wsNum);
+        }
+
+        function maximizeWindow(winId) {
+            const win = document.getElementById(winId);
+            const currentWs = document.getElementById(`workspace-${activeWorkspace}`);
+            
+            if (maximizedWindow === winId) {
+                // Restore original state
+                win.style.position = '';
+                win.style.top = '';
+                win.style.left = '';
+                win.style.width = '';
+                win.style.height = '';
+                win.style.zIndex = '';
+                maximizedWindow = null;
+                
+                // If it was monocle or floating, layout toggling takes care of it
+                if (currentLayout === 'monocle') {
+                    // Stay in monocle focus
+                }
+            } else {
+                // Maximize window
+                maximizedWindow = winId;
+                win.style.position = 'absolute';
+                win.style.top = '0';
+                win.style.left = '0';
+                win.style.width = '100%';
+                win.style.height = '100%';
+                win.style.zIndex = '99';
+            }
+        }
+
+        // ── TILING LAYOUT CONTROLLER ──
+        const layouts = ['tiled', 'monocle', 'floating'];
+        let currentLayout = 'tiled';
+
+        function cycleLayout() {
+            const index = layouts.indexOf(currentLayout);
+            const nextIndex = (index + 1) % layouts.length;
+            setLayout(layouts[nextIndex]);
+        }
+
+        function setLayout(layoutName) {
+            currentLayout = layoutName;
+            document.getElementById('layout-toggle').textContent = `layout: ${layoutName}`;
+            
+            // Apply layout styles to all workspaces
+            document.querySelectorAll('.workspace').forEach(ws => {
+                // Reset layout classes
+                ws.classList.remove('workspace-tiled', 'workspace-monocle', 'workspace-floating');
+                ws.classList.add(`workspace-${layoutName}`);
+                
+                // Reset manual style modifications on windows
+                ws.querySelectorAll('.window').forEach(win => {
+                    win.style.position = '';
+                    win.style.top = '';
+                    win.style.left = '';
+                    win.style.width = '';
+                    win.style.height = '';
+                    win.style.zIndex = '';
+                });
+            });
+
+            // Adjust grid classes
+            document.querySelectorAll('.window-grid').forEach(grid => {
+                if (layoutName === 'tiled') {
+                    grid.style.display = 'grid';
+                } else if (layoutName === 'monocle') {
+                    grid.style.display = 'block';
+                } else if (layoutName === 'floating') {
+                    grid.style.display = 'block';
+                }
+            });
+
+            maximizedWindow = null;
+            
+            // Re-focus current window
+            const activeWs = document.getElementById(`workspace-${activeWorkspace}`);
+            const focused = activeWs.querySelector('.window.active-focus');
+            if (focused) {
+                focusWindow(focused.id);
+            }
+        }
+
+        // ── MOUSE MESH BACKDROP ──
+        function updateBgMesh(e) {
+            const mesh = document.getElementById('bg-mesh');
+            if (mesh) {
+                const xPercent = (e.clientX / window.innerWidth) * 100;
+                const yPercent = (e.clientY / window.innerHeight) * 100;
+                mesh.style.setProperty('--mouse-x', `${xPercent}%`);
+                mesh.style.setProperty('--mouse-y', `${yPercent}%`);
+            }
+        }
+
+        // ── SYSTEM MONITOR OSCILLATION ──
+        function startMetrics() {
+            setInterval(() => {
+                const cpuVal = Math.floor(8 + Math.random() * 15);
+                const ramVal = (2.4 + Math.random() * 0.4).toFixed(1);
+                
+                document.getElementById('metric-cpu').textContent = `${cpuVal}%`;
+                document.getElementById('metric-ram').textContent = `${ramVal}GiB`;
+            }, 3000);
+        }
+
+        // ── LIVE CLOCK ──
+        function startClock() {
+            const clockEl = document.getElementById('clock-widget');
+            const formatTime = () => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                clockEl.textContent = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            };
+            formatTime();
+            setInterval(formatTime, 1000);
+        }
+
+        // ── OS DETECTION ──
+        function detectOS() {
+            const osWidget = document.getElementById('os-widget');
+            const userAgent = window.navigator.userAgent.toLowerCase();
+            let detected = 'linux';
+            
+            if (userAgent.indexOf('win') !== -1) {
+                detected = 'windows';
+            } else if (userAgent.indexOf('mac') !== -1) {
+                detected = 'macos';
+            } else if (userAgent.indexOf('x11') !== -1 || userAgent.indexOf('linux') !== -1) {
+                // Check if user has arch in agent or default to arch since it's riced
+                detected = 'archlinux';
+            }
+            
+            osWidget.querySelector('span').textContent = detected;
+        }
+
+        // ── CRT DISPLAY FILTER CONTROLLER ──
+        let crtOn = false;
+        function toggleCRT() {
+            crtOn = !crtOn;
+            const crtToggleBtn = document.getElementById('crt-toggle');
+            const crtOverlay = document.getElementById('crt-fx');
+            
+            if (crtOn) {
+                crtOverlay.style.display = 'block';
+                crtToggleBtn.textContent = 'crt: on';
+                crtToggleBtn.classList.add('active');
+            } else {
+                crtOverlay.style.display = 'none';
+                crtToggleBtn.textContent = 'crt: off';
+                crtToggleBtn.classList.remove('active');
+            }
+        }
+
+        // ── RICE PRESENTS SWITCHER ──
+        function toggleThemeDropdown() {
+            document.getElementById('theme-drop').classList.toggle('open');
+        }
+
+        // Close dropdown on click outside
+        window.addEventListener('click', (e) => {
+            if (!e.target.matches('#theme-btn') && !e.target.closest('.theme-dropdown')) {
+                document.getElementById('theme-drop').classList.remove('open');
+            }
         });
+
+        function setTheme(themeName, displayName) {
+            // Reset body classes
+            document.body.className = `theme-${themeName}`;
+            
+            // Update active state in dropdown
+            document.querySelectorAll('.theme-opt').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Close dropdown and update button text
+            document.getElementById('theme-drop').classList.remove('open');
+            document.getElementById('theme-btn').textContent = `theme: ${displayName}`;
+            
+            // Adjust CRT display if Nord or TokyoNight to fit aesthetics
+            if (themeName === 'dracula' || themeName === 'tokyonight') {
+                if (!crtOn) toggleCRT();
+            }
+        }
+
+        // ── INTERACTIVE MOCK TERMINAL PARSER ──
+        const termInput = document.getElementById('term-input');
+        const termHistory = document.getElementById('term-history');
+        
+        if (termInput) {
+            termInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const cmd = termInput.value.trim();
+                    if (cmd) {
+                        executeMockCommand(cmd);
+                    }
+                    termInput.value = '';
+                }
+            });
+        }
+
+        function runPresetCmd(cmd) {
+            // Switch to workspace 2 if not there
+            switchWorkspace(2);
+            executeMockCommand(cmd);
+        }
+
+        function executeMockCommand(cmd) {
+            // 1. Add echo to history
+            appendTerminalLine(`<span class="term-prompt">poshbuddy ~&gt;</span> <span class="term-cmd-echo">${escapeHTML(cmd)}</span>`);
+            
+            // 2. Parse command
+            const cleanCmd = cmd.toLowerCase().replace(/\s+/g, ' ');
+            
+            setTimeout(() => {
+                if (cleanCmd === 'help') {
+                    appendTerminalLine(`
+                      <div class="term-output">
+                        Available commands:<br>
+                        &nbsp;&nbsp;<b>help</b> - Display command manual<br>
+                        &nbsp;&nbsp;<b>poshbuddy list themes</b> - List remote themes in catalog<br>
+                        &nbsp;&nbsp;<b>poshbuddy set theme &lt;theme&gt;</b> - Download and apply theme (e.g. set theme bubbles)<br>
+                        &nbsp;&nbsp;<b>poshbuddy list fonts</b> - List supported Nerd Fonts<br>
+                        &nbsp;&nbsp;<b>neofetch</b> - Print system ricing specifications<br>
+                        &nbsp;&nbsp;<b>clear</b> - Reset scrollback history<br>
+                      </div>
+                    `);
+                } else if (cleanCmd === 'clear') {
+                    termHistory.innerHTML = '';
+                } else if (cleanCmd === 'neofetch' || cleanCmd === 'winfetch') {
+                    appendTerminalLine(`
+                      <div class="term-output" style="font-family: var(--font-mono); font-size:11px;">
+                        <span style="color:var(--primary)">poshbuddy@ricing-box</span><br>
+                        ---------------------<br>
+                        OS: Arch Linux x86_64 / Windows<br>
+                        Host: Web Sandbox Tiling Engine<br>
+                        Kernel: Rust Async Standard 2024<br>
+                        Uptime: v0.4.7 session runtime<br>
+                        Shell: poshbuddy/tui CLI<br>
+                        Theme: ${document.getElementById('theme-btn').textContent.replace('theme: ', '')}<br>
+                        Terminal: Ratatui crossterm event-loop
+                      </div>
+                    `);
+                } else if (cleanCmd === 'poshbuddy list themes') {
+                    appendTerminalLine(`
+                      <div class="term-output">
+                        Checking remote registry [github.com/JanDeDobbeleer/oh-my-posh/themes]...<br>
+                        Connected. Synchronizing theme manifests...<br>
+                        <br>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                          <tr style="border-bottom: 1px solid var(--border); color: var(--secondary)">
+                            <th>Theme Name</th>
+                            <th>Segment Type</th>
+                            <th>Downloads</th>
+                            <th>Status</th>
+                          </tr>
+                          <tr><td>bubbles</td><td>multi-segment (colorful)</td><td>1.2M</td><td style="color:var(--green)">[installed]</td></tr>
+                          <tr><td>candy</td><td>minimalist prompt</td><td>780K</td><td style="color:var(--yellow)">[remote]</td></tr>
+                          <tr><td>jandedobbeleer</td><td>high-density custom</td><td>2.4M</td><td style="color:var(--yellow)">[remote]</td></tr>
+                          <tr><td>agnoster</td><td>git powerline</td><td>980K</td><td style="color:var(--yellow)">[remote]</td></tr>
+                        </table>
+                      </div>
+                    `);
+                } else if (cleanCmd.startsWith('poshbuddy set theme')) {
+                    const themeName = cmd.split(' ').slice(3).join(' ').trim() || 'default';
+                    appendTerminalLine(`
+                      <div class="term-output">
+                        [1/4] Preparing snapshot backup of profile file...<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Backup written to: <b>$PROFILE.backup.20260603072810</b><br>
+                        [2/4] Downloading theme asset [<b>${escapeHTML(themeName)}</b>] from repository...<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Synchronized 1,420 bytes in 12ms.<br>
+                        [3/4] Validating local Nerd Fonts configuration...<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fira Code Nerd Font detected. [OK]<br>
+                        [4/4] Injecting configuration path markers inside PowerShell profile...<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Markers successfully written. [OK]<br>
+                        <br>
+                        <span style="color: var(--green); font-weight: bold;">Theme successfully changed to: ${escapeHTML(themeName)}!</span><br>
+                        Run <b>. $PROFILE</b> in PowerShell to re-source environment settings.
+                      </div>
+                    `);
+                } else if (cleanCmd === 'poshbuddy list fonts') {
+                    appendTerminalLine(`
+                      <div class="term-output">
+                        Scanning OS font registries for Nerd Fonts...<br>
+                        Supported installation vectors:<br>
+                        <br>
+                        1. <b>FiraCode Nerd Font</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Installed: [YES]<br>
+                        2. <b>JetBrainsMono Nerd Font</b> &nbsp; - Installed: [YES]<br>
+                        3. <b>Hack Nerd Font</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Installed: [NO] (Install: <code>poshbuddy install font Hack</code>)<br>
+                        4. <b>CascadiaCode Nerd Font</b> &nbsp;&nbsp; - Installed: [NO] (Install: <code>poshbuddy install font Cascadia</code>)<br>
+                      </div>
+                    `);
+                } else if (cleanCmd.startsWith('poshbuddy install font')) {
+                    const fontName = cmd.split(' ').slice(3).join(' ').trim() || 'FiraCode';
+                    appendTerminalLine(`
+                      <div class="term-output">
+                        Resolving release archive for [<b>${escapeHTML(fontName)}</b>]...<br>
+                        Target: github.com/ryanoasis/nerd-fonts/releases/latest/download/${escapeHTML(fontName)}.zip<br>
+                        Downloading font pack (12.4 MB)...<br>
+                        [██████████████████████████████] 100% in 1.4s.<br>
+                        Extracting archive files into user Font directory...<br>
+                        Font files successfully registered! [OK]<br>
+                        <span style="color: var(--green)">Font ${escapeHTML(fontName)} ready for Terminal shell layout properties.</span>
+                      </div>
+                    `);
+                } else {
+                    appendTerminalLine(`<div class="term-output" style="color: var(--red)">poshbuddy: command not found: '${escapeHTML(cmd)}'. Type 'help' to see syntax instructions.</div>`);
+                }
+                
+                // Scroll to bottom
+                termHistory.scrollTop = termHistory.scrollHeight;
+            }, 100);
+        }
+
+        function appendTerminalLine(content) {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.innerHTML = content;
+            termHistory.appendChild(line);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ── COPY TO CLIPBOARD ──
+        function copyInstallCmd() {
+            const text = document.getElementById('cmd-string').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.textContent = '[copied!]';
+                btn.style.color = 'var(--green)';
+                setTimeout(() => {
+                    btn.textContent = '[copy]';
+                    btn.style.color = '';
+                }, 2000);
+            });
+        }
+
+        // ── MANUAL SEARCH FILTER ──
+        function filterManual() {
+            const query = document.getElementById('man-search').value.toLowerCase();
+            const sections = document.querySelectorAll('.man-section');
+            
+            sections.forEach(sec => {
+                const text = sec.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    sec.classList.remove('hidden');
+                } else {
+                    sec.classList.add('hidden');
+                }
+            });
+        }
+
+        // ── ARCHITECTURE INTERACTIVE SYSTEM DESCRIPTIONS ──
+        const archDescriptions = {
+            crossterm: `
+                <span style="color: var(--secondary); font-weight: bold;">Crossterm Event Stream:</span><br>
+                Listens asynchronously on the terminal input descriptor. Runs inside a separate Tokio background loop to prevent locking input parsing. Dispatches raw events (like keys, resize, click coordinate tags) into the Ratatui state loop.
+            `,
+            tuiloop: `
+                <span style="color: var(--secondary); font-weight: bold;">Ratatui Drawing Loop:</span><br>
+                Executes on the main thread to manage high-speed canvas calculations. Resolves structural styling changes, diagnostic tables, dynamic terminal sizes, and coordinates inputs. Receives notifications from service tasks and redraws active nodes.
+            `,
+            appstate: `
+                <span style="color: var(--secondary); font-weight: bold;">Application Orchestrator / Handlers:</span><br>
+                Bridges the front logic (keys, user clicks) to backend database/filesystem operations. Decodes the input payload, triggers asynchronous services (theme fetch, profiles backup, diagnostic scripts) without blocking UI redraw cycles.
+            `,
+            tokioserv: `
+                <span style="color: var(--secondary); font-weight: bold;">Async Network Theme Task:</span><br>
+                Dispatches a non-blocking HTTP request using <b>Reqwest</b> inside a separate thread. Has a strict 10-second timeout guard. Once downloaded, triggers Serde JSON parsing and applies configurations to profile files safely.
+            `,
+            tokiofont: `
+                <span style="color: var(--secondary); font-weight: bold;">Async Font Installer Task:</span><br>
+                Handles heavy binary operations (fetching zip packages, extracting font formats, registering fonts). Notifies app handlers upon completion via atomic mpsc channel messages, allowing users to safely cancel downloads mid-run.
+            `
+        };
+
+        function showArchInfo(nodeName) {
+            const desc = archDescriptions[nodeName];
+            const panel = document.getElementById('arch-detail-panel');
+            if (panel && desc) {
+                panel.innerHTML = desc;
+                panel.style.borderColor = 'var(--primary)';
+                panel.style.boxShadow = '0 0 10px var(--primary-glow)';
+            }
+        }
+
+        // ── CODE VIEWER TAB CONTROLLER ──
+        function switchCodeTab(tabId) {
+            // Tab button styling
+            const viewer = document.getElementById('win-codeviewer');
+            viewer.querySelectorAll('.code-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Snippet panel toggle
+            viewer.querySelectorAll('.code-panel').forEach(p => {
+                p.classList.remove('active');
+            });
+            document.getElementById(`code-${tabId}`).classList.add('active');
+        }
+
+        // ── FLOATING MODE DRAGGING ENGINE ──
+        function setupWindowDrag() {
+            // Loop through all window headers and add mousedown listeners
+            document.querySelectorAll('.window').forEach(win => {
+                const header = win.querySelector('.window-header');
+                
+                header.addEventListener('mousedown', (e) => {
+                    if (currentLayout !== 'floating') return;
+                    
+                    // Don't drag if clicking buttons
+                    if (e.target.closest('.window-controls')) return;
+                    
+                    focusWindow(win.id);
+                    
+                    // Initial positions
+                    let startX = e.clientX;
+                    let startY = e.clientY;
+                    
+                    // Get current computed offsets or default
+                    const rect = win.getBoundingClientRect();
+                    const desktopRect = document.querySelector('.desktop-area').getBoundingClientRect();
+                    
+                    let left = rect.left - desktopRect.left;
+                    let top = rect.top - desktopRect.top;
+                    
+                    // Set layout properties to absolute directly
+                    win.style.position = 'absolute';
+                    win.style.margin = '0';
+                    win.style.left = `${left}px`;
+                    win.style.top = `${top}px`;
+                    win.style.width = `${rect.width}px`;
+                    win.style.height = `${rect.height}px`;
+                    
+                    function onMouseMove(moveEvent) {
+                        let dx = moveEvent.clientX - startX;
+                        let dy = moveEvent.clientY - startY;
+                        
+                        let newLeft = left + dx;
+                        let newTop = top + dy;
+                        
+                        win.style.left = `${newLeft}px`;
+                        win.style.top = `${newTop}px`;
+                    }
+                    
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    }
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+            });
+        }
+
+        // ── GLOBAL KEYBINDINGS ──
+        function setupKeybindings() {
+            document.addEventListener('keydown', (e) => {
+                // Switch workspaces with Alt+1, Alt+2, Alt+3, Alt+4
+                if (e.altKey && e.key >= '1' && e.key <= '4') {
+                    e.preventDefault();
+                    switchWorkspace(parseInt(e.key));
+                }
+            });
+        }
     </script>
 </body>
 </html>

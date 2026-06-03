@@ -5,6 +5,17 @@ All notable changes to PoshBuddy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-06-03
+
+### Added
+- **Multi-Shell Compatibility**: Integrated profile detection and theme injection formatting for Bash (`.bashrc`), Zsh (`.zshrc`), and Fish (`config.fish`) shells, alongside standard PowerShell (`.ps1`).
+- **Linux Dependency Installation Fallback**: Configured the Oh My Posh installer to fall back to the official download and installation bash script (`curl -s https://ohmyposh.dev/install.sh | bash`) if Homebrew is missing.
+- **Safety Guards**: Added profile path syntax filters in plugin toggling to skip non-PowerShell configurations.
+
+### Fixed
+- **Winget Label Leak**: Corrected error reporting strings on Unix platforms to specify the exact tool name (Homebrew or Official Install Script) instead of referencing Winget.
+- **Test Isolation**: Hardened profile detection unit tests to mock `HOME`, `USERPROFILE`, and `XDG_CONFIG_HOME` directories, ensuring hermetic test environments.
+
 ## [0.4.5] - 2026-04-29
 
 ### Changed
