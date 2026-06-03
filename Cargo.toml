@@ -1,6 +1,6 @@
 [package]
 name = "poshbuddy"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 authors = ["Julio <julesklord@gmail.com>"]
 description = "A professional TUI Theme Management for Oh My Posh"

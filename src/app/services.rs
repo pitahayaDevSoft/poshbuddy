@@ -1,5 +1,5 @@
 use crate::app::models::*;
-use crate::app::{OMP_BINARY, WHERE_CMD, contains_ignore_ascii_case};
+use crate::app::{OMP_BINARY, contains_ignore_ascii_case};
 use std::collections::HashSet;
 use std::fs;
 use std::io;
@@ -82,14 +82,67 @@ impl App {
         None
     }
 
-    /// Verifies if 'oh-my-posh' binary is present in the system PATH
+    /// Verifies if 'oh-my-posh' binary is present in the system PATH.
+    /// If not found, searches in popular fallback installation directories.
+    /// If found in a fallback directory, dynamically prepends that directory to the process's PATH.
     pub fn check_omp_installed(&self) -> bool {
-        let cmd = WHERE_CMD;
-        std::process::Command::new(cmd)
-            .arg("oh-my-posh")
-            .output()
-            .map(|o| o.status.success())
+        let binary_name = if cfg!(windows) { "oh-my-posh.exe" } else { "oh-my-posh" };
+
+        // 1. Try to spawn 'oh-my-posh --version' directly
+        if std::process::Command::new(binary_name)
+            .arg("--version")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
             .unwrap_or(false)
+        {
+            return true;
+        }
+
+        // 2. If not found, check common fallback paths
+        let mut fallbacks = Vec::new();
+        if cfg!(windows) {
+            if let Some(local_appdata) = std::env::var_os("LOCALAPPDATA") {
+                fallbacks.push(PathBuf::from(local_appdata).join("Programs").join("oh-my-posh").join("bin"));
+            }
+            if let Some(user_profile) = std::env::var_os("USERPROFILE") {
+                let user_path = PathBuf::from(user_profile);
+                fallbacks.push(user_path.join("AppData").join("Local").join("Programs").join("oh-my-posh").join("bin"));
+                fallbacks.push(user_path.join(".oh-my-posh").join("bin"));
+                fallbacks.push(user_path.join("scoop").join("shims"));
+            }
+        } else {
+            if let Some(home) = dirs::home_dir() {
+                fallbacks.push(home.join(".local").join("bin"));
+                fallbacks.push(home.join(".cargo").join("bin"));
+            }
+            fallbacks.push(PathBuf::from("/usr/local/bin"));
+            fallbacks.push(PathBuf::from("/usr/bin"));
+            fallbacks.push(PathBuf::from("/home/linuxbrew/.linuxbrew/bin"));
+            fallbacks.push(PathBuf::from("/opt/homebrew/bin"));
+        }
+
+        for dir in fallbacks {
+            let bin_path = dir.join(binary_name);
+            if bin_path.is_file() {
+                // Found it! Prepend to the PATH variable for this process and future child processes
+                if let Some(paths) = std::env::var_os("PATH") {
+                    let mut current_paths: Vec<PathBuf> = std::env::split_paths(&paths).collect();
+                    if !current_paths.contains(&dir) {
+                        current_paths.insert(0, dir);
+                        if let Ok(new_path) = std::env::join_paths(current_paths) {
+                            unsafe {
+                                std::env::set_var("PATH", new_path);
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+        }
+
+        false
     }
 
     /// Checks the current terminal environment and PowerShell version capabilities
@@ -101,12 +154,22 @@ impl App {
                 .unwrap_or(false);
 
         // Checking for PowerShell 7 binary (pwsh)
-        let cmd = WHERE_CMD;
-        let is_pwsh_7 = std::process::Command::new(cmd)
-            .arg("pwsh")
+        let is_pwsh_7 = std::process::Command::new(if cfg!(windows) { "pwsh.exe" } else { "pwsh" })
+            .arg("-Version")
             .output()
             .map(|o| o.status.success())
-            .unwrap_or(false);
+            .unwrap_or_else(|_| {
+                // Fallback check in PATH directories directly (without spawning which/where)
+                let binary_name = if cfg!(windows) { "pwsh.exe" } else { "pwsh" };
+                if let Some(paths) = std::env::var_os("PATH") {
+                    for path in std::env::split_paths(&paths) {
+                        if path.join(binary_name).is_file() {
+                            return true;
+                        }
+                    }
+                }
+                false
+            });
 
         SystemSpecs {
             is_pwsh_7,
@@ -115,8 +178,26 @@ impl App {
         }
     }
 
-    /// Dynamically identifies all active PowerShell profile paths ($PROFILE) on the system
+    /// Dynamically identifies all active shell configuration profiles on the system.
+    /// Detects profiles if they exist, or if the corresponding shell is installed.
     pub fn detect_profiles() -> Vec<PathBuf> {
+        fn is_binary_in_path(name: &str) -> bool {
+            let binary_name = if cfg!(windows) && !name.ends_with(".exe") {
+                format!("{}.exe", name)
+            } else {
+                name.to_string()
+            };
+
+            if let Some(paths) = std::env::var_os("PATH") {
+                for path in std::env::split_paths(&paths) {
+                    if path.join(&binary_name).is_file() {
+                        return true;
+                    }
+                }
+            }
+            false
+        }
+
         let mut profiles = Vec::new();
 
         // 1. Try to guess standard paths first (Zero-latency)
@@ -142,29 +223,41 @@ impl App {
                 profiles.push(pwsh_linux);
             }
             let fish = config.join("fish").join("config.fish");
-            if fish.exists() {
+            if fish.exists() || is_binary_in_path("fish") {
                 profiles.push(fish);
             }
         }
         if let Some(home) = dirs::home_dir() {
             let bashrc = home.join(".bashrc");
-            if bashrc.exists() {
+            if bashrc.exists() || is_binary_in_path("bash") {
                 profiles.push(bashrc);
             }
+            let bash_profile = home.join(".bash_profile");
+            if bash_profile.exists() {
+                profiles.push(bash_profile);
+            }
+            let profile = home.join(".profile");
+            if profile.exists() {
+                profiles.push(profile);
+            }
             let zshrc = home.join(".zshrc");
-            if zshrc.exists() {
+            if zshrc.exists() || is_binary_in_path("zsh") {
                 profiles.push(zshrc);
+            }
+            let zprofile = home.join(".zprofile");
+            if zprofile.exists() {
+                profiles.push(zprofile);
             }
         }
 
-        // 2. If nothing found or to be sure, ask the shells (Lazy detection later would be better, but let's at least deduplicate)
-        if profiles.is_empty() {
-            let shells = if cfg!(windows) {
-                vec!["powershell", "pwsh"]
-            } else {
-                vec!["pwsh"]
-            };
-            for shell in shells {
+        // 2. Ask the shells (like powershell/pwsh) for their profiles if they are installed
+        let shells = if cfg!(windows) {
+            vec!["powershell", "pwsh"]
+        } else {
+            vec!["pwsh"]
+        };
+        for shell in shells {
+            if is_binary_in_path(shell) {
                 if let Ok(out) = std::process::Command::new(shell)
                     .args(["-NoProfile", "-Command", "Write-Host -NoNewline $PROFILE"])
                     .output()
@@ -182,7 +275,9 @@ impl App {
         profiles
     }
 
-    /// Heuristic to check if a Nerd Font is likely being used by the system
+    /// Heuristic to check if a Nerd Font is likely being used by the system.
+    /// On Windows, queries the console registry.
+    /// On Linux/macOS, uses fc-list or scans standard font directories.
     pub fn check_nerd_font() -> bool {
         if let Ok(term_prog) = std::env::var("TERM_PROGRAM")
             && term_prog == "vscode"
@@ -190,30 +285,62 @@ impl App {
             return true;
         }
 
-        let cmd = if cfg!(windows) {
-            "powershell"
-        } else {
-            "powershell.exe"
-        };
+        if cfg!(windows) {
+            let output = std::process::Command::new("powershell")
+                .args([
+                    "-Command",
+                    "(Get-ItemProperty -Path 'HKCU:\\Console' -ErrorAction SilentlyContinue).FaceName",
+                ])
+                .output();
 
-        let output = std::process::Command::new(cmd)
-            .args([
-                "-Command",
-                "(Get-ItemProperty -Path 'HKCU:\\Console' -ErrorAction SilentlyContinue).FaceName",
-            ])
-            .output();
-
-        if let Ok(out) = output {
-            let name = String::from_utf8_lossy(&out.stdout);
-            if name.trim().is_empty() {
-                return true;
+            if let Ok(out) = output {
+                let name = String::from_utf8_lossy(&out.stdout);
+                if name.trim().is_empty() {
+                    return true;
+                }
+                contains_ignore_ascii_case(&name, "nf")
+                    || contains_ignore_ascii_case(&name, "nerd")
+                    || contains_ignore_ascii_case(&name, "retina")
+                    || contains_ignore_ascii_case(&name, "code")
+                    || contains_ignore_ascii_case(&name, "meslo")
+            } else {
+                true
             }
-            contains_ignore_ascii_case(&name, "nf")
-                || contains_ignore_ascii_case(&name, "nerd")
-                || contains_ignore_ascii_case(&name, "retina")
-                || contains_ignore_ascii_case(&name, "code")
-                || contains_ignore_ascii_case(&name, "meslo")
         } else {
+            // Linux / macOS
+            // 1. Try using fc-list (fontconfig)
+            if let Ok(out) = std::process::Command::new("fc-list").output() {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                if contains_ignore_ascii_case(&stdout, "nerd") || contains_ignore_ascii_case(&stdout, "nf") {
+                    return true;
+                }
+            }
+
+            // 2. Scan standard font directories
+            let mut paths = Vec::new();
+            if let Some(home) = dirs::home_dir() {
+                paths.push(home.join(".local").join("share").join("fonts"));
+                paths.push(home.join(".fonts"));
+                paths.push(home.join("Library").join("Fonts"));
+            }
+            paths.push(PathBuf::from("/usr/share/fonts"));
+            paths.push(PathBuf::from("/usr/local/share/fonts"));
+            paths.push(PathBuf::from("/Library/Fonts"));
+
+            for path in paths {
+                if path.exists() {
+                    if let Ok(entries) = std::fs::read_dir(path) {
+                        for entry in entries.flatten() {
+                            let name = entry.file_name().to_string_lossy().to_string();
+                            if contains_ignore_ascii_case(&name, "nerd") || contains_ignore_ascii_case(&name, "nf") {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Default fallback
             true
         }
     }
@@ -505,6 +632,9 @@ impl App {
         }
 
         let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
+        if let Some(parent) = profile.parent() {
+            fs::create_dir_all(parent)?;
+        }
         fs::write(profile, new_lines.join(line_ending))?;
         Ok(())
     }
@@ -1030,6 +1160,12 @@ impl App {
                 ));
                 new_lines.push(config_line);
                 new_lines.push(end_marker.to_string());
+            }
+
+            if let Some(parent) = profile.parent() {
+                if let Err(e) = tokio::fs::create_dir_all(parent).await {
+                    return Err(format!("Failed to create parent directory for profile: {}", e));
+                }
             }
 
             if let Err(e) = tokio::fs::write(profile, new_lines.join(line_ending)).await {

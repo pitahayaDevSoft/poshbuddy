@@ -9,7 +9,6 @@ pub mod handlers;
 pub mod services;
 
 pub const OMP_BINARY: &str = "oh-my-posh";
-pub const WHERE_CMD: &str = "where";
 
 /// Helper function for zero-allocation case-insensitive ASCII substring matching
 pub fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
@@ -555,19 +554,9 @@ mod tests {
                     .unwrap();
             }
 
-            // The 'where' command might not exist on linux/unix systems.
-            // On Unix systems, whereis or which is used, but app.rs hardcodes `where` via `WHERE_CMD`.
-            // We need to provide a mock `where` script to pass the test on Unix.
-            #[cfg(unix)]
-            {
-                let where_path = dir.join("where");
-                std::fs::write(&where_path, format!("#!/bin/sh\nif [ \"$1\" = \"pwsh\" ]; then echo '{}'; exit 0; else exit 1; fi", pwsh_path.display())).unwrap();
-                use std::os::unix::fs::PermissionsExt;
-                std::fs::set_permissions(&where_path, std::fs::Permissions::from_mode(0o755))
-                    .unwrap();
-            }
 
-            // Use ONLY mock directory in PATH if we are mocking `where` as well
+
+            // Use ONLY mock directory in PATH if we are mocking the search command as well
             #[cfg(unix)]
             unsafe {
                 env::set_var("PATH", &dir)

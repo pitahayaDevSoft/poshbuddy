@@ -5,6 +5,18 @@ All notable changes to PoshBuddy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-06-03
+
+### Added
+- **Expanded Profile Detection**: Added support for more shell configuration files (bash, zsh, fish) and robust detection of installed shells.
+- **Improved Path Handling**: `check_omp_installed` now searches common fallback paths and dynamically updates PATH if needed.
+- **Cross-Platform Font Detection**: Improved Nerd Font detection for Linux and macOS.
+- **UI Improvements**: Platform-specific installation instructions in the dependency missing screen.
+
+### Fixed
+- **Enhanced Dependency Management**: Improved Oh My Posh installation flow and more robust `pwsh` detection.
+- **Reliability Fixes**: Ensured parent directories are created before writing profiles or installing dependencies.
+
 ## [0.5.0] - 2026-06-03
 
 ### Added

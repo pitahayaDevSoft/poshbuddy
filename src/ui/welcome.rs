@@ -430,9 +430,41 @@ pub(crate) fn render_loading(f: &mut Frame, area: Rect, app: &App) {
     );
 }
 
+fn has_brew() -> bool {
+    if let Some(paths) = std::env::var_os("PATH") {
+        for path in std::env::split_paths(&paths) {
+            if path.join("brew").is_file() {
+                return true;
+            }
+        }
+    }
+    let common_brew_paths = [
+        "/opt/homebrew/bin/brew",
+        "/usr/local/bin/brew",
+        "/home/linuxbrew/.linuxbrew/bin/brew",
+    ];
+    for path_str in &common_brew_paths {
+        if std::path::Path::new(path_str).is_file() {
+            return true;
+        }
+    }
+    false
+}
+
 pub(crate) fn render_dep_missing(f: &mut Frame, area: Rect) {
     let center = centered_rect(62, 44, area);
     f.render_widget(Clear, center);
+
+    let (installer_desc, manual_cmd) = if cfg!(windows) {
+        ("Auto-install via WinGet", "winget install JanDeDobbeleer.OhMyPosh")
+    } else {
+        if has_brew() {
+            ("Auto-install via Homebrew", "brew install oh-my-posh")
+        } else {
+            ("Auto-install via Official Script", "curl -s https://ohmyposh.dev/install.sh | bash -s")
+        }
+    };
+
     f.render_widget(
         Paragraph::new(vec![
             Line::from(""),
@@ -451,7 +483,7 @@ pub(crate) fn render_dep_missing(f: &mut Frame, area: Rect) {
                     "  Enter  ",
                     Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
                 ),
-                Span::styled("Auto-install via WinGet", Style::default().fg(C_WHITE)),
+                Span::styled(installer_desc, Style::default().fg(C_WHITE)),
             ]),
             Line::from(vec![
                 Span::styled("  Q      ", Style::default().fg(C_DIM)),
@@ -461,7 +493,7 @@ pub(crate) fn render_dep_missing(f: &mut Frame, area: Rect) {
             Line::from(vec![
                 Span::styled("  Manual: ", Style::default().fg(C_DIM)),
                 Span::styled(
-                    "winget install JanDeDobbeleer.OhMyPosh",
+                    manual_cmd,
                     Style::default().fg(C_ACTIVE),
                 ),
             ]),

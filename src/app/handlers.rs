@@ -225,7 +225,13 @@ impl App {
 
             AppState::DependencyMissing => {
                 match key.code {
-                    KeyCode::Enter => self.install_omp(tx.clone()),
+                    KeyCode::Enter => {
+                        self.state = AppState::InstallingDependency {
+                            log: vec![],
+                            current_action: "Starting Oh My Posh installation...".to_string(),
+                        };
+                        self.install_omp(tx.clone());
+                    }
                     KeyCode::Char('q') => return Ok(true),
                     _ => {}
                 }
@@ -991,4 +997,24 @@ mod handle_messages_tests {
             AppState::Error("Something went wrong".to_string())
         );
     }
+
+    #[tokio::test]
+    async fn test_handle_input_dependency_missing_enter() {
+        let mut app = create_test_app();
+        app.state = AppState::DependencyMissing;
+        let (tx, _rx) = mpsc::channel(2);
+
+        let key = crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE);
+        let result = app.handle_input(key, tx);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), false);
+        
+        if let AppState::InstallingDependency { current_action, .. } = app.state {
+            assert!(current_action.contains("Starting"));
+        } else {
+            panic!("Expected state to be AppState::InstallingDependency");
+        }
+    }
 }
+
