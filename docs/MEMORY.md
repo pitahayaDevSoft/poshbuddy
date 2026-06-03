@@ -1,8 +1,8 @@
 # Project Memory: PoshBuddy
 
-## Status: v0.4.7 (Active Development)
-- **Current Goal:** Enhance the TUI dashboard and stabilize Nerd Font installation logic.
-- **Last Milestone:** Integrated the "Unstuck" guarantee with network timeouts and OMP binary guards.
+## Status: v0.5.0 (Released)
+- **Current Goal:** Maintenance and monitoring of multi-shell support.
+- **Last Milestone:** v0.5.0 Release - Integrated multi-shell compatibility (Bash, Zsh, Fish) and Linux installer fallbacks.
 
 ## Persistent Context
 - **Stack:** Rust (2024), Tokio, Ratatui, Clap, Reqwest, Playwright (Testing).
