@@ -53,6 +53,21 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.platform.target }}
 
+      - name: Install cargo-binstall
+        if: matrix.platform.runs-on == 'ubuntu-latest'
+        uses: cargo-bins/cargo-binstall-action@v1
+
+      - name: Build distro packages (Linux only)
+        if: matrix.platform.runs-on == 'ubuntu-latest'
+        run: |
+          cargo binstall -y --locked cargo-deb cargo-generate-rpm
+          mkdir -p target/release
+          cp target/${{ matrix.platform.target }}/release/poshbuddy target/release/poshbuddy
+          cargo deb --no-build
+          cargo generate-rpm
+          cp target/debian/*.deb .
+          cp target/generate-rpm/*.rpm .
+
       - name: Package
         shell: bash
         run: |
@@ -67,8 +82,12 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform.name }}
-          path: ${{ matrix.platform.name }}
+          name: ${{ matrix.platform.name }}-pkg
+          path: |
+            ${{ matrix.platform.name }}
+            *.deb
+            *.rpm
+          if-no-files-found: ignore
 
   publish-github:
     name: Create GitHub Release
@@ -89,10 +108,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            poshbuddy-linux-x86_64.tar.gz
-            poshbuddy-windows-x86_64.zip
-            poshbuddy-macos-x86_64.tar.gz
-            poshbuddy-macos-arm64.tar.gz
+            *.tar.gz
+            *.zip
+            *.deb
+            *.rpm
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -110,3 +129,37 @@ jobs:
 
       - name: Publish to crates.io
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+
+  publish-aur:
+    name: Publish to AUR
+    needs: publish-github
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PKGBUILD
+        run: |
+          tag_name="${{ github.ref_name }}"
+          version="${tag_name#v}"
+          
+          # Fetch source tarball to compute checksum
+          curl -sSL -o source.tar.gz "https://github.com/julesklord/poshbuddy/archive/refs/tags/${tag_name}.tar.gz"
+          sha256=$(sha256sum source.tar.gz | cut -d' ' -f1)
+          
+          # Update PKGBUILD version and checksum
+          sed -i "s/pkgver=.*/pkgver=${version}/" packaging/aur/PKGBUILD
+          sed -i "s/sha256sums=.*/sha256sums=('${sha256}')/" packaging/aur/PKGBUILD
+          
+          # Copy PKGBUILD to root directory for the AUR action
+          cp packaging/aur/PKGBUILD .
+
+      - name: Publish AUR package
+        uses: KSXGitHub/github-actions-deploy-aur@v3
+        with:
+          pkgname: poshbuddy
+          pkgbuild: ./PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to version ${{ github.ref_name }}"
