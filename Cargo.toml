@@ -48,3 +48,18 @@ clap = { version = "4.5", features = ["derive"] }
 
 [dev-dependencies]
 mockito = "1.7.2"
+
+[package.metadata.deb]
+maintainer = "Julio <julesklord@gmail.com>"
+assets = [
+    ["target/release/poshbuddy", "usr/bin/poshbuddy", "755"],
+    ["README.md", "usr/share/doc/poshbuddy/README.md", "644"],
+    ["LICENSE", "usr/share/licenses/poshbuddy/LICENSE", "644"]
+]
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/poshbuddy", dest = "/usr/bin/poshbuddy", mode = "0755" },
+    { source = "README.md", dest = "/usr/share/doc/poshbuddy/README.md", mode = "0644", doc = true },
+    { source = "LICENSE", dest = "/usr/share/licenses/poshbuddy/LICENSE", mode = "0644", license = true }
+]

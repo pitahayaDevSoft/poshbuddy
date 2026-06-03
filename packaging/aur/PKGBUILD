@@ -1,0 +1,30 @@
+# Maintainer: Julio <julesklord@gmail.com>
+pkgname=poshbuddy
+pkgver=0.5.0
+pkgrel=1
+pkgdesc="A professional TUI Theme Management for Oh My Posh"
+arch=('x86_64' 'aarch64')
+url="https://github.com/julesklord/poshbuddy"
+license=('MIT')
+depends=('oh-my-posh' 'fontconfig')
+makedepends=('cargo')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/julesklord/poshbuddy/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+    cd "${pkgname}-${pkgver}"
+    export CARGO_HOME="${srcdir}/cargo-home"
+}
+
+build() {
+    cd "${pkgname}-${pkgver}"
+    export CARGO_HOME="${srcdir}/cargo-home"
+    cargo build --release --locked
+}
+
+package() {
+    cd "${pkgname}-${pkgver}"
+    install -Dm755 "target/release/poshbuddy" "${pkgdir}/usr/bin/poshbuddy"
+    install -Dm644 "README.md" "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+    install -Dm644 "LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
