@@ -134,6 +134,28 @@ impl App {
                 profiles.push(pwsh7);
             }
         }
+        if let Some(config) = dirs::config_dir() {
+            let pwsh_linux = config
+                .join("powershell")
+                .join("Microsoft.PowerShell_profile.ps1");
+            if pwsh_linux.exists() {
+                profiles.push(pwsh_linux);
+            }
+            let fish = config.join("fish").join("config.fish");
+            if fish.exists() {
+                profiles.push(fish);
+            }
+        }
+        if let Some(home) = dirs::home_dir() {
+            let bashrc = home.join(".bashrc");
+            if bashrc.exists() {
+                profiles.push(bashrc);
+            }
+            let zshrc = home.join(".zshrc");
+            if zshrc.exists() {
+                profiles.push(zshrc);
+            }
+        }
 
         // 2. If nothing found or to be sure, ask the shells (Lazy detection later would be better, but let's at least deduplicate)
         if profiles.is_empty() {
@@ -729,7 +751,9 @@ impl App {
                 return;
             }
 
+            let installer_name;
             let child = if cfg!(windows) {
+                installer_name = "Winget";
                 tokio::process::Command::new("winget")
                     .args([
                         "install",
@@ -741,11 +765,43 @@ impl App {
                     .stderr(std::process::Stdio::piped())
                     .spawn()
             } else {
-                tokio::process::Command::new("brew")
-                    .args(["install", "oh-my-posh"])
-                    .stdout(std::process::Stdio::piped())
-                    .stderr(std::process::Stdio::piped())
-                    .spawn()
+                let has_brew = tokio::process::Command::new("brew")
+                    .arg("--version")
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .status()
+                    .await
+                    .map(|s| s.success())
+                    .unwrap_or(false);
+
+                if has_brew {
+                    installer_name = "Homebrew";
+                    tokio::process::Command::new("brew")
+                        .args(["install", "oh-my-posh"])
+                        .stdout(std::process::Stdio::piped())
+                        .stderr(std::process::Stdio::piped())
+                        .spawn()
+                } else {
+                    installer_name = "Official Install Script";
+                    let home_bin = dirs::home_dir()
+                        .map(|h| h.join(".local").join("bin"))
+                        .unwrap_or_else(|| std::path::PathBuf::from("/usr/local/bin"));
+
+                    if !home_bin.exists() {
+                        let _ = tokio::fs::create_dir_all(&home_bin).await;
+                    }
+
+                    let cmd_str = format!(
+                        "curl -s https://ohmyposh.dev/install.sh | bash -s -- -d {}",
+                        home_bin.to_string_lossy()
+                    );
+
+                    tokio::process::Command::new("bash")
+                        .args(["-c", &cmd_str])
+                        .stdout(std::process::Stdio::piped())
+                        .stderr(std::process::Stdio::piped())
+                        .spawn()
+                }
             }
             .map_err(|e| e.to_string());
 
@@ -756,9 +812,10 @@ impl App {
                     }
                     _ => {
                         if tx
-                            .send(AppMessage::Error(
-                                "Installation failed via Winget".to_string(),
-                            ))
+                            .send(AppMessage::Error(format!(
+                                "Installation failed via {}",
+                                installer_name
+                            )))
                             .await
                             .is_err()
                         {}
@@ -910,13 +967,28 @@ impl App {
     async fn update_profiles_with_theme(
         profiles: &[PathBuf],
         theme_name: &str,
-        config_line: &str,
+        theme_path: &std::path::Path,
     ) -> Result<(), String> {
         let start_marker = "## POSHBUDDY AUTO-GENERATED CONFIG - START (THEME)";
         let end_marker = "## POSHBUDDY AUTO-GENERATED CONFIG - END (THEME)";
         let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
 
         for profile in profiles {
+            let file_name = profile.file_name()
+                .map(|f| f.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            
+            let path_str = theme_path.to_string_lossy();
+            let config_line = if file_name.contains("bash") || file_name == ".profile" || file_name == ".bash_profile" {
+                format!("eval \"$(oh-my-posh init bash --config '{}')\"", path_str)
+            } else if file_name.contains("zsh") || file_name == ".zprofile" {
+                format!("eval \"$(oh-my-posh init zsh --config '{}')\"", path_str)
+            } else if file_name.contains("fish") || file_name.ends_with(".fish") {
+                format!("oh-my-posh init fish --config '{}' | source", path_str)
+            } else {
+                format!("oh-my-posh init pwsh --config \"{}\" | Out-String | Invoke-Expression", path_str)
+            };
+
             let existing_content = tokio::fs::read_to_string(profile).await.unwrap_or_default();
             let mut new_lines = Vec::new();
             let mut inside_block = false;
@@ -938,7 +1010,7 @@ impl App {
                         "## Description: Apply Oh My Posh theme: {}",
                         theme_name
                     ));
-                    new_lines.push(config_line.to_string());
+                    new_lines.push(config_line.clone());
                 } else if trimmed.starts_with(end_marker) {
                     inside_block = false;
                     new_lines.push(end_marker.to_string());
@@ -956,7 +1028,7 @@ impl App {
                     "## Description: Apply Oh My Posh theme: {}",
                     theme_name
                 ));
-                new_lines.push(config_line.to_string());
+                new_lines.push(config_line);
                 new_lines.push(end_marker.to_string());
             }
 
@@ -1057,12 +1129,7 @@ impl App {
                 source_path
             };
 
-            let config_line = format!(
-                "oh-my-posh init powershell --config \"{}\" | Out-String | Invoke-Expression",
-                final_theme_path.to_string_lossy()
-            );
-
-            if let Err(e) = Self::update_profiles_with_theme(&profiles, &name, &config_line).await {
+            if let Err(e) = Self::update_profiles_with_theme(&profiles, &name, &final_theme_path).await {
                 let _ = tx_cloned.send(AppMessage::Error(e)).await;
                 return;
             }
@@ -1089,6 +1156,15 @@ impl App {
         let key = format!("PLUGIN_{}", plugin.module_name.to_uppercase());
 
         for profile in &self.detected_profiles {
+            let file_name = profile.file_name()
+                .map(|f| f.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            
+            // Skip non-PowerShell profiles for PowerShell plugin toggling
+            if !file_name.ends_with(".ps1") {
+                continue;
+            }
+
             self.backup_manager
                 .backup_profile(profile, &format!("Toggle Plugin: {}", plugin.name))
                 .map_err(|e| io::Error::other(e.to_string()))?;

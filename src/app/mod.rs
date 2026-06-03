@@ -178,6 +178,9 @@ mod tests {
         wt_session: Option<String>,
         term_program: Option<String>,
         path: Option<String>,
+        home: Option<String>,
+        userprofile: Option<String>,
+        xdg_config_home: Option<String>,
     }
 
     impl EnvGuard {
@@ -186,6 +189,9 @@ mod tests {
                 wt_session: env::var("WT_SESSION").ok(),
                 term_program: env::var("TERM_PROGRAM").ok(),
                 path: env::var("PATH").ok(),
+                home: env::var("HOME").ok(),
+                userprofile: env::var("USERPROFILE").ok(),
+                xdg_config_home: env::var("XDG_CONFIG_HOME").ok(),
             }
         }
     }
@@ -207,6 +213,21 @@ mod tests {
                     env::set_var("PATH", v);
                 } else {
                     env::remove_var("PATH");
+                }
+                if let Some(ref v) = self.home {
+                    env::set_var("HOME", v);
+                } else {
+                    env::remove_var("HOME");
+                }
+                if let Some(ref v) = self.userprofile {
+                    env::set_var("USERPROFILE", v);
+                } else {
+                    env::remove_var("USERPROFILE");
+                }
+                if let Some(ref v) = self.xdg_config_home {
+                    env::set_var("XDG_CONFIG_HOME", v);
+                } else {
+                    env::remove_var("XDG_CONFIG_HOME");
                 }
             }
         }
@@ -365,7 +386,12 @@ mod tests {
 
             // Use ONLY the mock directory in PATH - this ensures Windows finds our .cmd mocks
             // instead of any real pwsh.exe/powershell.exe that might be installed
-            unsafe { env::set_var("PATH", &dir) };
+            unsafe {
+                env::set_var("PATH", &dir);
+                env::set_var("HOME", &dir);
+                env::set_var("USERPROFILE", &dir);
+                env::set_var("XDG_CONFIG_HOME", &dir);
+            }
 
             let profiles = App::detect_profiles();
 
@@ -437,7 +463,12 @@ mod tests {
             }
 
             // Use ONLY the mock directory in PATH
-            unsafe { env::set_var("PATH", &dir) };
+            unsafe {
+                env::set_var("PATH", &dir);
+                env::set_var("HOME", &dir);
+                env::set_var("USERPROFILE", &dir);
+                env::set_var("XDG_CONFIG_HOME", &dir);
+            }
 
             let profiles = App::detect_profiles();
 
