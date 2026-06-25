@@ -161,36 +161,121 @@ impl App {
         false
     }
 
-    /// Checks the current terminal environment and PowerShell version capabilities
-    pub fn gather_system_specs(has_nerd_font: bool) -> SystemSpecs {
-        // Detecting Windows Terminal via WT_SESSION environment variable
-        let is_windows_terminal = std::env::var("WT_SESSION").is_ok()
-            || std::env::var("TERM_PROGRAM")
-                .map(|v| v == "vscode")
-                .unwrap_or(false);
-
-        // Checking for PowerShell 7 binary (pwsh)
-        let is_pwsh_7 = std::process::Command::new(if cfg!(windows) { "pwsh.exe" } else { "pwsh" })
-            .arg("-Version")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or_else(|_| {
-                // Fallback check in PATH directories directly (without spawning which/where)
-                let binary_name = if cfg!(windows) { "pwsh.exe" } else { "pwsh" };
-                if let Some(paths) = std::env::var_os("PATH") {
-                    for path in std::env::split_paths(&paths) {
-                        if path.join(binary_name).is_file() {
-                            return true;
-                        }
-                    }
+    #[cfg(target_os = "linux")]
+    fn get_active_shell_linux() -> Option<String> {
+        if let Ok(stat) = std::fs::read_to_string("/proc/self/stat")
+            && let Some(rpar) = stat.rfind(')')
+        {
+            let parts: Vec<&str> = stat[rpar + 1..].split_whitespace().collect();
+            if parts.len() >= 2 {
+                let ppid = parts[1];
+                if let Ok(parent_comm) = std::fs::read_to_string(format!("/proc/{}/comm", ppid)) {
+                    return Some(parent_comm.trim().to_string());
                 }
-                false
-            });
+            }
+        }
+        None
+    }
 
+    /// Detects the active shell name
+    pub fn get_shell_name() -> String {
+        #[cfg(target_os = "linux")]
+        if let Some(parent_name) = Self::get_active_shell_linux() {
+            match parent_name.as_str() {
+                "bash" => return "Bash".to_string(),
+                "zsh" => return "Zsh".to_string(),
+                "fish" => return "Fish".to_string(),
+                "pwsh" => return "PowerShell 7+".to_string(),
+                "sh" => return "Sh".to_string(),
+                _ => {}
+            }
+        }
+
+        if let Ok(shell) = std::env::var("SHELL")
+            && let Some(name) = std::path::Path::new(&shell)
+                .file_name()
+                .and_then(|n| n.to_str())
+        {
+            match name {
+                "bash" => return "Bash".to_string(),
+                "zsh" => return "Zsh".to_string(),
+                "fish" => return "Fish".to_string(),
+                "pwsh" => return "PowerShell 7+".to_string(),
+                "sh" => return "Sh".to_string(),
+                _ => return name.to_string(),
+            }
+        }
+
+        if cfg!(windows) {
+            if std::process::Command::new("pwsh.exe")
+                .arg("-Version")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false)
+            {
+                return "PowerShell 7+".to_string();
+            }
+            return "PowerShell (classic)".to_string();
+        }
+
+        "Unknown".to_string()
+    }
+
+    /// Detects the active terminal emulator name
+    pub fn get_terminal_name() -> String {
+        if std::env::var("WT_SESSION").is_ok() {
+            return "Windows Terminal".to_string();
+        }
+        if let Ok(term_prog) = std::env::var("TERM_PROGRAM") {
+            match term_prog.as_str() {
+                "vscode" => return "VS Code Terminal".to_string(),
+                "WezTerm" => return "WezTerm".to_string(),
+                "Apple_Terminal" => return "Apple Terminal".to_string(),
+                "iTerm.app" => return "iTerm2".to_string(),
+                _ => {}
+            }
+        }
+        if std::env::var("KITTY_PID").is_ok() {
+            return "Kitty".to_string();
+        }
+        if std::env::var("WEZTERM_PANE").is_ok() {
+            return "WezTerm".to_string();
+        }
+        if std::env::var("ALACRITTY_WINDOW_ID").is_ok() || std::env::var("ALACRITTY_LOG").is_ok() {
+            return "Alacritty".to_string();
+        }
+        if std::env::var("GNOME_TERMINAL_SCREEN").is_ok() {
+            return "GNOME Terminal".to_string();
+        }
+        if std::env::var("KONSOLE_VERSION").is_ok() {
+            return "Konsole".to_string();
+        }
+        if let Ok(term) = std::env::var("TERM") {
+            if term.contains("kitty") {
+                return "Kitty".to_string();
+            } else if term.contains("alacritty") {
+                return "Alacritty".to_string();
+            } else if term.contains("wezterm") {
+                return "WezTerm".to_string();
+            }
+            return term;
+        }
+
+        if cfg!(windows) {
+            "Legacy Console".to_string()
+        } else {
+            "Unknown Terminal".to_string()
+        }
+    }
+
+    /// Checks the current terminal environment and shell capabilities
+    pub fn gather_system_specs(has_nerd_font: bool) -> SystemSpecs {
         SystemSpecs {
-            is_pwsh_7,
+            shell_name: Self::get_shell_name(),
+            terminal_name: Self::get_terminal_name(),
             has_nerd_font,
-            is_windows_terminal,
         }
     }
 

@@ -500,7 +500,7 @@ mod tests {
             let _lock = ENV_LOCK.lock().unwrap();
             let _guard = EnvGuard::new();
 
-            // Ensure we save original path so 'which' or 'where.exe' still work
+            #[cfg(windows)]
             let original_path = env::var("PATH").unwrap_or_default();
 
             // Scenario 1: Default behavior (no WT_SESSION, no vscode, mock pwsh absent)
@@ -520,18 +520,18 @@ mod tests {
             // Since it's tricky, let's just test that without the fake pwsh, it matches what 'which pwsh' says normally,
             // but wait, if it's installed, it will be true. So let's just assert on terminal properties for Scenario 1.
             let specs = App::gather_system_specs(false);
-            assert!(
-                !specs.is_windows_terminal,
-                "Expected is_windows_terminal to be false"
+            assert_ne!(
+                specs.terminal_name, "Windows Terminal",
+                "Expected terminal_name not to be Windows Terminal"
             );
             assert!(!specs.has_nerd_font, "Expected has_nerd_font to be false");
 
             // Scenario 2: WT_SESSION set
             unsafe { env::set_var("WT_SESSION", "1") };
             let specs = App::gather_system_specs(true);
-            assert!(
-                specs.is_windows_terminal,
-                "Expected is_windows_terminal to be true when WT_SESSION is set"
+            assert_eq!(
+                specs.terminal_name, "Windows Terminal",
+                "Expected terminal_name to be Windows Terminal when WT_SESSION is set"
             );
             assert!(specs.has_nerd_font, "Expected has_nerd_font to be true");
 
@@ -541,46 +541,35 @@ mod tests {
                 env::set_var("TERM_PROGRAM", "vscode");
             }
             let specs = App::gather_system_specs(false);
-            assert!(
-                specs.is_windows_terminal,
-                "Expected is_windows_terminal to be true when TERM_PROGRAM is vscode"
+            assert_eq!(
+                specs.terminal_name, "VS Code Terminal",
+                "Expected terminal_name to be VS Code Terminal when TERM_PROGRAM is vscode"
             );
 
             // Scenario 4: Pwsh command available
-            let dir = env::temp_dir().join("fake_pwsh_bin");
-            std::fs::create_dir_all(&dir).unwrap();
-
-            let pwsh_name = if cfg!(windows) { "pwsh.exe" } else { "pwsh" };
-            let pwsh_path = dir.join(pwsh_name);
-
-            std::fs::write(&pwsh_path, "#!/bin/sh\nexit 0").unwrap();
-
+            #[cfg(windows)]
+            {
+                let dir = env::temp_dir().join("fake_pwsh_bin");
+                std::fs::create_dir_all(&dir).unwrap();
+                let pwsh_path = dir.join("pwsh.exe");
+                std::fs::write(&pwsh_path, "").unwrap();
+                unsafe { env::set_var("PATH", format!("{};{}", dir.display(), original_path)) };
+                let specs = App::gather_system_specs(false);
+                unsafe { env::set_var("PATH", &original_path) };
+                assert_eq!(
+                    specs.shell_name, "PowerShell 7+",
+                    "Expected shell_name to be PowerShell 7+"
+                );
+            }
             #[cfg(unix)]
             {
-                use std::os::unix::fs::PermissionsExt;
-                std::fs::set_permissions(&pwsh_path, std::fs::Permissions::from_mode(0o755))
-                    .unwrap();
+                unsafe { env::set_var("SHELL", "/usr/bin/pwsh") };
+                let specs = App::gather_system_specs(false);
+                assert_eq!(
+                    specs.shell_name, "PowerShell 7+",
+                    "Expected shell_name to be PowerShell 7+"
+                );
             }
-
-            // Use ONLY mock directory in PATH if we are mocking the search command as well
-            #[cfg(unix)]
-            unsafe {
-                env::set_var("PATH", &dir)
-            };
-            #[cfg(windows)]
-            unsafe {
-                env::set_var("PATH", format!("{};{}", dir.display(), original_path))
-            };
-
-            let specs = App::gather_system_specs(false);
-
-            // Restore original PATH
-            unsafe { env::set_var("PATH", &original_path) };
-
-            assert!(
-                specs.is_pwsh_7,
-                "Expected is_pwsh_7 to be true when pwsh is in PATH"
-            );
         });
 
         if let Err(e) = result {

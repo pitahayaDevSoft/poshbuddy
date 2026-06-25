@@ -46,9 +46,9 @@ pub struct ThemeAsset {
 /// System specifications for diagnostic display
 #[derive(Debug, Clone, PartialEq)]
 pub struct SystemSpecs {
-    pub is_pwsh_7: bool,
+    pub shell_name: String,
+    pub terminal_name: String,
     pub has_nerd_font: bool,
-    pub is_windows_terminal: bool,
 }
 
 /// Message types sent across the mpsc channel to update the TUI from background tasks

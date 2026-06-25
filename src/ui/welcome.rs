@@ -347,24 +347,24 @@ fn render_environment_info(f: &mut Frame, area: Rect, app: &App) {
         return;
     }
 
-    let is_pwsh_7 = app
+    let shell_name = app
         .system_specs
         .as_ref()
-        .map(|s| s.is_pwsh_7)
-        .unwrap_or(false);
-    let is_wt = app
+        .map(|s| s.shell_name.as_str())
+        .unwrap_or("Unknown");
+    let terminal_name = app
         .system_specs
         .as_ref()
-        .map(|s| s.is_windows_terminal)
-        .unwrap_or(false);
+        .map(|s| s.terminal_name.as_str())
+        .unwrap_or("Unknown");
     let has_nf = app
         .system_specs
         .as_ref()
         .map(|s| s.has_nerd_font)
         .unwrap_or(false);
 
-    let shell_color = if is_pwsh_7 { C_LOCAL } else { C_ACTIVE };
-    let term_color = if is_wt { C_LOCAL } else { C_ACTIVE };
+    let shell_color = C_LOCAL;
+    let term_color = C_LOCAL;
     let font_color = if has_nf { C_LOCAL } else { C_ERROR };
 
     let info = vec![
@@ -372,26 +372,12 @@ fn render_environment_info(f: &mut Frame, area: Rect, app: &App) {
         Line::from(vec![
             Span::styled("  󱆃  Shell    ", Style::default().fg(C_DIM)),
             Span::styled("● ", Style::default().fg(shell_color)),
-            Span::styled(
-                if is_pwsh_7 {
-                    "PowerShell 7+"
-                } else {
-                    "PowerShell (classic)"
-                },
-                Style::default().fg(C_WHITE),
-            ),
+            Span::styled(shell_name, Style::default().fg(C_WHITE)),
         ]),
         Line::from(vec![
             Span::styled("  󰆍  Terminal ", Style::default().fg(C_DIM)),
             Span::styled("● ", Style::default().fg(term_color)),
-            Span::styled(
-                if is_wt {
-                    "Windows Terminal"
-                } else {
-                    "Legacy Console"
-                },
-                Style::default().fg(C_WHITE),
-            ),
+            Span::styled(terminal_name, Style::default().fg(C_WHITE)),
         ]),
         Line::from(vec![
             Span::styled("  󰛖  Fonts    ", Style::default().fg(C_DIM)),
