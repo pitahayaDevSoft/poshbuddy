@@ -1,5 +1,7 @@
 use crate::app::{ActiveView, App};
-use crate::ui::{C_ACCENT, C_ACTIVE, C_BLACK, C_DIM, C_ERROR, C_GRAD_1, C_GRAD_2, C_GRAD_3, C_LOCAL, C_WHITE};
+use crate::ui::{
+    C_ACCENT, C_ACTIVE, C_BLACK, C_DIM, C_ERROR, C_GRAD_1, C_GRAD_2, C_GRAD_3, C_LOCAL, C_WHITE,
+};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -22,8 +24,14 @@ pub(crate) fn render_title_bar(f: &mut Frame, area: Rect, app: &App) {
     // Left: brand with gradient-style text
     let brand_line = Line::from(vec![
         Span::styled("  🐱 ", Style::default().fg(C_GRAD_2)),
-        Span::styled("Posh", Style::default().fg(C_GRAD_1).add_modifier(Modifier::BOLD)),
-        Span::styled("Buddy", Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Posh",
+            Style::default().fg(C_GRAD_1).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "Buddy",
+            Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD),
+        ),
         Span::styled(format!(" v{}", app.version), Style::default().fg(C_DIM)),
     ]);
     f.render_widget(Paragraph::new(brand_line), cols[0]);
@@ -37,7 +45,10 @@ pub(crate) fn render_title_bar(f: &mut Frame, area: Rect, app: &App) {
         .unwrap_or("no theme");
     let center_line = Line::from(vec![
         Span::styled(" 🎨 ", Style::default().fg(C_ACTIVE)),
-        Span::styled(theme, Style::default().fg(C_WHITE).add_modifier(Modifier::ITALIC)),
+        Span::styled(
+            theme,
+            Style::default().fg(C_WHITE).add_modifier(Modifier::ITALIC),
+        ),
     ]);
     f.render_widget(
         Paragraph::new(center_line).alignment(Alignment::Center),
@@ -89,15 +100,15 @@ pub(crate) fn render_tab_bar(f: &mut Frame, area: Rect, app: &App) {
 
         let text = if is_active {
             Line::from(vec![
-                Span::styled(*icon, Style::default().fg(C_BLACK).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    *icon,
+                    Style::default().fg(C_BLACK).add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(
                     format!("{} ", label),
                     Style::default().fg(C_BLACK).add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(
-                    format!("({}) ", count),
-                    Style::default().fg(C_BLACK),
-                ),
+                Span::styled(format!("({}) ", count), Style::default().fg(C_BLACK)),
             ])
         } else {
             Line::from(vec![
@@ -110,7 +121,12 @@ pub(crate) fn render_tab_bar(f: &mut Frame, area: Rect, app: &App) {
         let (fg, bg, border_color, border_type) = if is_active {
             (C_BLACK, C_ACCENT, C_ACCENT, BorderType::Thick)
         } else {
-            (C_WHITE, Color::Reset, Color::Rgb(40, 50, 65), BorderType::Rounded)
+            (
+                C_WHITE,
+                Color::Reset,
+                Color::Rgb(40, 50, 65),
+                BorderType::Rounded,
+            )
         };
 
         f.render_widget(
@@ -200,7 +216,10 @@ pub(crate) fn render_modal(
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
                     .border_style(Style::default().fg(color))
-                    .title(Span::styled(title, Style::default().fg(color).add_modifier(Modifier::BOLD))),
+                    .title(Span::styled(
+                        title,
+                        Style::default().fg(color).add_modifier(Modifier::BOLD),
+                    )),
             )
             .wrap(Wrap { trim: true }),
         modal,
@@ -230,7 +249,10 @@ pub(crate) fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context
         (
             Line::from(vec![
                 Span::styled("  󰍉 ", Style::default().fg(C_DIM)),
-                Span::styled(format!("Search {}...", context.to_lowercase()), Style::default().fg(C_DIM)),
+                Span::styled(
+                    format!("Search {}...", context.to_lowercase()),
+                    Style::default().fg(C_DIM),
+                ),
             ]),
             Style::default(),
         )
@@ -238,7 +260,10 @@ pub(crate) fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context
         (
             Line::from(vec![
                 Span::styled("  󰍉 ", Style::default().fg(C_ACCENT)),
-                Span::styled(filter, Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    filter,
+                    Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+                ),
                 Span::styled("█", Style::default().fg(C_ACCENT)),
             ]),
             Style::default(),
@@ -248,7 +273,10 @@ pub(crate) fn render_search_bar(f: &mut Frame, area: Rect, filter: &str, context
     let title = if filter.is_empty() {
         Span::styled(" 󰍉 Search ", Style::default().fg(C_DIM))
     } else {
-        Span::styled(" 󰍉 Search  Esc to clear ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD))
+        Span::styled(
+            " 󰍉 Search  Esc to clear ",
+            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+        )
     };
 
     let border_style = if filter.is_empty() {
@@ -295,7 +323,10 @@ pub(crate) fn centered_rect(pct_x: u16, pct_y: u16, area: Rect) -> Rect {
 pub(crate) fn render_section_header(f: &mut Frame, area: Rect, title: &str, color: Color) {
     let line = Line::from(vec![
         Span::styled("  ▌ ", Style::default().fg(color)),
-        Span::styled(title, Style::default().fg(color).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            title,
+            Style::default().fg(color).add_modifier(Modifier::BOLD),
+        ),
     ]);
     f.render_widget(Paragraph::new(line), area);
 }

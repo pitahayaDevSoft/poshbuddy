@@ -1,6 +1,8 @@
 use crate::app::App;
 use crate::ui::components::{render_search_bar, status_dot};
-use crate::ui::{C_ACCENT, C_DIM, C_ERROR, C_GRAD_1, C_GRAD_2, C_GRAD_3, C_LOCAL, C_REMOTE, C_WHITE};
+use crate::ui::{
+    C_ACCENT, C_DIM, C_ERROR, C_GRAD_1, C_GRAD_2, C_GRAD_3, C_LOCAL, C_REMOTE, C_WHITE,
+};
 use ansi_to_tui::IntoText as _;
 use ratatui::{
     Frame,
@@ -21,14 +23,44 @@ pub(crate) fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 
     // Header with decorative gradient underline feel
     let header = Line::from(vec![
-        Span::styled("  󰔰 ", Style::default().fg(C_GRAD_1).add_modifier(Modifier::BOLD)),
-        Span::styled("T", Style::default().fg(C_GRAD_1).add_modifier(Modifier::BOLD)),
-        Span::styled("H", Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD)),
-        Span::styled("E", Style::default().fg(Color::Rgb(150, 100, 245)).add_modifier(Modifier::BOLD)),
-        Span::styled("M", Style::default().fg(C_GRAD_3).add_modifier(Modifier::BOLD)),
-        Span::styled("E", Style::default().fg(Color::Rgb(235, 60, 140)).add_modifier(Modifier::BOLD)),
-        Span::styled("S", Style::default().fg(Color::Rgb(255, 80, 80)).add_modifier(Modifier::BOLD)),
-        Span::styled("  EXPLORER", Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "  󰔰 ",
+            Style::default().fg(C_GRAD_1).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "T",
+            Style::default().fg(C_GRAD_1).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "H",
+            Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "E",
+            Style::default()
+                .fg(Color::Rgb(150, 100, 245))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "M",
+            Style::default().fg(C_GRAD_3).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "E",
+            Style::default()
+                .fg(Color::Rgb(235, 60, 140))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "S",
+            Style::default()
+                .fg(Color::Rgb(255, 80, 80))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "  EXPLORER",
+            Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+        ),
     ]);
     f.render_widget(
         Paragraph::new(header).alignment(Alignment::Center),
@@ -67,7 +99,10 @@ fn render_themes_list(f: &mut Frame, area: Rect, app: &mut App, is_empty: bool) 
                 Span::raw("  "),
                 Span::styled("● ", Style::default().fg(C_LOCAL)),
                 Span::styled(t.name.as_str(), Style::default().fg(C_WHITE)),
-                Span::styled(" local", Style::default().fg(C_LOCAL).add_modifier(Modifier::DIM)),
+                Span::styled(
+                    " local",
+                    Style::default().fg(C_LOCAL).add_modifier(Modifier::DIM),
+                ),
             ]);
             ListItem::new(line)
         });
@@ -86,8 +121,14 @@ fn render_themes_list(f: &mut Frame, area: Rect, app: &mut App, is_empty: bool) 
             let line = Line::from(vec![
                 Span::raw("  "),
                 Span::styled("◈ ", Style::default().fg(C_REMOTE)),
-                Span::styled(rt.name.as_str(), Style::default().fg(Color::Rgb(200, 185, 250))),
-                Span::styled(" remote", Style::default().fg(C_REMOTE).add_modifier(Modifier::DIM)),
+                Span::styled(
+                    rt.name.as_str(),
+                    Style::default().fg(Color::Rgb(200, 185, 250)),
+                ),
+                Span::styled(
+                    " remote",
+                    Style::default().fg(C_REMOTE).add_modifier(Modifier::DIM),
+                ),
             ]);
             ListItem::new(line)
         });
@@ -121,7 +162,10 @@ fn render_themes_list(f: &mut Frame, area: Rect, app: &mut App, is_empty: bool) 
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(Color::Rgb(55, 70, 90)))
-            .title(Span::styled(title, Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD))),
+            .title(Span::styled(
+                title,
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )),
     );
 
     if !is_empty {

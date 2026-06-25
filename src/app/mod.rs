@@ -111,6 +111,10 @@ impl App {
             active_preview_task: None,
             active_segments: HashSet::new(),
             theme_preview_cache: std::collections::HashMap::new(),
+            kitty_preview_position: None,
+            selected_font_name: None,
+            font_preview_cache: std::collections::HashMap::new(),
+            active_font_preview_task: None,
         };
 
         // Initialize active config path and segments cache
@@ -262,6 +266,10 @@ mod tests {
             active_preview_task: None,
             active_segments: HashSet::new(),
             theme_preview_cache: std::collections::HashMap::new(),
+            kitty_preview_position: None,
+            selected_font_name: None,
+            font_preview_cache: std::collections::HashMap::new(),
+            active_font_preview_task: None,
         }
     }
 
@@ -554,8 +562,6 @@ mod tests {
                     .unwrap();
             }
 
-
-
             // Use ONLY mock directory in PATH if we are mocking the search command as well
             #[cfg(unix)]
             unsafe {
@@ -649,6 +655,10 @@ mod filtering_tests {
             active_preview_task: None,
             active_segments: HashSet::new(),
             theme_preview_cache: std::collections::HashMap::new(),
+            kitty_preview_position: None,
+            selected_font_name: None,
+            font_preview_cache: std::collections::HashMap::new(),
+            active_font_preview_task: None,
         }
     }
 

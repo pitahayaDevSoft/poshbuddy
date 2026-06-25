@@ -207,6 +207,19 @@ async fn run_tui() -> Result<(), Box<dyn Error>> {
         app.spinner_tick += 1;
         terminal.draw(|f| crate::ui::ui(f, &mut app))?;
 
+        // Render Kitty Graphics font preview if applicable
+        if let Some((x, y)) = app.kitty_preview_position
+            && let Some(ref font_name) = app.selected_font_name
+            && let Some(base64_image) = app.font_preview_cache.get(font_name)
+        {
+            use std::io::Write;
+            let stdout = std::io::stdout();
+            let mut handle = stdout.lock();
+            let _ = write!(handle, "\x1b[{};{}H", y + 1, x + 1);
+            let _ = write!(handle, "\x1b_Ga=T,f=32,m=0,c=45,r=1;{}\x1b\\", base64_image);
+            let _ = handle.flush();
+        }
+
         if event::poll(Duration::from_millis(30))?
             && let Event::Key(key) = event::read()?
             && app.handle_input(key, tx.clone())?

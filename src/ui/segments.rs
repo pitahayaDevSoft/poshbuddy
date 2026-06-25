@@ -1,5 +1,7 @@
 use crate::app::App;
-use crate::ui::components::{layout_header_content, layout_two_columns, render_search_bar, status_dot};
+use crate::ui::components::{
+    layout_header_content, layout_two_columns, render_search_bar, status_dot,
+};
 use crate::ui::{C_ACCENT, C_ACTIVE, C_BLACK, C_DIM, C_ERROR, C_GRAD_2, C_LOCAL, C_WHITE};
 use ratatui::{
     Frame,
@@ -14,8 +16,14 @@ pub(crate) fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
 
     // Header
     let header = Line::from(vec![
-        Span::styled("  󰓣 ", Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD)),
-        Span::styled("SEGMENT MANAGER", Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "  󰓣 ",
+            Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "SEGMENT MANAGER",
+            Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+        ),
         Span::styled("  —  Customize your prompt", Style::default().fg(C_DIM)),
     ]);
     f.render_widget(
@@ -77,7 +85,11 @@ fn render_segment_list(f: &mut Frame, area: Rect, app: &mut App) {
     .into_iter();
 
     let count = app.filtered_segments_count();
-    let active_count = app.segments.iter().filter(|s| app.is_segment_active(s)).count();
+    let active_count = app
+        .segments
+        .iter()
+        .filter(|s| app.is_segment_active(s))
+        .count();
 
     let title = if app.segments_filter.is_empty() {
         format!(" 󰓣 Components  {} ", count)
@@ -92,7 +104,10 @@ fn render_segment_list(f: &mut Frame, area: Rect, app: &mut App) {
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(Color::Rgb(55, 70, 90)))
-            .title(Span::styled(title, Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD))),
+            .title(Span::styled(
+                title,
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )),
     );
 
     if !is_empty {
@@ -150,7 +165,10 @@ fn render_segment_detail(f: &mut Frame, area: Rect, app: &mut App) {
         let lines = vec![
             Line::from(""),
             Line::from(vec![
-                Span::styled("  󰓣 ", Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  󰓣 ",
+                    Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(
                     seg.name.as_str(),
                     Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
@@ -167,12 +185,18 @@ fn render_segment_detail(f: &mut Frame, area: Rect, app: &mut App) {
                 if active {
                     Span::styled(
                         " ENABLED ",
-                        Style::default().fg(C_BLACK).bg(C_LOCAL).add_modifier(Modifier::BOLD),
+                        Style::default()
+                            .fg(C_BLACK)
+                            .bg(C_LOCAL)
+                            .add_modifier(Modifier::BOLD),
                     )
                 } else {
                     Span::styled(
                         " DISABLED ",
-                        Style::default().fg(C_WHITE).bg(Color::Rgb(40, 50, 65)).add_modifier(Modifier::BOLD),
+                        Style::default()
+                            .fg(C_WHITE)
+                            .bg(Color::Rgb(40, 50, 65))
+                            .add_modifier(Modifier::BOLD),
                     )
                 },
             ]),
@@ -193,10 +217,7 @@ fn render_segment_detail(f: &mut Frame, area: Rect, app: &mut App) {
                 Style::default().fg(Color::Rgb(40, 55, 75)),
             )),
             Line::from(""),
-            Line::from(Span::styled(
-                "  Description",
-                Style::default().fg(C_DIM),
-            )),
+            Line::from(Span::styled("  Description", Style::default().fg(C_DIM))),
             Line::from(Span::styled(
                 format!("  {}", seg.description),
                 Style::default().fg(Color::Rgb(200, 210, 225)),
@@ -209,9 +230,19 @@ fn render_segment_detail(f: &mut Frame, area: Rect, app: &mut App) {
             Line::from(""),
             Line::from(vec![
                 Span::styled("  Action     ", Style::default().fg(C_DIM)),
-                Span::styled(" Enter ", Style::default().fg(C_BLACK).bg(C_ACTIVE).add_modifier(Modifier::BOLD)),
                 Span::styled(
-                    if active { " Disable segment" } else { " Enable segment" },
+                    " Enter ",
+                    Style::default()
+                        .fg(C_BLACK)
+                        .bg(C_ACTIVE)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    if active {
+                        " Disable segment"
+                    } else {
+                        " Enable segment"
+                    },
                     Style::default().fg(C_ACTIVE),
                 ),
             ]),
@@ -224,30 +255,47 @@ fn render_segment_detail(f: &mut Frame, area: Rect, app: &mut App) {
         );
     } else {
         let (msg, style) = if is_empty && !app.segments_filter.is_empty() {
-            ("\n  No results. Press Esc to clear.", Style::default().fg(C_DIM))
+            (
+                "\n  No results. Press Esc to clear.",
+                Style::default().fg(C_DIM),
+            )
         } else {
-            ("\n\n  󰓣  Select a component\n  to view details and toggle it.", Style::default().fg(C_DIM))
+            (
+                "\n\n  󰓣  Select a component\n  to view details and toggle it.",
+                Style::default().fg(C_DIM),
+            )
         };
         f.render_widget(
-            Paragraph::new(msg)
-                .style(style)
-                .block(detail_block),
+            Paragraph::new(msg).style(style).block(detail_block),
             split[0],
         );
     }
 
     // Bottom stats strip
     let total = app.segments.len();
-    let active_total = app.segments.iter().filter(|s| app.is_segment_active(s)).count();
+    let active_total = app
+        .segments
+        .iter()
+        .filter(|s| app.is_segment_active(s))
+        .count();
     let inactive_total = total.saturating_sub(active_total);
 
     let stats = Line::from(vec![
         Span::styled("  ● ", Style::default().fg(C_LOCAL)),
-        Span::styled(format!("{} enabled  ", active_total), Style::default().fg(C_DIM)),
+        Span::styled(
+            format!("{} enabled  ", active_total),
+            Style::default().fg(C_DIM),
+        ),
         Span::styled("○ ", Style::default().fg(C_DIM)),
-        Span::styled(format!("{} disabled  ", inactive_total), Style::default().fg(C_DIM)),
+        Span::styled(
+            format!("{} disabled  ", inactive_total),
+            Style::default().fg(C_DIM),
+        ),
         Span::styled("Total: ", Style::default().fg(C_DIM)),
-        Span::styled(format!("{}", total), Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            format!("{}", total),
+            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+        ),
     ]);
 
     f.render_widget(

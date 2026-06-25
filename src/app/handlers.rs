@@ -14,6 +14,16 @@ impl App {
                 AppMessage::FontsLoaded(mut fonts) => {
                     fonts.sort_by(|a, b| a.name.cmp(&b.name));
                     self.fonts = fonts;
+                    self.fonts_list_state.select(Some(0));
+                    if let Some(f) = self.filtered_font_at(0) {
+                        self.load_font_preview(f, tx.clone());
+                    }
+                }
+                AppMessage::FontPreviewLoaded {
+                    font_name,
+                    base64_image,
+                } => {
+                    self.font_preview_cache.insert(font_name, base64_image);
                 }
                 AppMessage::ThemePreviewLoaded {
                     theme,
@@ -175,7 +185,12 @@ impl App {
                                 self.theme_preview.clear();
                             }
                         }
-                        ActiveView::Fonts => self.fonts_list_state.select(Some(0)),
+                        ActiveView::Fonts => {
+                            self.fonts_list_state.select(Some(0));
+                            if let Some(f) = self.filtered_font_at(0) {
+                                self.load_font_preview(f, tx.clone());
+                            }
+                        }
                         ActiveView::Segments => self.segments_list_state.select(Some(0)),
                     }
                     return Ok(false);
@@ -457,6 +472,12 @@ impl App {
                             ActiveView::Fonts => ActiveView::Segments,
                             ActiveView::Segments => ActiveView::Themes,
                         };
+                        if self.active_view == ActiveView::Fonts
+                            && let Some(i) = self.fonts_list_state.selected()
+                            && let Some(f) = self.filtered_font_at(i)
+                        {
+                            self.load_font_preview(f, tx.clone());
+                        }
                         return Ok(false);
                     }
                     KeyCode::Char('1') => {
@@ -465,6 +486,11 @@ impl App {
                     }
                     KeyCode::Char('2') => {
                         self.active_view = ActiveView::Fonts;
+                        if let Some(i) = self.fonts_list_state.selected()
+                            && let Some(f) = self.filtered_font_at(i)
+                        {
+                            self.load_font_preview(f, tx.clone());
+                        }
                         return Ok(false);
                     }
                     KeyCode::Char('3') => {
@@ -497,6 +523,9 @@ impl App {
                             ActiveView::Fonts => {
                                 self.fonts_filter.pop();
                                 self.fonts_list_state.select(Some(0));
+                                if let Some(f) = self.filtered_font_at(0) {
+                                    self.load_font_preview(f, tx.clone());
+                                }
                             }
                             ActiveView::Segments => {
                                 self.segments_filter.pop();
@@ -523,6 +552,9 @@ impl App {
                             ActiveView::Fonts => {
                                 self.fonts_filter.push(c);
                                 self.fonts_list_state.select(Some(0));
+                                if let Some(f) = self.filtered_font_at(0) {
+                                    self.load_font_preview(f, tx.clone());
+                                }
                             }
                             ActiveView::Segments => {
                                 self.segments_filter.push(c);
@@ -580,6 +612,9 @@ impl App {
                     None => 0,
                 };
                 self.fonts_list_state.select(Some(i));
+                if let Some(f) = self.filtered_font_at(i) {
+                    self.load_font_preview(f, tx);
+                }
             }
             ActiveView::Segments => {
                 let count = self.filtered_segments_count();
@@ -765,6 +800,10 @@ mod handle_messages_tests {
             active_preview_task: None,
             active_segments: HashSet::new(),
             theme_preview_cache: std::collections::HashMap::new(),
+            kitty_preview_position: None,
+            selected_font_name: None,
+            font_preview_cache: std::collections::HashMap::new(),
+            active_font_preview_task: None,
         }
     }
 
@@ -790,6 +829,25 @@ mod handle_messages_tests {
         assert_eq!(app.fonts.len(), 2);
         assert_eq!(app.fonts[0].name, "Alpha");
         assert_eq!(app.fonts[1].name, "Zebra");
+    }
+
+    #[test]
+    fn test_handle_messages_font_preview_loaded() {
+        let mut app = create_test_app();
+        let (tx, mut rx) = mpsc::channel(1);
+
+        let msg = AppMessage::FontPreviewLoaded {
+            font_name: "Mock Font".to_string(),
+            base64_image: "mock_base64_data".to_string(),
+        };
+
+        let _ = tx.try_send(msg);
+        app.handle_messages(&mut rx, tx.clone());
+
+        assert_eq!(
+            app.font_preview_cache.get("Mock Font"),
+            Some(&"mock_base64_data".to_string())
+        );
     }
 
     #[test]
@@ -1009,7 +1067,7 @@ mod handle_messages_tests {
 
         assert!(result.is_ok());
         assert!(!result.unwrap());
-        
+
         if let AppState::InstallingDependency { current_action, .. } = app.state {
             assert!(current_action.contains("Starting"));
         } else {
@@ -1017,4 +1075,3 @@ mod handle_messages_tests {
         }
     }
 }
-

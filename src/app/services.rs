@@ -86,7 +86,11 @@ impl App {
     /// If not found, searches in popular fallback installation directories.
     /// If found in a fallback directory, dynamically prepends that directory to the process's PATH.
     pub fn check_omp_installed(&self) -> bool {
-        let binary_name = if cfg!(windows) { "oh-my-posh.exe" } else { "oh-my-posh" };
+        let binary_name = if cfg!(windows) {
+            "oh-my-posh.exe"
+        } else {
+            "oh-my-posh"
+        };
 
         // 1. Try to spawn 'oh-my-posh --version' directly
         if std::process::Command::new(binary_name)
@@ -104,11 +108,23 @@ impl App {
         let mut fallbacks = Vec::new();
         if cfg!(windows) {
             if let Some(local_appdata) = std::env::var_os("LOCALAPPDATA") {
-                fallbacks.push(PathBuf::from(local_appdata).join("Programs").join("oh-my-posh").join("bin"));
+                fallbacks.push(
+                    PathBuf::from(local_appdata)
+                        .join("Programs")
+                        .join("oh-my-posh")
+                        .join("bin"),
+                );
             }
             if let Some(user_profile) = std::env::var_os("USERPROFILE") {
                 let user_path = PathBuf::from(user_profile);
-                fallbacks.push(user_path.join("AppData").join("Local").join("Programs").join("oh-my-posh").join("bin"));
+                fallbacks.push(
+                    user_path
+                        .join("AppData")
+                        .join("Local")
+                        .join("Programs")
+                        .join("oh-my-posh")
+                        .join("bin"),
+                );
                 fallbacks.push(user_path.join(".oh-my-posh").join("bin"));
                 fallbacks.push(user_path.join("scoop").join("shims"));
             }
@@ -261,12 +277,12 @@ impl App {
                 && let Ok(out) = std::process::Command::new(shell)
                     .args(["-NoProfile", "-Command", "Write-Host -NoNewline $PROFILE"])
                     .output()
-                {
-                    let path_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                    if !path_str.is_empty() {
-                        profiles.push(PathBuf::from(path_str));
-                    }
+            {
+                let path_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !path_str.is_empty() {
+                    profiles.push(PathBuf::from(path_str));
                 }
+            }
         }
 
         profiles.sort();
@@ -310,7 +326,9 @@ impl App {
             // 1. Try using fc-list (fontconfig)
             if let Ok(out) = std::process::Command::new("fc-list").output() {
                 let stdout = String::from_utf8_lossy(&out.stdout);
-                if contains_ignore_ascii_case(&stdout, "nerd") || contains_ignore_ascii_case(&stdout, "nf") {
+                if contains_ignore_ascii_case(&stdout, "nerd")
+                    || contains_ignore_ascii_case(&stdout, "nf")
+                {
                     return true;
                 }
             }
@@ -328,14 +346,17 @@ impl App {
 
             for path in paths {
                 if path.exists()
-                    && let Ok(entries) = std::fs::read_dir(path) {
-                        for entry in entries.flatten() {
-                            let name = entry.file_name().to_string_lossy().to_string();
-                            if contains_ignore_ascii_case(&name, "nerd") || contains_ignore_ascii_case(&name, "nf") {
-                                return true;
-                            }
+                    && let Ok(entries) = std::fs::read_dir(path)
+                {
+                    for entry in entries.flatten() {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        if contains_ignore_ascii_case(&name, "nerd")
+                            || contains_ignore_ascii_case(&name, "nf")
+                        {
+                            return true;
                         }
                     }
+                }
             }
 
             // Default fallback
@@ -866,6 +887,89 @@ impl App {
         self.active_preview_task = Some(handle);
     }
 
+    /// Checks if we are running inside the Kitty terminal
+    pub fn is_kitty() -> bool {
+        std::env::var("KITTY_PID").is_ok()
+            || std::env::var("TERM")
+                .map(|v| v.contains("kitty"))
+                .unwrap_or(false)
+    }
+
+    /// Asynchronously generates a real font preview image using Kitty Graphics Protocol if on Kitty
+    pub fn load_font_preview(&mut self, font: FontAsset, tx: mpsc::Sender<AppMessage>) {
+        if !Self::is_kitty() {
+            return;
+        }
+
+        if self.font_preview_cache.contains_key(&font.name) {
+            return;
+        }
+
+        if let Some(handle) = self.active_font_preview_task.take() {
+            handle.abort();
+        }
+
+        let font_name = font.name.clone();
+        let handle = tokio::spawn(async move {
+            // Find font path on the system using fc-match
+            let font_query = format!("{} Nerd Font", font_name);
+            let fc_match_out = tokio::process::Command::new("fc-match")
+                .args([&font_query, "family", "file"])
+                .output()
+                .await;
+
+            if let Ok(out) = fc_match_out {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                if let Some(pos) = stdout.find(":file=") {
+                    let family = stdout[..pos].trim();
+                    let font_path = stdout[pos + 6..].trim();
+
+                    // Render preview only if matched family contains the selected font name
+                    let clean_font_name = font_name.replace("Nerd Font", "").trim().to_lowercase();
+                    if family.to_lowercase().contains(&clean_font_name) {
+                        let text = format!("{}  󰛖  󰊤  poshbuddy", font_name);
+                        let python_script = r#"import sys, io, base64
+from PIL import Image, ImageDraw, ImageFont
+font_path = sys.argv[1]
+text = sys.argv[2]
+try:
+    font = ImageFont.truetype(font_path, 20)
+    im = Image.new("RGBA", (450, 32), (13, 17, 23, 255))
+    draw = ImageDraw.Draw(im)
+    draw.text((10, 3), text, font=font, fill=(230, 237, 243, 255))
+    buf = io.BytesIO()
+    im.save(buf, "PNG")
+    print(base64.b64encode(buf.getvalue()).decode("utf-8"))
+except Exception:
+    sys.exit(1)
+"#;
+                        let py_out = tokio::process::Command::new("python3")
+                            .args(["-c", python_script, font_path, &text])
+                            .output()
+                            .await;
+
+                        if let Ok(py_out) = py_out
+                            && py_out.status.success()
+                        {
+                            let base64_image =
+                                String::from_utf8_lossy(&py_out.stdout).trim().to_string();
+                            if !base64_image.is_empty() {
+                                let _ = tx
+                                    .send(AppMessage::FontPreviewLoaded {
+                                        font_name: font_name.clone(),
+                                        base64_image,
+                                    })
+                                    .await;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        self.active_font_preview_task = Some(handle);
+    }
+
     /// Handles automatic installation of Oh My Posh via WinGet (Windows) or Homebrew (Linux/macOS)
     pub fn install_omp(&self, tx: mpsc::Sender<AppMessage>) {
         tokio::spawn(async move {
@@ -1102,19 +1206,26 @@ impl App {
         let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
 
         for profile in profiles {
-            let file_name = profile.file_name()
+            let file_name = profile
+                .file_name()
                 .map(|f| f.to_string_lossy().to_lowercase())
                 .unwrap_or_default();
-            
+
             let path_str = theme_path.to_string_lossy();
-            let config_line = if file_name.contains("bash") || file_name == ".profile" || file_name == ".bash_profile" {
+            let config_line = if file_name.contains("bash")
+                || file_name == ".profile"
+                || file_name == ".bash_profile"
+            {
                 format!("eval \"$(oh-my-posh init bash --config '{}')\"", path_str)
             } else if file_name.contains("zsh") || file_name == ".zprofile" {
                 format!("eval \"$(oh-my-posh init zsh --config '{}')\"", path_str)
             } else if file_name.contains("fish") || file_name.ends_with(".fish") {
                 format!("oh-my-posh init fish --config '{}' | source", path_str)
             } else {
-                format!("oh-my-posh init pwsh --config \"{}\" | Out-String | Invoke-Expression", path_str)
+                format!(
+                    "oh-my-posh init pwsh --config \"{}\" | Out-String | Invoke-Expression",
+                    path_str
+                )
             };
 
             let existing_content = tokio::fs::read_to_string(profile).await.unwrap_or_default();
@@ -1161,9 +1272,13 @@ impl App {
             }
 
             if let Some(parent) = profile.parent()
-                && let Err(e) = tokio::fs::create_dir_all(parent).await {
-                    return Err(format!("Failed to create parent directory for profile: {}", e));
-                }
+                && let Err(e) = tokio::fs::create_dir_all(parent).await
+            {
+                return Err(format!(
+                    "Failed to create parent directory for profile: {}",
+                    e
+                ));
+            }
 
             if let Err(e) = tokio::fs::write(profile, new_lines.join(line_ending)).await {
                 return Err(format!("Profile update failed: {}", e));
@@ -1262,7 +1377,9 @@ impl App {
                 source_path
             };
 
-            if let Err(e) = Self::update_profiles_with_theme(&profiles, &name, &final_theme_path).await {
+            if let Err(e) =
+                Self::update_profiles_with_theme(&profiles, &name, &final_theme_path).await
+            {
                 let _ = tx_cloned.send(AppMessage::Error(e)).await;
                 return;
             }
@@ -1289,10 +1406,11 @@ impl App {
         let key = format!("PLUGIN_{}", plugin.module_name.to_uppercase());
 
         for profile in &self.detected_profiles {
-            let file_name = profile.file_name()
+            let file_name = profile
+                .file_name()
                 .map(|f| f.to_string_lossy().to_lowercase())
                 .unwrap_or_default();
-            
+
             // Skip non-PowerShell profiles for PowerShell plugin toggling
             if !file_name.ends_with(".ps1") {
                 continue;

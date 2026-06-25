@@ -1,8 +1,8 @@
 use crate::app::App;
 use crate::ui::components::centered_rect;
 use crate::ui::{
-    C_ACCENT, C_ACTIVE, C_BLACK, C_DIM, C_ERROR, C_GRAD_1, C_GRAD_2, C_GRAD_3, C_GRAD_4,
-    C_LOCAL, C_WHITE, SPINNER,
+    C_ACCENT, C_ACTIVE, C_BLACK, C_DIM, C_ERROR, C_GRAD_1, C_GRAD_2, C_GRAD_3, C_GRAD_4, C_LOCAL,
+    C_WHITE, SPINNER,
 };
 use ratatui::{
     Frame,
@@ -28,11 +28,11 @@ pub(crate) fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 
     let constraints = if has_space_for_logo {
         vec![
-            Constraint::Length(8),  // Logo
-            Constraint::Length(3),  // Dashboard Title
-            Constraint::Fill(1),    // Stats & Actions
-            Constraint::Length(3),  // Next Step Hint
-            Constraint::Length(1),  // Footer
+            Constraint::Length(8), // Logo
+            Constraint::Length(3), // Dashboard Title
+            Constraint::Fill(1),   // Stats & Actions
+            Constraint::Length(3), // Next Step Hint
+            Constraint::Length(1), // Footer
         ]
     } else {
         vec![
@@ -72,15 +72,52 @@ pub(crate) fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
 fn render_welcome_header(f: &mut Frame, area: Rect) {
     let line = Line::from(vec![
         Span::styled("━━━━  ", Style::default().fg(Color::Rgb(40, 55, 75))),
-        Span::styled("D", Style::default().fg(C_GRAD_1).add_modifier(Modifier::BOLD)),
-        Span::styled("A", Style::default().fg(Color::Rgb(90, 100, 248)).add_modifier(Modifier::BOLD)),
-        Span::styled("S", Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD)),
-        Span::styled("H", Style::default().fg(Color::Rgb(170, 50, 240)).add_modifier(Modifier::BOLD)),
-        Span::styled("B", Style::default().fg(C_GRAD_3).add_modifier(Modifier::BOLD)),
-        Span::styled("O", Style::default().fg(Color::Rgb(240, 30, 160)).add_modifier(Modifier::BOLD)),
-        Span::styled("A", Style::default().fg(Color::Rgb(252, 60, 120)).add_modifier(Modifier::BOLD)),
-        Span::styled("R", Style::default().fg(C_GRAD_4).add_modifier(Modifier::BOLD)),
-        Span::styled("D", Style::default().fg(Color::Rgb(255, 80, 80)).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "D",
+            Style::default().fg(C_GRAD_1).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "A",
+            Style::default()
+                .fg(Color::Rgb(90, 100, 248))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "S",
+            Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "H",
+            Style::default()
+                .fg(Color::Rgb(170, 50, 240))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "B",
+            Style::default().fg(C_GRAD_3).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "O",
+            Style::default()
+                .fg(Color::Rgb(240, 30, 160))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "A",
+            Style::default()
+                .fg(Color::Rgb(252, 60, 120))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "R",
+            Style::default().fg(C_GRAD_4).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "D",
+            Style::default()
+                .fg(Color::Rgb(255, 80, 80))
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled("  ━━━━", Style::default().fg(Color::Rgb(40, 55, 75))),
     ]);
     f.render_widget(Paragraph::new(line).alignment(Alignment::Center), area);
@@ -113,7 +150,11 @@ fn render_welcome_body(f: &mut Frame, area: Rect, app: &App, is_narrow: bool) {
     };
 
     let left_area = body_chunks[0];
-    let right_area = if is_narrow { body_chunks[1] } else { body_chunks[2] };
+    let right_area = if is_narrow {
+        body_chunks[1]
+    } else {
+        body_chunks[2]
+    };
 
     // Left Column: Session Identity + Environment
     let left_column = Layout::default()
@@ -134,12 +175,16 @@ fn render_welcome_hint(f: &mut Frame, area: Rect, is_narrow: bool) {
         Span::styled("Enter ", Style::default().fg(C_ACCENT)),
         Span::styled("Select  ", Style::default().fg(C_DIM)),
         Span::styled("[1-8] ", Style::default().fg(C_ACTIVE)),
-        Span::styled(if is_narrow { "Quick Keys" } else { "Quick Actions  [T F S R N I D B] Mnemonics" }, Style::default().fg(C_DIM)),
+        Span::styled(
+            if is_narrow {
+                "Quick Keys"
+            } else {
+                "Quick Actions  [T F S R N I D B] Mnemonics"
+            },
+            Style::default().fg(C_DIM),
+        ),
     ]);
-    f.render_widget(
-        Paragraph::new(line).alignment(Alignment::Center),
-        area,
-    );
+    f.render_widget(Paragraph::new(line).alignment(Alignment::Center), area);
 }
 
 fn render_welcome_footer(f: &mut Frame, area: Rect, app: &App) {
@@ -147,9 +192,15 @@ fn render_welcome_footer(f: &mut Frame, area: Rect, app: &App) {
         Span::styled("  🐱 PoshBuddy ", Style::default().fg(C_GRAD_2)),
         Span::styled(format!("v{}", app.version), Style::default().fg(C_DIM)),
         Span::styled("  ·  crafted with ♥ by ", Style::default().fg(C_DIM)),
-        Span::styled("julesklord", Style::default().fg(C_ACCENT).add_modifier(Modifier::ITALIC)),
+        Span::styled(
+            "julesklord",
+            Style::default().fg(C_ACCENT).add_modifier(Modifier::ITALIC),
+        ),
         Span::styled("  ·  ", Style::default().fg(Color::Rgb(40, 55, 75))),
-        Span::styled("github.com/julesklord/poshbuddy", Style::default().fg(Color::Rgb(60, 80, 110))),
+        Span::styled(
+            "github.com/julesklord/poshbuddy",
+            Style::default().fg(Color::Rgb(60, 80, 110)),
+        ),
     ]);
     f.render_widget(Paragraph::new(line).alignment(Alignment::Center), area);
 }
@@ -193,9 +244,15 @@ fn render_welcome_logo(f: &mut Frame, area: Rect) {
     for i in 0..6 {
         let color = colors[(i * 2) % colors.len()];
         lines.push(Line::from(vec![
-            Span::styled(logo_left[i], Style::default().fg(color).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                logo_left[i],
+                Style::default().fg(color).add_modifier(Modifier::BOLD),
+            ),
             Span::raw("    "),
-            Span::styled(logo_right[i], Style::default().fg(color).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                logo_right[i],
+                Style::default().fg(color).add_modifier(Modifier::BOLD),
+            ),
         ]));
     }
 
@@ -211,7 +268,12 @@ fn render_welcome_logo(f: &mut Frame, area: Rect) {
     let subtitle_color = colors[12 % colors.len()];
     lines.push(Line::from(vec![
         Span::raw(padding_left),
-        Span::styled("~ posh posh posh !! ~", Style::default().fg(subtitle_color).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "~ posh posh posh !! ~",
+            Style::default()
+                .fg(subtitle_color)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(padding_right),
     ]));
 
@@ -228,7 +290,10 @@ fn render_session_identity(f: &mut Frame, area: Rect, app: &App) {
         Line::from(""),
         Line::from(vec![
             Span::styled("  󰀄  Account  ", Style::default().fg(C_DIM)),
-            Span::styled(&username, Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                &username,
+                Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+            ),
             Span::styled("  @  ", Style::default().fg(C_DIM)),
             Span::styled(&hostname, Style::default().fg(C_ACCENT)),
         ]),
@@ -240,7 +305,10 @@ fn render_session_identity(f: &mut Frame, area: Rect, app: &App) {
         Line::from(vec![
             Span::styled("  󱐋  Status   ", Style::default().fg(C_DIM)),
             Span::styled("● ", Style::default().fg(C_LOCAL)),
-            Span::styled("ACTIVE", Style::default().fg(C_LOCAL).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "ACTIVE",
+                Style::default().fg(C_LOCAL).add_modifier(Modifier::BOLD),
+            ),
         ]),
         Line::from(vec![
             Span::styled("  󰁯  Backups  ", Style::default().fg(C_DIM)),
@@ -252,7 +320,10 @@ fn render_session_identity(f: &mut Frame, area: Rect, app: &App) {
         Line::from(""),
         Line::from(vec![
             Span::raw("  "),
-            Span::styled("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", Style::default().fg(Color::Rgb(35, 45, 60))),
+            Span::styled(
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                Style::default().fg(Color::Rgb(35, 45, 60)),
+            ),
         ]),
     ];
 
@@ -302,7 +373,11 @@ fn render_environment_info(f: &mut Frame, area: Rect, app: &App) {
             Span::styled("  󱆃  Shell    ", Style::default().fg(C_DIM)),
             Span::styled("● ", Style::default().fg(shell_color)),
             Span::styled(
-                if is_pwsh_7 { "PowerShell 7+" } else { "PowerShell (classic)" },
+                if is_pwsh_7 {
+                    "PowerShell 7+"
+                } else {
+                    "PowerShell (classic)"
+                },
                 Style::default().fg(C_WHITE),
             ),
         ]),
@@ -310,7 +385,11 @@ fn render_environment_info(f: &mut Frame, area: Rect, app: &App) {
             Span::styled("  󰆍  Terminal ", Style::default().fg(C_DIM)),
             Span::styled("● ", Style::default().fg(term_color)),
             Span::styled(
-                if is_wt { "Windows Terminal" } else { "Legacy Console" },
+                if is_wt {
+                    "Windows Terminal"
+                } else {
+                    "Legacy Console"
+                },
                 Style::default().fg(C_WHITE),
             ),
         ]),
@@ -321,7 +400,11 @@ fn render_environment_info(f: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(font_color).add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                if has_nf { "Nerd Font active" } else { "Nerd Font missing!" },
+                if has_nf {
+                    "Nerd Font active"
+                } else {
+                    "Nerd Font missing!"
+                },
                 Style::default().fg(if has_nf { C_WHITE } else { C_ERROR }),
             ),
         ]),
@@ -381,7 +464,12 @@ fn render_quick_steps(f: &mut Frame, area: Rect, app: &App) {
         } else if is_selected {
             (C_ACCENT, C_BLACK, C_WHITE, Color::Rgb(20, 35, 55))
         } else {
-            (Color::Reset, C_ACCENT, Color::Rgb(170, 185, 205), Color::Reset)
+            (
+                Color::Reset,
+                C_ACCENT,
+                Color::Rgb(170, 185, 205),
+                Color::Reset,
+            )
         };
 
         let suffix = if *is_disabled { " [Soon]" } else { "" };
@@ -390,26 +478,33 @@ fn render_quick_steps(f: &mut Frame, area: Rect, app: &App) {
             Span::styled("  ", Style::default()),
             Span::styled(
                 format!("[{}]", key),
-                Style::default()
-                    .fg(key_fg)
-                    .bg(key_bg)
-                    .add_modifier(if is_selected && !is_disabled { Modifier::BOLD } else { Modifier::empty() }),
+                Style::default().fg(key_fg).bg(key_bg).add_modifier(
+                    if is_selected && !is_disabled {
+                        Modifier::BOLD
+                    } else {
+                        Modifier::empty()
+                    },
+                ),
             ),
             Span::styled(
                 format!(" {} ", icon),
-                Style::default().fg(if is_selected && !is_disabled { C_ACCENT } else { C_DIM }),
+                Style::default().fg(if is_selected && !is_disabled {
+                    C_ACCENT
+                } else {
+                    C_DIM
+                }),
             ),
             Span::styled(
                 format!("{}{}", label, suffix),
-                Style::default()
-                    .fg(row_fg)
-                    .bg(row_bg)
-                    .add_modifier(if is_selected && !is_disabled { Modifier::BOLD } else { Modifier::empty() }),
+                Style::default().fg(row_fg).bg(row_bg).add_modifier(
+                    if is_selected && !is_disabled {
+                        Modifier::BOLD
+                    } else {
+                        Modifier::empty()
+                    },
+                ),
             ),
-            Span::styled(
-                format!(" ({})", mnemonic),
-                Style::default().fg(C_DIM),
-            ),
+            Span::styled(format!(" ({})", mnemonic), Style::default().fg(C_DIM)),
         ]));
     }
 
@@ -446,7 +541,10 @@ pub(crate) fn render_loading(f: &mut Frame, area: Rect, app: &App) {
             Line::from(""),
             Line::from(vec![
                 Span::raw("  "),
-                Span::styled(spin, Style::default().fg(spin_color).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    spin,
+                    Style::default().fg(spin_color).add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(
                     "  Loading PoshBuddy...",
                     Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
@@ -506,7 +604,10 @@ pub(crate) fn render_dep_missing(f: &mut Frame, area: Rect) {
     f.render_widget(Clear, center);
 
     let (installer_desc, manual_cmd) = if cfg!(windows) {
-        ("Auto-install via WinGet", "winget install JanDeDobbeleer.OhMyPosh")
+        (
+            "Auto-install via WinGet",
+            "winget install JanDeDobbeleer.OhMyPosh",
+        )
     } else if has_brew() {
         ("Auto-install via Homebrew", "brew install oh-my-posh")
     } else {
@@ -520,7 +621,10 @@ pub(crate) fn render_dep_missing(f: &mut Frame, area: Rect) {
         Paragraph::new(vec![
             Line::from(""),
             Line::from(vec![
-                Span::styled("  ✗  ", Style::default().fg(C_ERROR).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  ✗  ",
+                    Style::default().fg(C_ERROR).add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(
                     "Oh My Posh not found",
                     Style::default().fg(C_ERROR).add_modifier(Modifier::BOLD),
@@ -538,13 +642,22 @@ pub(crate) fn render_dep_missing(f: &mut Frame, area: Rect) {
             )),
             Line::from(""),
             Line::from(vec![
-                Span::styled("  Enter  ", Style::default().fg(C_BLACK).bg(C_ACCENT).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  Enter  ",
+                    Style::default()
+                        .fg(C_BLACK)
+                        .bg(C_ACCENT)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw("  "),
                 Span::styled(installer_desc, Style::default().fg(C_WHITE)),
             ]),
             Line::from(""),
             Line::from(vec![
-                Span::styled("  Q      ", Style::default().fg(C_DIM).bg(Color::Rgb(40, 50, 65))),
+                Span::styled(
+                    "  Q      ",
+                    Style::default().fg(C_DIM).bg(Color::Rgb(40, 50, 65)),
+                ),
                 Span::raw("  "),
                 Span::styled("Quit and install manually", Style::default().fg(C_DIM)),
             ]),

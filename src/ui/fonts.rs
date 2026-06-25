@@ -10,6 +10,9 @@ use ratatui::{
 };
 
 pub(crate) fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
+    app.kitty_preview_position = None;
+    app.selected_font_name = None;
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -20,8 +23,14 @@ pub(crate) fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
 
     // Header with gradient effect
     let header = Line::from(vec![
-        Span::styled("  󰛖 ", Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD)),
-        Span::styled("FONT MANAGER", Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "  󰛖 ",
+            Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "FONT MANAGER",
+            Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+        ),
         Span::styled("  —  Nerd Fonts", Style::default().fg(C_DIM)),
     ]);
     f.render_widget(
@@ -61,10 +70,7 @@ pub(crate) fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         let msg = if app.fonts_filter.is_empty() {
             "  No fonts available.".to_string()
         } else {
-            format!(
-                "  No fonts matching '{}'\n  Esc to clear",
-                app.fonts_filter
-            )
+            format!("  No fonts matching '{}'\n  Esc to clear", app.fonts_filter)
         };
         Some(ListItem::new(msg).style(Style::default().fg(C_DIM)))
     } else {
@@ -86,7 +92,10 @@ pub(crate) fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(Color::Rgb(55, 70, 90)))
-            .title(Span::styled(title, Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD))),
+            .title(Span::styled(
+                title,
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )),
     );
 
     if !is_empty {
@@ -118,17 +127,22 @@ pub(crate) fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         ));
 
     if let Some(font) = selected {
+        // Save the preview position and select font name for Kitty overlay
+        let preview_y = cols[1].y + 10;
+        let preview_x = cols[1].x + 13;
+        app.kitty_preview_position = Some((preview_x, preview_y));
+        app.selected_font_name = Some(font.name.clone());
+
         // Extract a short family name from the full font name
-        let family = font
-            .name
-            .split_whitespace()
-            .next()
-            .unwrap_or(&font.name);
+        let family = font.name.split_whitespace().next().unwrap_or(&font.name);
 
         let lines = vec![
             Line::from(""),
             Line::from(vec![
-                Span::styled("  󰛖 ", Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  󰛖 ",
+                    Style::default().fg(C_GRAD_2).add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(
                     font.name.as_str(),
                     Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
@@ -158,7 +172,13 @@ pub(crate) fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
             Line::from(vec![
                 Span::styled("  Preview    ", Style::default().fg(C_DIM)),
                 Span::styled(
-                    "    󰊤    ",
+                    if App::is_kitty() && app.font_preview_cache.contains_key(&font.name) {
+                        "                                           " // overlay spacer
+                    } else if App::is_kitty() {
+                        "    󰛖  (Loading real font preview...)"
+                    } else {
+                        "    󰛖  (Real preview requires Kitty)"
+                    },
                     Style::default().fg(C_GRAD_2),
                 ),
             ]),
@@ -170,7 +190,13 @@ pub(crate) fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
             Line::from(""),
             Line::from(vec![
                 Span::styled("  Action     ", Style::default().fg(C_DIM)),
-                Span::styled(" Enter ", Style::default().fg(C_BLACK).bg(C_LOCAL).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    " Enter ",
+                    Style::default()
+                        .fg(C_BLACK)
+                        .bg(C_LOCAL)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(" Install font", Style::default().fg(C_LOCAL)),
             ]),
             Line::from(""),
@@ -182,14 +208,18 @@ pub(crate) fn render_fonts(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_widget(Paragraph::new(lines).block(detail_block), cols[1]);
     } else {
         let (msg, style) = if is_empty && !app.fonts_filter.is_empty() {
-            ("\n  No results. Press Esc to clear.", Style::default().fg(C_DIM))
+            (
+                "\n  No results. Press Esc to clear.",
+                Style::default().fg(C_DIM),
+            )
         } else {
-            ("\n\n  󰛖  Select a font from the list\n  to see details and install it.", Style::default().fg(C_DIM))
+            (
+                "\n\n  󰛖  Select a font from the list\n  to see details and install it.",
+                Style::default().fg(C_DIM),
+            )
         };
         f.render_widget(
-            Paragraph::new(msg)
-                .style(style)
-                .block(detail_block),
+            Paragraph::new(msg).style(style).block(detail_block),
             cols[1],
         );
     }

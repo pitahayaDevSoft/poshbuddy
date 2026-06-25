@@ -59,6 +59,10 @@ pub enum AppMessage {
         preview: String,
         request_id: u64,
     },
+    FontPreviewLoaded {
+        font_name: String,
+        base64_image: String,
+    },
     ThemeDownloaded(std::path::PathBuf),
     InstallUpdate {
         stage: usize,
@@ -149,4 +153,8 @@ pub struct App {
     pub active_preview_task: Option<tokio::task::JoinHandle<()>>, // Handle to abort preview tasks
     pub active_segments: HashSet<String>, // Cache of active segments to avoid repetitive I/O
     pub theme_preview_cache: std::collections::HashMap<String, String>, // Cache for theme previews
+    pub kitty_preview_position: Option<(u16, u16)>, // Screen coordinates for Kitty preview
+    pub selected_font_name: Option<String>, // Currently selected font name
+    pub font_preview_cache: std::collections::HashMap<String, String>, // Cache for font previews
+    pub active_font_preview_task: Option<tokio::task::JoinHandle<()>>, // Handle to abort font preview tasks
 }

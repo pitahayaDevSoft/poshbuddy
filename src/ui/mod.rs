@@ -19,14 +19,14 @@ mod tests;
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 // Rich RGB palette for a premium TUI look
-pub(crate) const C_ACCENT: Color = Color::Rgb(99, 179, 237);   // Sky blue
-pub(crate) const C_LOCAL: Color = Color::Rgb(104, 211, 145);   // Mint green
-pub(crate) const C_REMOTE: Color = Color::Rgb(154, 117, 234);  // Soft purple
-pub(crate) const C_ACTIVE: Color = Color::Rgb(252, 196, 25);   // Warm gold
-pub(crate) const C_ERROR: Color = Color::Rgb(252, 90, 90);     // Coral red
-pub(crate) const C_DIM: Color = Color::Rgb(100, 110, 125);     // Muted blue-grey
-pub(crate) const C_WHITE: Color = Color::Rgb(230, 237, 243);   // Near-white
-pub(crate) const C_BLACK: Color = Color::Rgb(13, 17, 23);      // Near-black
+pub(crate) const C_ACCENT: Color = Color::Rgb(99, 179, 237); // Sky blue
+pub(crate) const C_LOCAL: Color = Color::Rgb(104, 211, 145); // Mint green
+pub(crate) const C_REMOTE: Color = Color::Rgb(154, 117, 234); // Soft purple
+pub(crate) const C_ACTIVE: Color = Color::Rgb(252, 196, 25); // Warm gold
+pub(crate) const C_ERROR: Color = Color::Rgb(252, 90, 90); // Coral red
+pub(crate) const C_DIM: Color = Color::Rgb(100, 110, 125); // Muted blue-grey
+pub(crate) const C_WHITE: Color = Color::Rgb(230, 237, 243); // Near-white
+pub(crate) const C_BLACK: Color = Color::Rgb(13, 17, 23); // Near-black
 
 // Accent gradient palette (used for logo & highlights)
 pub(crate) const C_GRAD_1: Color = Color::Rgb(66, 133, 244);
@@ -140,22 +140,32 @@ fn render_overlays(f: &mut Frame, app: &App) {
             Line::from(""),
             Line::from(vec![
                 Span::raw("  "),
-                Span::styled("You are about to install ALL Nerd Fonts.", Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "You are about to install ALL Nerd Fonts.",
+                    Style::default().fg(C_WHITE).add_modifier(Modifier::BOLD),
+                ),
             ]),
-            Line::from(vec![
-                Span::styled("  This process may take significant time and bandwidth.", Style::default().fg(C_DIM)),
-            ]),
+            Line::from(vec![Span::styled(
+                "  This process may take significant time and bandwidth.",
+                Style::default().fg(C_DIM),
+            )]),
             Line::from(""),
             Line::from(vec![
                 Span::raw("  Do you want to proceed? "),
                 Span::styled(
                     " (y) Yes ",
-                    Style::default().fg(C_BLACK).bg(C_LOCAL).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(C_BLACK)
+                        .bg(C_LOCAL)
+                        .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw("  "),
                 Span::styled(
                     " (n) No ",
-                    Style::default().fg(C_BLACK).bg(C_ERROR).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(C_BLACK)
+                        .bg(C_ERROR)
+                        .add_modifier(Modifier::BOLD),
                 ),
             ]),
         ];
