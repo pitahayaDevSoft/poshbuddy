@@ -257,8 +257,8 @@ impl App {
             vec!["pwsh"]
         };
         for shell in shells {
-            if is_binary_in_path(shell) {
-                if let Ok(out) = std::process::Command::new(shell)
+            if is_binary_in_path(shell)
+                && let Ok(out) = std::process::Command::new(shell)
                     .args(["-NoProfile", "-Command", "Write-Host -NoNewline $PROFILE"])
                     .output()
                 {
@@ -267,7 +267,6 @@ impl App {
                         profiles.push(PathBuf::from(path_str));
                     }
                 }
-            }
         }
 
         profiles.sort();
@@ -328,8 +327,8 @@ impl App {
             paths.push(PathBuf::from("/Library/Fonts"));
 
             for path in paths {
-                if path.exists() {
-                    if let Ok(entries) = std::fs::read_dir(path) {
+                if path.exists()
+                    && let Ok(entries) = std::fs::read_dir(path) {
                         for entry in entries.flatten() {
                             let name = entry.file_name().to_string_lossy().to_string();
                             if contains_ignore_ascii_case(&name, "nerd") || contains_ignore_ascii_case(&name, "nf") {
@@ -337,7 +336,6 @@ impl App {
                             }
                         }
                     }
-                }
             }
 
             // Default fallback
@@ -1162,11 +1160,10 @@ impl App {
                 new_lines.push(end_marker.to_string());
             }
 
-            if let Some(parent) = profile.parent() {
-                if let Err(e) = tokio::fs::create_dir_all(parent).await {
+            if let Some(parent) = profile.parent()
+                && let Err(e) = tokio::fs::create_dir_all(parent).await {
                     return Err(format!("Failed to create parent directory for profile: {}", e));
                 }
-            }
 
             if let Err(e) = tokio::fs::write(profile, new_lines.join(line_ending)).await {
                 return Err(format!("Profile update failed: {}", e));

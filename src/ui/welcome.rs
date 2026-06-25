@@ -24,11 +24,11 @@ pub(crate) fn render_welcome(f: &mut Frame, area: Rect, app: &App) {
         return;
     }
 
-    let has_space_for_logo = area.height > 25;
+    let has_space_for_logo = area.height > 23;
 
     let constraints = if has_space_for_logo {
         vec![
-            Constraint::Length(14), // Logo
+            Constraint::Length(8),  // Logo
             Constraint::Length(3),  // Dashboard Title
             Constraint::Fill(1),    // Stats & Actions
             Constraint::Length(3),  // Next Step Hint
@@ -155,20 +155,22 @@ fn render_welcome_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_welcome_logo(f: &mut Frame, area: Rect) {
-    let cat_and_text = [
-        "                              ▄█▄       ▄█▄                              ",
-        "                             ███████████████                             ",
-        "                             ██ ▀██   ██▀ ██                             ",
-        "                             ██    ▄▄▄    ██                             ",
-        "                              ▀███████████▀                              ",
-        "                                                                         ",
+    let logo_left = [
+        "  ▄█▄       ▄█▄  ",
+        " ███████████████ ",
+        " ██ ▀██   ██▀ ██ ",
+        " ██    ▄▄▄    ██ ",
+        "  ▀███████████▀  ",
+        "                 ",
+    ];
+
+    let logo_right = [
         "██████╗  ██████╗ ███████╗██╗  ██╗██████╗ ██╗   ██╗██████╗ ██████╗ ██╗   ██╗",
         "██╔══██╗██╔═══██╗██╔════╝██║  ██║██╔══██╗██║   ██║██╔══██╗██╔══██╗╚██╗ ██╔╝",
         "██████╔╝██║   ██║███████╗███████║██████╔╝██║   ██║██║  ██║██║  ██║ ╚████╔╝ ",
         "██╔═══╝ ██║   ██║╚════██║██╔══██║██╔══██╗██║   ██║██║  ██║██║  ██║  ╚██╔╝  ",
         "██║     ╚██████╔╝███████║██║  ██║██████╔╝╚██████╔╝██████╔╝██████╔╝   ██║   ",
         "╚═╝      ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═════╝ ╚═════╝    ╚═╝   ",
-        "                            ~ posh posh posh !! ~                            ",
     ];
 
     let colors = [
@@ -187,15 +189,31 @@ fn render_welcome_logo(f: &mut Frame, area: Rect) {
         Color::Rgb(255, 120, 80),
     ];
 
-    let mut lines = Vec::with_capacity(cat_and_text.len());
-    for (i, line) in cat_and_text.iter().enumerate() {
-        lines.push(Line::from(Span::styled(
-            *line,
-            Style::default()
-                .fg(colors[i % colors.len()])
-                .add_modifier(Modifier::BOLD),
-        )));
+    let mut lines = Vec::with_capacity(7);
+    for i in 0..6 {
+        let color = colors[(i * 2) % colors.len()];
+        lines.push(Line::from(vec![
+            Span::styled(logo_left[i], Style::default().fg(color).add_modifier(Modifier::BOLD)),
+            Span::raw("    "),
+            Span::styled(logo_right[i], Style::default().fg(color).add_modifier(Modifier::BOLD)),
+        ]));
     }
+
+    // Add subtitle centered under the right side title
+    // "logo_left[i] + spacer" is 17 + 4 = 21 chars wide.
+    // The title is 75 chars wide.
+    // We want to center "~ posh posh posh !! ~" (25 chars) under the 75-character title.
+    // Offset inside the 75 chars is (75 - 25) / 2 = 25 chars.
+    // So total spaces before subtitle is 21 + 25 = 46.
+    // We pad the end with 25 spaces to make the line width exactly 96 chars (46 + 25 + 25 = 96).
+    let padding_left = " ".repeat(46);
+    let padding_right = " ".repeat(25);
+    let subtitle_color = colors[12 % colors.len()];
+    lines.push(Line::from(vec![
+        Span::raw(padding_left),
+        Span::styled("~ posh posh posh !! ~", Style::default().fg(subtitle_color).add_modifier(Modifier::BOLD)),
+        Span::raw(padding_right),
+    ]));
 
     f.render_widget(Paragraph::new(lines).alignment(Alignment::Center), area);
 }

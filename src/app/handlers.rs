@@ -660,7 +660,7 @@ mod tests {
         let result = app.handle_input(key, tx);
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), true);
+        assert!(result.unwrap());
     }
 
     #[tokio::test]
@@ -672,7 +672,7 @@ mod tests {
         let result = app.handle_input(key, tx);
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), true);
+        assert!(result.unwrap());
     }
 
     #[tokio::test]
@@ -685,17 +685,17 @@ mod tests {
         let key = KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE);
 
         // Tab from Themes -> Fonts
-        let result = app.handle_input(key.clone(), tx.clone());
+        let result = app.handle_input(key, tx.clone());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), false);
+        assert!(!result.unwrap());
         assert_eq!(app.active_view, ActiveView::Fonts);
 
         // Tab from Fonts -> Segments
-        let _ = app.handle_input(key.clone(), tx.clone());
+        let _ = app.handle_input(key, tx.clone());
         assert_eq!(app.active_view, ActiveView::Segments);
 
         // Tab from Segments -> Themes
-        let _ = app.handle_input(key.clone(), tx.clone());
+        let _ = app.handle_input(key, tx.clone());
         assert_eq!(app.active_view, ActiveView::Themes);
     }
 
@@ -1008,7 +1008,7 @@ mod handle_messages_tests {
         let result = app.handle_input(key, tx);
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), false);
+        assert!(!result.unwrap());
         
         if let AppState::InstallingDependency { current_action, .. } = app.state {
             assert!(current_action.contains("Starting"));

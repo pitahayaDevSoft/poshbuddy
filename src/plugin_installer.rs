@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Enhanced plugin installation module for PoshBuddy
 //!
 //! Provides pre-checks, transactions, and automatic rollback

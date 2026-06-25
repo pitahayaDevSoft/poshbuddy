@@ -5,6 +5,15 @@ All notable changes to PoshBuddy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-06-24
+
+### Added
+- **Horizontal Welcome Screen Logo Layout**: Replaced the vertical stack of the ASCII cat and text logo with a more compact horizontal layout. This reduces the logo's vertical height from 14 lines to 8 lines, giving standard terminals 6 extra lines of space.
+- **Lower Screen Height Limit**: Lowered the screen height threshold to render the logo on smaller terminal windows (from 25 to 23).
+
+### Fixed
+- **Codebase Linting & Debt Resolution**: Ran a comprehensive clippy audit and resolved all style warnings, collapsible if-statements, assert-boolean comparisons, unnecessary clones, and unused helper code.
+
 ## [0.5.1] - 2026-06-03
 
 ### Added

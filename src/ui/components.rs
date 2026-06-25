@@ -291,6 +291,7 @@ pub(crate) fn centered_rect(pct_x: u16, pct_y: u16, area: Rect) -> Rect {
 }
 
 /// Render a section header with a decorative horizontal line
+#[allow(dead_code)]
 pub(crate) fn render_section_header(f: &mut Frame, area: Rect, title: &str, color: Color) {
     let line = Line::from(vec![
         Span::styled("  ▌ ", Style::default().fg(color)),
@@ -300,6 +301,7 @@ pub(crate) fn render_section_header(f: &mut Frame, area: Rect, title: &str, colo
 }
 
 /// Render a badge/pill span  
+#[allow(dead_code)]
 pub(crate) fn badge(text: &str, fg: Color, bg: Color) -> Span<'static> {
     Span::styled(
         format!(" {} ", text),
