@@ -1642,7 +1642,6 @@ except Exception:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
     use std::fs;
     use std::io::Write;
     use std::path::PathBuf;
@@ -1685,12 +1684,12 @@ mod tests {
         let mut file = NamedTempFile::new().unwrap();
         write!(
             file,
-            r#"{
+            r#"{{
             "segments": [
-                { "type": "os" },
-                { "type": "battery" }
+                {{ "type": "os" }},
+                {{ "type": "battery" }}
             ]
-        }"#
+        }}"#
         )
         .unwrap();
 
@@ -1709,21 +1708,21 @@ mod tests {
         let mut file = NamedTempFile::new().unwrap();
         write!(
             file,
-            r#"{
+            r#"{{
             "blocks": [
-                {
+                {{
                     "segments": [
-                        { "type": "path" },
-                        { "type": "git" }
+                        {{ "type": "path" }},
+                        {{ "type": "git" }}
                     ]
-                },
-                {
+                }},
+                {{
                     "segments": [
-                        { "type": "node" }
+                        {{ "type": "node" }}
                     ]
-                }
+                }}
             ]
-        }"#
+        }}"#
         )
         .unwrap();
 
