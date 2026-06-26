@@ -1,0 +1,67 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# VS Code / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.orig
+*.log
+
+# Testing / Coverage
+coverage/
+test-results/
+playwright-report/
+
+# Local development
+.env
+.env.local
+.env.*.local
+
+# Packaging artifacts
+*.zip
+*.tar.gz
+*.deb
+*.rpm
+
+# Project-specific (from Cargo.toml exclude)
+node_modules/
+package.json
+package-lock.json
+assets/
+docs/
+olds/
+tests/
+.github/
+.trunk/
+.vscode/
+demo.cast
+AGENTS.md
+DESIGN.md
+GEMINI.md
+openssf_audit.md
+
+# Agent / tooling directories
+.agents/
+.bin/
+.claude/
+.codegraph/
+.manifests/
+packaging/
+pub/
+scratch/
+tsmaps/
+
+# Misc
+*.cast
+skills-lock.json
