@@ -120,6 +120,7 @@ jobs:
     name: Publish to Crates.io
     needs: build
     runs-on: ubuntu-latest
+    if: ${{ secrets.CRATES_IO_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -134,6 +135,7 @@ jobs:
     name: Publish to AUR
     needs: publish-github
     runs-on: ubuntu-latest
+    if: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
