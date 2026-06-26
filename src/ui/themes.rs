@@ -189,17 +189,19 @@ fn render_themes_preview(f: &mut Frame, area: Rect, app: &App, is_empty: bool) {
         .constraints([Constraint::Min(0), Constraint::Length(3)])
         .split(area);
 
-    let preview_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Rgb(55, 70, 90)))
-        .title(Span::styled(
-            " 󰸉 ANSI Preview ",
-            Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
-        ));
+    if app.theme_preview.is_empty() || app.theme_preview == " Loading preview..." {
+        let preview_block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::Rgb(55, 70, 90)))
+            .title(Span::styled(
+                " 󰸉 ANSI Preview ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ));
 
-    if app.theme_preview.is_empty() {
-        let msg = if is_empty && !app.filter.is_empty() {
+        let msg = if app.theme_preview == " Loading preview..." {
+            "\n  Loading preview..."
+        } else if is_empty && !app.filter.is_empty() {
             "\n  No results. Press Esc to clear filter."
         } else {
             "\n  Select a theme to see a live preview..."
@@ -211,12 +213,47 @@ fn render_themes_preview(f: &mut Frame, area: Rect, app: &App, is_empty: bool) {
             split[0],
         );
     } else {
-        let preview_text = app.theme_preview.as_bytes().into_text().unwrap_or_default();
+        // Split horizontally into left and right preview panels
+        let preview_columns = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(split[0]);
+
+        let (left_preview, right_preview) = split_preview(&app.theme_preview);
+
+        let left_block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::Rgb(55, 70, 90)))
+            .title(Span::styled(
+                " 󰸉 Left Prompt ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ));
+
+        let right_block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::Rgb(55, 70, 90)))
+            .title(Span::styled(
+                " 󰸉 Right Prompt ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ));
+
+        let left_text = left_preview.as_bytes().into_text().unwrap_or_default();
         f.render_widget(
-            Paragraph::new(preview_text)
-                .block(preview_block)
+            Paragraph::new(left_text)
+                .block(left_block)
                 .wrap(Wrap { trim: false }),
-            split[0],
+            preview_columns[0],
+        );
+
+        let right_text = right_preview.as_bytes().into_text().unwrap_or_default();
+        f.render_widget(
+            Paragraph::new(right_text)
+                .block(right_block)
+                .alignment(Alignment::Right)
+                .wrap(Wrap { trim: false }),
+            preview_columns[1],
         );
     }
 
@@ -243,4 +280,48 @@ fn render_themes_preview(f: &mut Frame, area: Rect, app: &App, is_empty: bool) {
 
     // suppress unused
     let _ = (C_ERROR, C_GRAD_1, C_GRAD_2, status_dot);
+}
+
+fn split_line_by_gap(line: &str) -> (String, String) {
+    let mut longest_space_start = 0;
+    let mut longest_space_len = 0;
+
+    let bytes = line.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b' ' {
+            let start = i;
+            while i < bytes.len() && bytes[i] == b' ' {
+                i += 1;
+            }
+            let len = i - start;
+            if start > 0 && i < bytes.len() && len > longest_space_len {
+                longest_space_len = len;
+                longest_space_start = start;
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    if longest_space_len >= 4 {
+        let left = line[..longest_space_start].to_string();
+        let right = line[longest_space_start + longest_space_len..].to_string();
+        (left, right)
+    } else {
+        (line.to_string(), String::new())
+    }
+}
+
+fn split_preview(preview: &str) -> (String, String) {
+    let mut left_lines = Vec::new();
+    let mut right_lines = Vec::new();
+
+    for line in preview.lines() {
+        let (left, right) = split_line_by_gap(line);
+        left_lines.push(left);
+        right_lines.push(right);
+    }
+
+    (left_lines.join("\n"), right_lines.join("\n"))
 }
