@@ -120,27 +120,34 @@ jobs:
     name: Publish to Crates.io
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ secrets.CRATES_IO_TOKEN }}
+    env:
+      CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
     steps:
       - name: Checkout
+        if: ${{ env.CRATES_IO_TOKEN != '' }}
         uses: actions/checkout@v4
 
       - name: Install Rust
+        if: ${{ env.CRATES_IO_TOKEN != '' }}
         uses: dtolnay/rust-toolchain@stable
 
       - name: Publish to crates.io
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+        if: ${{ env.CRATES_IO_TOKEN != '' }}
+        run: cargo publish --token ${{ env.CRATES_IO_TOKEN }}
 
   publish-aur:
     name: Publish to AUR
     needs: publish-github
     runs-on: ubuntu-latest
-    if: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+    env:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
     steps:
       - name: Checkout
+        if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}
         uses: actions/checkout@v4
 
       - name: Set up PKGBUILD
+        if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}
         run: |
           tag_name="${{ github.ref_name }}"
           version="${tag_name#v}"
@@ -157,6 +164,7 @@ jobs:
           cp packaging/aur/PKGBUILD .
 
       - name: Publish AUR package
+        if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}
         uses: KSXGitHub/github-actions-deploy-aur@v3
         with:
           pkgname: poshbuddy
