@@ -1,7 +1,6 @@
 # Rust
 /target/
 **/*.rs.bk
-Cargo.lock
 
 # VS Code / IDE
 .vscode/
@@ -34,34 +33,17 @@ playwright-report/
 *.deb
 *.rpm
 
-# Project-specific (from Cargo.toml exclude)
+# Node / JS packages
 node_modules/
-package.json
-package-lock.json
-assets/
-docs/
-olds/
-tests/
-.github/
-.trunk/
-.vscode/
-demo.cast
-AGENTS.md
-DESIGN.md
-GEMINI.md
-openssf_audit.md
 
 # Agent / tooling directories
-.agents/
 .bin/
 .claude/
 .codegraph/
 .manifests/
-packaging/
-pub/
 scratch/
 tsmaps/
 
 # Misc
 *.cast
-skills-lock.json
+*.code-workspace
