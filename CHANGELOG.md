@@ -5,6 +5,26 @@ All notable changes to PoshBuddy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-06-26
+
+### Added
+- **Split ANSI Prompt Preview**: Divided the ANSI theme preview panel into horizontal columns (Left Prompt and Right Prompt).
+- **Smart Whitespace Splitter**: Implemented a string splitting algorithm to separate left and right segments based on the largest spacing gaps while preserving ANSI styling.
+- **Alignment Simulation**: Configured the right prompt column to render text with right alignment (`Alignment::Right`), simulating native terminal prompt layout.
+
+### Changed
+- **Super Compact Welcome Logo**: Reduced the welcome screen logo height to 5 lines (down from 8) by using a compact 3-line ASCII block font and vertically centering the cat ears/chin, saving valuable vertical space on smaller terminals.
+- **Lowered Welcome Screen Logo Threshold**: Lowered the minimum screen height requirement to render the welcome logo from 23 to 20 lines.
+
+### Fixed
+- **Clippy Warning Resolution**: Resolved a clippy warning regarding collapsible nested `if` statements in `split_line_by_gap`.
+
+## [0.5.3] - 2026-06-25
+
+### Added
+- **Kitty Font Preview**: Implemented real font preview support using Kitty Graphics Protocol and improved preview formatting.
+- **Dynamic Environment Detection**: Auto-detects active shell and terminal on Linux, macOS, and Windows.
+
 ## [0.5.2] - 2026-06-24
 
 ### Added

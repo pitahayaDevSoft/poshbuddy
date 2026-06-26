@@ -1,6 +1,6 @@
 # PoshBuddy
 
-![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.5.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Rust](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml) [![Security Scan](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml)
+![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.6.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Rust](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml) [![Security Scan](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml)
 
 PoshBuddy manages Oh My Posh configurations. It provides a terminal user interface (TUI) and a command-line interface (CLI) to configure themes and install Nerd Fonts on Windows, Linux, and macOS. It supports PowerShell, Bash, Zsh, and Fish shells.
 
