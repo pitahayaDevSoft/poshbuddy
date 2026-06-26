@@ -55,7 +55,7 @@ jobs:
 
       - name: Install cargo-binstall
         if: matrix.platform.runs-on == 'ubuntu-latest'
-        uses: cargo-bins/cargo-binstall-action@v1
+        uses: cargo-bins/cargo-binstall@v1
 
       - name: Build distro packages (Linux only)
         if: matrix.platform.runs-on == 'ubuntu-latest'
@@ -144,7 +144,7 @@ jobs:
           version="${tag_name#v}"
           
           # Fetch source tarball to compute checksum
-          curl -sSL -o source.tar.gz "https://github.com/julesklord/poshbuddy/archive/refs/tags/${tag_name}.tar.gz"
+          curl -sSL -o source.tar.gz "https://github.com/${{ github.repository }}/archive/refs/tags/${tag_name}.tar.gz"
           sha256=$(sha256sum source.tar.gz | cut -d' ' -f1)
           
           # Update PKGBUILD version and checksum
