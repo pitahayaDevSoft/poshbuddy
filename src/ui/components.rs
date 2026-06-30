@@ -119,7 +119,7 @@ pub(crate) fn render_tab_bar(f: &mut Frame, area: Rect, app: &App) {
         };
 
         let (fg, bg, border_color, border_type) = if is_active {
-            (C_BLACK, C_ACCENT, C_ACCENT, BorderType::Thick)
+            (C_BLACK, C_ACCENT, C_ACCENT, BorderType::Rounded)
         } else {
             (
                 C_WHITE,

@@ -69,7 +69,7 @@ pub(crate) fn render_themes(f: &mut Frame, area: Rect, app: &mut App) {
 
     let cols = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(38), Constraint::Percentage(62)])
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
         .split(chunks[1]);
 
     // Left column: search + list

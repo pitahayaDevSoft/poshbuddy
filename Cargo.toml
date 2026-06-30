@@ -1,6 +1,6 @@
 [package]
 name = "poshbuddy"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 authors = ["Julio <julesklord@gmail.com>"]
 description = "A professional TUI Theme Management for Oh My Posh"
@@ -11,6 +11,10 @@ readme = "README.md"
 keywords = ["cli", "tui", "oh-my-posh", "powershell", "terminal"]
 categories = ["command-line-utilities", "development-tools"]
 exclude = [
+    ".agents",
+    ".claude",
+    ".codegraph",
+    ".manifests",
     "node_modules",
     ".github",
     ".trunk",

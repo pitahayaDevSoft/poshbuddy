@@ -31,7 +31,7 @@ pub(crate) fn render_segments(f: &mut Frame, area: Rect, app: &mut App) {
         chunks[0],
     );
 
-    let cols = layout_two_columns(chunks[1], 42, 58);
+    let cols = layout_two_columns(chunks[1], 40, 60);
 
     // Left: search + list
     let left = layout_header_content(cols[0]);

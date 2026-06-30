@@ -5,6 +5,12 @@ All notable changes to PoshBuddy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-06-30
+
+### Changed
+- **Compact & Uniform TUI Tab Layout:** Redesigned the main tab bar to use consistent rounded borders for active and inactive views and unified the left list and right preview column widths across all tabs to 40% / 60% for a smooth transition.
+- **Smaller & Tighter VHS Demo Recording:** Re-recorded the project demo using a classic `Builtin Dark` theme (avoiding modern themes), a smaller font size (`10`), and a minimum line height (`1.0`) to make the interface visual representation more compact.
+
 ## [0.6.0] - 2026-06-26
 
 ### Added
