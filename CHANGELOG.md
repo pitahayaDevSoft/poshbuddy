@@ -5,6 +5,20 @@ All notable changes to PoshBuddy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-11-21
+
+### Fixed
+- **CLI Remote Theme & Font Stability**: Fixed remote catalog channel handling in CLI commands (`set theme`, `list themes`, `list fonts`, `install font`) so `RemoteThemesLoaded` and `FontsLoaded` are no longer discarded and network failures exit cleanly with non-zero status codes instead of deadlocking.
+- **Guaranteed Terminal Restoration**: Added an RAII `TerminalGuard` and panic hook in `run_tui()` so raw mode, alternate screen, and cursor visibility are always restored on error or panic.
+- **CLI Font Installation & Exit Status Validation**: Preloaded the Nerd Fonts catalog in `poshbuddy install font`, added strict font name validation (`App::is_valid_font_name`), and checked `oh-my-posh` process exit codes in both single and bulk font installations.
+- **Multi-Shell Backup Support**: Skipped non-existent detected shell profiles during `apply_theme_advanced` / `toggle_plugin` backup stages, and fixed `BackupManager::list_backups` / `restore_latest` to list, rotate, and restore Fish (`config.fish`) and Unix shell profile backups.
+- **TUI Startup & Kitty Test Stability**: Removed duplicate startup GitHub catalog fetch in `run_tui()` and converted `test_handle_messages_fonts_loaded` to `#[tokio::test]` so tests pass inside Kitty terminals.
+- **CI/CD & Repository Migration**: Updated repository/Pages URLs to `pitahayadevsoft/poshbuddy`, switched `security.yml` to the open-source Gitleaks CLI (`v8.30.1` with SHA-256 verification), fixed `static.yml` to publish `docs/`, and expanded `rust.yml` to run `fmt`, `clippy`, and `test` across Ubuntu, Windows, and macOS.
+
+### Changed
+- **CLI Version Flag**: Added `--version` support via Clap.
+- **Dependency Updates**: Updated `Cargo.lock` across 194 crates (`dirs 7.0.0`, `ratatui 0.30.2`, `tokio 1.54.1`, `reqwest 0.13.5`, `clap 4.6.9`, `rustls 0.23.46`, `aws-lc-rs 1.19.0`, `quinn-proto 0.11.19`, `chacha20 0.10.2`), removed unused `futures` crate and `crossterm/event-stream` feature, and moved `tempfile` to `[dev-dependencies]`.
+
 ## [0.8.0] - 2026-08-04
 
 ### Added

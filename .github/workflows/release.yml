@@ -37,7 +37,7 @@ jobs:
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -97,7 +97,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download Artifacts
         uses: actions/download-artifact@v4
@@ -125,7 +125,7 @@ jobs:
     steps:
       - name: Checkout
         if: ${{ env.CRATES_IO_TOKEN != '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Rust
         if: ${{ env.CRATES_IO_TOKEN != '' }}
@@ -144,7 +144,7 @@ jobs:
     steps:
       - name: Checkout
         if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up PKGBUILD
         if: ${{ env.AUR_SSH_PRIVATE_KEY != '' }}

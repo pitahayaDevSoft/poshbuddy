@@ -92,6 +92,14 @@ impl BackupManager {
         }
     }
 
+    #[cfg(test)]
+    pub fn with_dir(backup_dir: PathBuf, max_backups_per_file: usize) -> Self {
+        Self {
+            backup_dir,
+            max_backups_per_file,
+        }
+    }
+
     /// Creates the backup directory if it doesn't exist
     fn ensure_backup_dir(&self) -> Result<(), BackupError> {
         if !self.backup_dir.exists() {
@@ -174,6 +182,11 @@ impl BackupManager {
             .and_then(|s| s.to_str())
             .unwrap_or("unknown");
 
+        let expected_ext = profile_path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("ps1");
+
         let mut backups = Vec::new();
         let search_prefix = format!("{}_", profile_name);
 
@@ -181,23 +194,23 @@ impl BackupManager {
             let entry = entry?;
             let path = entry.path();
 
+            let Some(ext) = path.extension().and_then(|s| s.to_str()) else {
+                continue;
+            };
+
+            // Exclude metadata sidecars and restrict to matching backup extensions
+            if ext == "meta" || (ext != expected_ext && ext != "backup" && ext != "ps1") {
+                continue;
+            }
+
             if let Some(filename) = path.file_stem().and_then(|s| s.to_str()) {
-                // Look for backups matching the profile name
-                if filename.starts_with(&search_prefix)
-                    && filename.contains(".backup")
-                    && (path.extension() == Some(std::ffi::OsStr::new("backup"))
-                        || path.extension() == Some(std::ffi::OsStr::new("ps1")))
+                // Match `<profile_name>_<timestamp>.backup`
+                if let Some(rest) = filename.strip_prefix(&search_prefix)
+                    && let Some(ts_str) = rest.strip_suffix(".backup")
+                    && let Ok(timestamp) = ts_str.parse::<u64>()
                 {
                     let metadata = entry.metadata()?;
                     let size_bytes = metadata.len();
-
-                    // Extract timestamp from name
-                    let timestamp = filename
-                        .split('_')
-                        .next_back()
-                        .and_then(|t| t.split('.').next())
-                        .and_then(|t| t.parse::<u64>().ok())
-                        .unwrap_or(0);
 
                     // Read description from meta file
                     let meta_path = path.with_extension("meta");
@@ -241,9 +254,18 @@ impl BackupManager {
             self.restore_backup(&latest.path, profile_path)?;
             Ok(latest.clone())
         } else {
-            Err(BackupError::BackupNotFound(
-                self.backup_dir.join("*.backup.ps1"),
-            ))
+            let profile_name = profile_path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("unknown");
+            let expected_ext = profile_path
+                .extension()
+                .and_then(|s| s.to_str())
+                .unwrap_or("ps1");
+            Err(BackupError::BackupNotFound(self.backup_dir.join(format!(
+                "{}_*.backup.{}",
+                profile_name, expected_ext
+            ))))
         }
     }
 
@@ -429,5 +451,48 @@ mod tests {
 
         let result = manager.restore_latest(&fake_profile);
         assert!(matches!(result, Err(BackupError::BackupNotFound(_))));
+    }
+
+    #[test]
+    fn test_backup_list_cleanup_and_restore_fish_profile() {
+        let (manager, temp_dir) = create_test_backup_manager();
+        let profile = create_test_profile(temp_dir.path(), "config.fish", "set -g fish_greeting");
+
+        for i in 1..=4 {
+            fs::write(&profile, format!("set -g version {}", i)).unwrap();
+            manager
+                .backup_profile(&profile, &format!("Fish backup {}", i))
+                .unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+
+        // Cleanup should cap at max_backups_per_file (3)
+        let backups = manager.list_backups(&profile).unwrap();
+        assert_eq!(backups.len(), 3);
+        assert_eq!(backups[0].description, "Fish backup 4");
+
+        // Overwrite and restore latest
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        fs::write(&profile, "corrupted fish config").unwrap();
+        manager.restore_latest(&profile).unwrap();
+        assert_eq!(fs::read_to_string(&profile).unwrap(), "set -g version 4");
+    }
+
+    #[test]
+    fn test_backup_and_restore_bashrc_profile() {
+        let (manager, temp_dir) = create_test_backup_manager();
+        let profile = create_test_profile(temp_dir.path(), ".bashrc", "export PATH=$PATH");
+
+        let backup_path = manager.backup_profile(&profile, "Bash backup").unwrap();
+        assert!(backup_path.exists());
+
+        let backups = manager.list_backups(&profile).unwrap();
+        assert_eq!(backups.len(), 1);
+        assert_eq!(backups[0].description, "Bash backup");
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        fs::write(&profile, "modified bashrc").unwrap();
+        manager.restore_latest(&profile).unwrap();
+        assert_eq!(fs::read_to_string(&profile).unwrap(), "export PATH=$PATH");
     }
 }

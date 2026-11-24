@@ -5,11 +5,21 @@ permissions:
 jobs:
   gitleaks:
     runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: "8.30.1"
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+      - name: Install Gitleaks CLI
+        run: |
+          TARBALL="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          CHECKSUMS="gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -sSLf -o "/tmp/${TARBALL}" "${BASE_URL}/${TARBALL}"
+          curl -sSLf -o "/tmp/${CHECKSUMS}" "${BASE_URL}/${CHECKSUMS}"
+          (cd /tmp && grep " ${TARBALL}$" "${CHECKSUMS}" | sha256sum -c -)
+          tar -xzf "/tmp/${TARBALL}" -C /tmp gitleaks
+          install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
       - name: Gitleaks Scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gitleaks detect --source . --verbose --redact

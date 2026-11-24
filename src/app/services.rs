@@ -1099,34 +1099,77 @@ impl App {
         Ok(())
     }
 
+    /// Validates a font name against injection and path traversal characters
+    pub fn is_valid_font_name(font_name: &str) -> bool {
+        !font_name.is_empty()
+            && !font_name.starts_with('-')
+            && !font_name.contains("..")
+            && font_name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | ' '))
+    }
+
     /// Triggers an asynchronous font installation via Oh My Posh CLI
     pub fn install_font(&self, font_name: String, tx: mpsc::Sender<AppMessage>) {
-        if !self.fonts.iter().any(|f| f.name == font_name) {
+        let resolved_name = if !self.fonts.is_empty() {
+            match self
+                .fonts
+                .iter()
+                .find(|f| f.name.eq_ignore_ascii_case(&font_name))
+            {
+                Some(f) => f.name.clone(),
+                None => {
+                    let _ = tx.try_send(AppMessage::Error(format!(
+                        "Invalid font name: {}",
+                        font_name
+                    )));
+                    return;
+                }
+            }
+        } else {
+            font_name
+        };
+
+        if !Self::is_valid_font_name(&resolved_name) {
             let _ = tx.try_send(AppMessage::Error(format!(
                 "Invalid font name: {}",
-                font_name
+                resolved_name
             )));
             return;
         }
 
         let cmd = get_omp_binary();
 
-        let font_name_cloned = font_name.clone();
         tokio::spawn(async move {
             let output = tokio::process::Command::new(cmd)
-                .args(["font", "install", &font_name_cloned])
+                .args(["font", "install", &resolved_name])
                 .output()
                 .await;
 
             match output {
-                Ok(_) => {
-                    if tx
-                        .send(AppMessage::FontInstalled(font_name_cloned))
-                        .await
-                        .is_err()
-                    {}
+                Ok(out) if out.status.success() => {
+                    let _ = tx.send(AppMessage::FontInstalled(resolved_name)).await;
                 }
-                Err(e) => if tx.send(AppMessage::Error(e.to_string())).await.is_err() {},
+                Ok(out) => {
+                    let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                    let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    let detail = if !stderr.is_empty() {
+                        stderr
+                    } else if !stdout.is_empty() {
+                        stdout
+                    } else {
+                        format!("exited with status {}", out.status)
+                    };
+                    let _ = tx
+                        .send(AppMessage::Error(format!(
+                            "Failed to install font '{}': {}",
+                            resolved_name, detail
+                        )))
+                        .await;
+                }
+                Err(e) => {
+                    let _ = tx.send(AppMessage::Error(e.to_string())).await;
+                }
             }
         });
     }
@@ -1167,28 +1210,40 @@ impl App {
                     .output()
                     .await;
 
-                if let Err(e) = output {
-                    if tx
-                        .send(AppMessage::Error(format!(
-                            "Failed to install {}: {}",
-                            current_name, e
-                        )))
-                        .await
-                        .is_err()
-                    {
+                match output {
+                    Ok(out) if out.status.success() => {}
+                    Ok(out) => {
+                        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                        let detail = if !stderr.is_empty() {
+                            stderr
+                        } else {
+                            format!("exited with status {}", out.status)
+                        };
+                        let _ = tx
+                            .send(AppMessage::Error(format!(
+                                "Failed to install {}: {}",
+                                current_name, detail
+                            )))
+                            .await;
                         return;
                     }
-                    return;
+                    Err(e) => {
+                        let _ = tx
+                            .send(AppMessage::Error(format!(
+                                "Failed to install {}: {}",
+                                current_name, e
+                            )))
+                            .await;
+                        return;
+                    }
                 }
             }
 
-            if tx
+            let _ = tx
                 .send(AppMessage::Success(
                     "All Nerd Fonts have been installed successfully!".to_string(),
                 ))
-                .await
-                .is_err()
-            {}
+                .await;
         });
     }
 
@@ -1628,6 +1683,9 @@ except Exception:
         theme_name: &str,
     ) -> Result<(), String> {
         for profile in profiles {
+            if !profile.exists() {
+                continue;
+            }
             if let Err(e) = backup_manager
                 .backup_profile(profile, &format!("Apply Theme Advanced: {}", theme_name))
             {
@@ -1858,9 +1916,11 @@ except Exception:
                 continue;
             }
 
-            self.backup_manager
-                .backup_profile(profile, &format!("Toggle Plugin: {}", plugin.name))
-                .map_err(|e| io::Error::other(e.to_string()))?;
+            if profile.exists() {
+                self.backup_manager
+                    .backup_profile(profile, &format!("Toggle Plugin: {}", plugin.name))
+                    .map_err(|e| io::Error::other(e.to_string()))?;
+            }
 
             if is_active {
                 self.remove_profile_block(profile, &key)?;
@@ -2260,5 +2320,32 @@ mod tests {
 
         let app = create_dummy_app(vec![profile.clone()]);
         assert_eq!(app.find_active_config_path(), None);
+    }
+
+    #[test]
+    fn test_is_valid_font_name() {
+        assert!(App::is_valid_font_name("FiraCode"));
+        assert!(App::is_valid_font_name("JetBrainsMono"));
+        assert!(App::is_valid_font_name("Meslo LG-S_v1.2"));
+
+        assert!(!App::is_valid_font_name(""));
+        assert!(!App::is_valid_font_name("--help"));
+        assert!(!App::is_valid_font_name("../etc/passwd"));
+        assert!(!App::is_valid_font_name("FiraCode; rm -rf /"));
+        assert!(!App::is_valid_font_name("Font$(whoami)"));
+    }
+
+    #[test]
+    fn test_backup_profiles_skips_nonexistent_profiles() {
+        let temp_dir = tempdir().unwrap();
+        let existing = temp_dir.path().join(".bashrc");
+        let missing = temp_dir.path().join(".zshrc");
+        fs::write(&existing, "export FOO=1\n").unwrap();
+
+        let backup_manager =
+            crate::backup::BackupManager::with_dir(temp_dir.path().join("backups"), 3);
+        let res = App::backup_profiles(&[existing.clone(), missing], &backup_manager, "bubbles");
+        assert!(res.is_ok());
+        assert_eq!(backup_manager.list_backups(&existing).unwrap().len(), 1);
     }
 }

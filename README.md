@@ -1,6 +1,6 @@
 # PoshBuddy
 
-![Build](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg) ![Version](https://img.shields.io/badge/version-0.8.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Rust](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/rust.yml) [![Security Scan](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml/badge.svg)](https://github.com/julesklord/poshbuddy/actions/workflows/security.yml)
+[![Build](https://github.com/pitahayadevsoft/poshbuddy/actions/workflows/rust.yml/badge.svg)](https://github.com/pitahayadevsoft/poshbuddy/actions/workflows/rust.yml) ![Version](https://img.shields.io/badge/version-0.8.1-blue) ![License](https://img.shields.io/badge/license-MIT-green) [![Security Scan](https://github.com/pitahayadevsoft/poshbuddy/actions/workflows/security.yml/badge.svg)](https://github.com/pitahayadevsoft/poshbuddy/actions/workflows/security.yml)
 
 PoshBuddy manages Oh My Posh configurations. It provides a terminal user interface (TUI) and a command-line interface (CLI) to configure themes and install Nerd Fonts on Windows, Linux, and macOS. It supports PowerShell, Bash, Zsh, and Fish shells.
 
@@ -53,7 +53,7 @@ cargo install poshbuddy
 Requires the [Rust toolchain](https://rustup.rs/).
 
 ```sh
-git clone https://github.com/julesklord/poshbuddy.git
+git clone https://github.com/pitahayadevsoft/poshbuddy.git
 cd poshbuddy
 cargo install --path .
 ```
@@ -178,6 +178,6 @@ class node_githubci,node_tests toneMint
 
 ## Resources
 
-- [Wiki](docs/wiki/index.md) - Architecture overview.
-- [GitHub repository](https://github.com/julesklord/poshbuddy) - Source code.
+- [Wiki](https://github.com/pitahayadevsoft/poshbuddy/wiki) - Architecture overview.
+- [GitHub repository](https://github.com/pitahayadevsoft/poshbuddy) - Source code.
 - [Changelog](CHANGELOG.md) - Version history.

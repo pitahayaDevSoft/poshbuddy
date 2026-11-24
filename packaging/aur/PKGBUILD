@@ -1,14 +1,14 @@
 # Maintainer: Julio <julesklord@gmail.com>
 pkgname=poshbuddy
-pkgver=0.5.0
+pkgver=0.8.1
 pkgrel=1
 pkgdesc="A professional TUI Theme Management for Oh My Posh"
 arch=('x86_64' 'aarch64')
-url="https://github.com/julesklord/poshbuddy"
+url="https://github.com/pitahayadevsoft/poshbuddy"
 license=('MIT')
 depends=('oh-my-posh' 'fontconfig')
 makedepends=('cargo')
-source=("${pkgname}-${pkgver}.tar.gz::https://github.com/julesklord/poshbuddy/archive/refs/tags/v${pkgver}.tar.gz")
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/pitahayadevsoft/poshbuddy/archive/refs/tags/v${pkgver}.tar.gz")
 sha256sums=('SKIP')
 
 prepare() {

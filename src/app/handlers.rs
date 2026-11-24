@@ -812,8 +812,8 @@ mod handle_messages_tests {
         }
     }
 
-    #[test]
-    fn test_handle_messages_fonts_loaded() {
+    #[tokio::test]
+    async fn test_handle_messages_fonts_loaded() {
         let mut app = create_test_app();
         let (tx, mut rx) = mpsc::channel(1);
 
